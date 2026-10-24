@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS Library untuk Import Excel (.xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         @media print {
             .no-print { display: none !important; }
@@ -122,7 +124,7 @@
                             </h3>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-600 mb-1">Masukkan NISN Siswa</label>
-                                <input type="text" id="piket-nisn" placeholder="Contoh: 0012345678" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                                <input type="text" id="piket-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
                             </div>
                             <div class="flex space-x-2">
                                 <button onclick="simpanPresensiPiket('Hadir')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-xs transition">Set Hadir Masuk</button>
@@ -210,8 +212,19 @@
             <!-- 3. TAMPILAN ADMIN                          -->
             <!-- ========================================== -->
             <section id="view-admin" class="role-view hidden space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     
+                    <!-- Card Import Excel -->
+                    <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                            <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                            <span>Import Master Data Siswa (.xlsx)</span>
+                        </h3>
+                        <p class="text-xs text-slate-500">Unggah file Excel berisi data siswa (Kolom: nisn, nama, kelas, pass).</p>
+                        <input type="file" id="input-excel-siswa" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"/>
+                        <button onclick="importSiswaExcel()" id="btn-import-excel" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-xs transition">Proses Import Data</button>
+                    </div>
+
                     <!-- Tambah User Pengguna Baru -->
                     <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
@@ -272,7 +285,7 @@
 
     <!-- JAVASCRIPT KONEKSI SUPABASE & LOGIKA -->
     <script>
-        // 1. INSIALISASI SUPABASE CLIENT (DENGAN KREDENSIAL API ANDA)
+        // 1. INISIALISASI SUPABASE CLIENT DENGAN KREDENSIAL API PROYEK ANDA
         const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
         
@@ -290,7 +303,6 @@
             errorAlert.classList.add('hidden');
 
             try {
-                // Query ke tabel 'users' di Supabase
                 const { data, error } = await supabase
                     .from('users')
                     .select('*')
@@ -310,7 +322,6 @@
                 document.getElementById('view-login').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
 
-                // Tampilkan menu sesuai role
                 switchRole(data.role);
 
             } catch (err) {
@@ -333,7 +344,68 @@
             if (target) target.classList.remove('hidden');
         }
 
-        // 3. FUNGSI DISIPLIN & PRESENSI (GURU PIKET)
+        // 3. FUNGSI IMPORT DATA SISWA DARI EXCEL KE SUPABASE
+        async function importSiswaExcel() {
+            const fileInput = document.getElementById('input-excel-siswa');
+            const btnImport = document.getElementById('btn-import-excel');
+
+            if (!fileInput.files.length) {
+                alert("Silakan pilih file Excel (.xlsx) terlebih dahulu!");
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            btnImport.disabled = true;
+            btnImport.textContent = "Memproses Import...";
+
+            reader.onload = async function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[sheetName];
+                    
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+
+                    if (!jsonData.length) {
+                        alert("File Excel kosong atau format tidak sesuai!");
+                        btnImport.disabled = false;
+                        btnImport.textContent = "Proses Import Data";
+                        return;
+                    }
+
+                    // Format data sesuai nama kolom di Excel Anda (nisn, nama, kelas, pass)
+                    const formattedData = jsonData.map(item => ({
+                        nisn: String(item.nisn || '').trim(),
+                        nama: String(item.nama || '').trim(),
+                        kelas: String(item.kelas || '').trim(),
+                        password: String(item.pass || '123456').trim()
+                    }));
+
+                    // Kirim batch data ke tabel 'siswa' di Supabase
+                    const { error } = await supabase.from('siswa').upsert(formattedData, { onConflict: 'nisn' });
+
+                    if (error) {
+                        alert("Gagal mengimpor data ke Supabase: " + error.message);
+                    } else {
+                        alert(`Berhasil mengimpor ${formattedData.length} data siswa ke database!`);
+                        fileInput.value = '';
+                    }
+                } catch (err) {
+                    console.error(err);
+                    alert("Terjadi kesalahan saat membaca file Excel.");
+                } finally {
+                    btnImport.disabled = false;
+                    btnImport.textContent = "Proses Import Data";
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 4. FUNGSI DISIPLIN & PRESENSI (GURU PIKET)
         async function simpanPresensiPiket(status) {
             const nisn = document.getElementById('piket-nisn').value.trim() || document.getElementById('pulang-nisn').value.trim();
             const alasan = document.getElementById('pulang-alasan').value.trim();
@@ -354,7 +426,7 @@
             }
         }
 
-        // 4. FUNGSI KETIDAKHADIRAN (GURU BK)
+        // 5. FUNGSI KETIDAKHADIRAN (GURU BK)
         async function simpanPresensiBK() {
             const nisn = document.getElementById('bk-nisn').value.trim();
             const status = document.getElementById('bk-status').value;
@@ -374,7 +446,7 @@
             }
         }
 
-        // 5. FUNGSI PELANGGARAN (GURU BK)
+        // 6. FUNGSI PELANGGARAN (GURU BK)
         async function simpanPelanggaranBK() {
             const nisn = document.getElementById('pelanggaran-nisn').value.trim();
             const catatan = document.getElementById('pelanggaran-catatan').value.trim();
@@ -393,7 +465,7 @@
             }
         }
 
-        // 6. FUNGSI TAMBAH USER PENGGUNA (ADMIN)
+        // 7. FUNGSI TAMBAH USER PENGGUNA (ADMIN)
         async function tambahUserBaru() {
             const username = document.getElementById('admin-new-username').value.trim();
             const nama = document.getElementById('admin-new-nama').value.trim();
