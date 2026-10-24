@@ -8,7 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS (xlsx) for Excel Export functionality -->
+    <!-- Supabase JS Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS (xlsx) for Excel Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         @media print {
@@ -27,7 +29,6 @@
     <header class="bg-blue-900 text-white shadow-md no-print sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
             <div class="flex items-center space-x-3">
-                <!-- Logo Sekolah Google Drive Link -->
                 <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo SMAN 2 Karanganyar">
                 <div>
                     <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
@@ -36,7 +37,7 @@
             </div>
             <a href="index.html" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center space-x-1.5">
                 <i class="fa-solid fa-right-to-bracket"></i>
-                <span>Login Petugas / Guru</span>
+                <span>Login</span>
             </a>
         </div>
     </header>
@@ -48,10 +49,10 @@
         <div class="print-only text-center mb-6 border-b-2 border-black pb-4">
             <h2 class="text-lg font-bold uppercase">PEMERINTAH PROVINSI JAWA TENGAH</h2>
             <h1 class="text-2xl font-black uppercase">SMA NEGERI 2 KARANGANYAR</h1>
-            <p class="text-xs">Jl. Yos Sudarso, Bejen, Karanganyar, Jawa Tengah 57716 | Telp: (0271) 123456</p>
+            <p class="text-xs">Jl. Ronggowarsito, Bejen, Karanganyar, Jawa Tengah 57716 | Telp: (0271)495795</p>
             <hr class="mt-2 border-t-2 border-black">
             <h3 class="text-base font-bold mt-4 underline">LAPORAN REKAPITULASI PRESENSI & KEDISIPLINAN SISWA</h3>
-            <p class="text-xs" id="print-date">Tanggal Cetak: 21 Oktober 2026</p>
+            <p class="text-xs" id="print-date">Tanggal Cetak: -</p>
         </div>
 
         <!-- PANEL FILTER LAPORAN & EKSPOR -->
@@ -59,7 +60,7 @@
             <div class="flex flex-wrap justify-between items-center gap-2 pb-3 border-b border-slate-100">
                 <div>
                     <h2 class="text-xl font-bold text-slate-800">Pencarian & Laporan Kehadiran</h2>
-                    <p class="text-xs text-slate-500">Cari berdasarkan NISN/Nama, Filter Kelas, Tanggal, serta Cetak PDF atau Excel</p>
+                    <p class="text-xs text-slate-500">Data terhubung langsung secara real-time dengan Supabase database.</p>
                 </div>
                 <!-- MENU PRINT PDF DAN EXCEL -->
                 <div class="flex items-center space-x-2">
@@ -81,22 +82,18 @@
                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
                             <i class="fa-solid fa-magnifying-glass"></i>
                         </span>
-                        <input type="text" id="filter-search" oninput="applyFilters()" placeholder="Ketik NISN atau Nama Siswa..." class="w-full pl-9 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                        <input type="text" id="filter-search" oninput="muatLaporanSupabase()" placeholder="Ketik NISN atau Nama Siswa..." class="w-full pl-9 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
                     </div>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Kelas</label>
-                    <select id="filter-kelas" onchange="applyFilters()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    <select id="filter-kelas" onchange="muatLaporanSupabase()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
                         <option value="semua">Semua Kelas</option>
-                        <option value="10 IPA 1">10 IPA 1</option>
-                        <option value="10 IPA 2">10 IPA 2</option>
-                        <option value="11 IPS 1">11 IPS 1</option>
-                        <option value="12 IPA 3">12 IPA 3</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Tanggal Laporan</label>
-                    <input type="date" id="filter-tanggal" value="2026-10-21" onchange="updateDateDisplay()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
+                    <input type="date" id="filter-tanggal" onchange="muatLaporanSupabase()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
                 </div>
             </div>
         </div>
@@ -109,64 +106,26 @@
                 <div class="flex items-center justify-between pb-3 border-b border-red-100 mb-3">
                     <h3 class="font-bold text-red-700 text-sm flex items-center space-x-2">
                         <i class="fa-solid fa-user-xmark text-red-600 text-base"></i>
-                        <span>Daftar Siswa Tidak Masuk Hari Ini</span>
+                        <span>Daftar Siswa Tidak Masuk</span>
                     </h3>
-                    <span id="badge-tidak-masuk" class="bg-red-100 text-red-800 font-bold text-xs px-2.5 py-0.5 rounded-full">2 Siswa</span>
+                    <span id="badge-tidak-masuk" class="bg-red-100 text-red-800 font-bold text-xs px-2.5 py-0.5 rounded-full">0 Siswa</span>
                 </div>
                 <div class="space-y-2.5" id="container-tidak-masuk">
-                    <div class="flex items-center justify-between p-2.5 bg-red-50/60 rounded-lg border border-red-100 text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">Siti Aminah <span class="font-normal text-slate-500">(0012345679)</span></p>
-                            <p class="text-[11px] text-slate-500">Kelas: 10 IPA 1</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-[11px]">Sakit</span>
-                            <p class="text-[10px] text-slate-500 mt-1">Surat Dokter Dokter BK</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-2.5 bg-red-50/60 rounded-lg border border-red-100 text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">Ahmad Fauzi <span class="font-normal text-slate-500">(0012345682)</span></p>
-                            <p class="text-[11px] text-slate-500">Kelas: 11 IPS 1</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold text-[11px]">Izin</span>
-                            <p class="text-[10px] text-slate-500 mt-1">Acara Keluarga</p>
-                        </div>
-                    </div>
+                    <p class="text-xs text-slate-400 text-center py-2">Memuat data...</p>
                 </div>
             </div>
 
-            <!-- LIST SISWA TERLAMBAT / CATATAN KEDISIPLINAN -->
+            <!-- LIST SISWA TERLAMBAT / PULANG MENDAHULUI -->
             <div class="bg-white rounded-xl shadow-md p-5 border border-amber-200">
                 <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-3">
                     <h3 class="font-bold text-amber-800 text-sm flex items-center space-x-2">
                         <i class="fa-solid fa-clock text-amber-600 text-base"></i>
-                        <span>Daftar Siswa Terlambat Hari Ini</span>
+                        <span>Daftar Siswa Terlambat / Pulang Awal</span>
                     </h3>
-                    <span id="badge-terlambat" class="bg-amber-100 text-amber-800 font-bold text-xs px-2.5 py-0.5 rounded-full">2 Siswa</span>
+                    <span id="badge-terlambat" class="bg-amber-100 text-amber-800 font-bold text-xs px-2.5 py-0.5 rounded-full">0 Siswa</span>
                 </div>
                 <div class="space-y-2.5" id="container-terlambat">
-                    <div class="flex items-center justify-between p-2.5 bg-amber-50/60 rounded-lg border border-amber-100 text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">Rudi Hermawan <span class="font-normal text-slate-500">(0012345680)</span></p>
-                            <p class="text-[11px] text-slate-500">Kelas: 10 IPA 1 &bull; Jam Masuk: 07:15 WIB</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="bg-red-100 text-red-800 px-2 py-0.5 rounded font-bold text-[11px]">Terlambat 15 Mnt</span>
-                            <p class="text-[10px] text-red-600 mt-1 font-medium">Diinput Guru Piket</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-2.5 bg-amber-50/60 rounded-lg border border-amber-100 text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">Dewi Lestari <span class="font-normal text-slate-500">(0012345681)</span></p>
-                            <p class="text-[11px] text-slate-500">Kelas: 10 IPA 1 &bull; Pulang: 11:30 WIB</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold text-[11px]">Pulang Mendahului</span>
-                            <p class="text-[10px] text-amber-800 mt-1 font-medium">Izin Sakit di Sekolah</p>
-                        </div>
-                    </div>
+                    <p class="text-xs text-slate-400 text-center py-2">Memuat data...</p>
                 </div>
             </div>
 
@@ -176,7 +135,7 @@
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
             <div class="flex flex-wrap justify-between items-center pb-2">
                 <h3 class="font-bold text-slate-800 text-sm">Tabel Presensi Seluruh Siswa</h3>
-                <span class="text-xs text-slate-500" id="report-date-text">Tanggal: 21 Oktober 2026</span>
+                <span class="text-xs text-slate-500" id="report-date-text">Tanggal: -</span>
             </div>
             
             <div class="overflow-x-auto">
@@ -193,123 +152,171 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200" id="table-body">
-                        <tr data-nama="Budi Santoso" data-nisn="0012345678" data-kelas="10 IPA 1" data-status="Hadir">
-                            <td class="p-3 border text-center">1</td>
-                            <td class="p-3 border">0012345678</td>
-                            <td class="p-3 border font-semibold">Budi Santoso</td>
-                            <td class="p-3 border">10 IPA 1</td>
-                            <td class="p-3 border"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium">Hadir</span></td>
-                            <td class="p-3 border">06:45:12</td>
-                            <td class="p-3 border text-slate-400">-</td>
-                        </tr>
-                        <tr data-nama="Siti Aminah" data-nisn="0012345679" data-kelas="10 IPA 1" data-status="Sakit">
-                            <td class="p-3 border text-center">2</td>
-                            <td class="p-3 border">0012345679</td>
-                            <td class="p-3 border font-semibold">Siti Aminah</td>
-                            <td class="p-3 border">10 IPA 1</td>
-                            <td class="p-3 border"><span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-medium">Sakit</span></td>
-                            <td class="p-3 border">-</td>
-                            <td class="p-3 border text-slate-600">Surat Dokter Diunggah via BK</td>
-                        </tr>
-                        <tr data-nama="Rudi Hermawan" data-nisn="0012345680" data-kelas="10 IPA 1" data-status="Hadir">
-                            <td class="p-3 border text-center">3</td>
-                            <td class="p-3 border">0012345680</td>
-                            <td class="p-3 border font-semibold">Rudi Hermawan</td>
-                            <td class="p-3 border">10 IPA 1</td>
-                            <td class="p-3 border"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-medium">Hadir</span></td>
-                            <td class="p-3 border">07:15:00</td>
-                            <td class="p-3 border text-red-600 font-medium">Terlambat masuk sekolah 15 menit</td>
-                        </tr>
-                        <tr data-nama="Dewi Lestari" data-nisn="0012345681" data-kelas="10 IPA 1" data-status="Pulang Mendahului">
-                            <td class="p-3 border text-center">4</td>
-                            <td class="p-3 border">0012345681</td>
-                            <td class="p-3 border font-semibold">Dewi Lestari</td>
-                            <td class="p-3 border">10 IPA 1</td>
-                            <td class="p-3 border"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">Pulang Mendahului</span></td>
-                            <td class="p-3 border">11:30:00</td>
-                            <td class="p-3 border text-amber-800">Izin Sakit di Sekolah (Diinput Piket)</td>
-                        </tr>
-                        <tr data-nama="Ahmad Fauzi" data-nisn="0012345682" data-kelas="11 IPS 1" data-status="Izin">
-                            <td class="p-3 border text-center">5</td>
-                            <td class="p-3 border">0012345682</td>
-                            <td class="p-3 border font-semibold">Ahmad Fauzi</td>
-                            <td class="p-3 border">11 IPS 1</td>
-                            <td class="p-3 border"><span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-medium">Izin</span></td>
-                            <td class="p-3 border">-</td>
-                            <td class="p-3 border text-slate-600">Kepentingan Acara Keluarga</td>
+                        <tr>
+                            <td colspan="7" class="p-4 text-center text-slate-400">Memuat data dari database Supabase...</td>
                         </tr>
                     </tbody>
                 </table>
-            </div>
-
-            <!-- TANDA TANGAN CETAK (HANYA GURU PIKET/BK, TANDA TANGAN KEPALA SEKOLAH DIHILANGKAN) -->
-            <div class="print-only mt-12 flex justify-end text-right text-xs pr-12">
-                <div>
-                    <p id="print-location-date">Karanganyar, 21 Oktober 2026</p>
-                    <p class="font-bold">Guru Piket / Tim Kedisiplinan</p>
-                    <div class="h-20"></div>
-                    <p class="underline font-bold">(..........................................)</p>
-                </div>
             </div>
         </div>
     </main>
 
     <!-- FOOTER -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 no-print mt-8">
-        <p>&copy; 2026 SMAN 2 Karanganyar. Sistem Informasi Presensi & Kedisiplinan Digital.</p>
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. Sistem Informasi Presensi & Kedisiplinan Digital.</p>
     </footer>
 
-    <!-- JAVASCRIPT UNTUK FILTER, PENETAPAN TANGGAL, & EKSPOR EXCEL -->
+    <!-- JAVASCRIPT SUPABASE REALTIME & SYNC TANGGAL -->
     <script>
-        function applyFilters() {
-            const searchValue = document.getElementById('filter-search').value.toLowerCase();
-            const selectedKelas = document.getElementById('filter-kelas').value;
-            const rows = document.querySelectorAll('#table-body tr');
+        const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
+        
+        const supabaseClient = (window.supabase && window.supabase.createClient) 
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
+            : null;
 
-            rows.forEach(row => {
-                const nama = (row.getAttribute('data-nama') || '').toLowerCase();
-                const nisn = (row.getAttribute('data-nisn') || '').toLowerCase();
-                const kelas = row.getAttribute('data-kelas') || '';
+        // Inisialisasi Tanggal Hari Ini saat Halaman Dimuat
+        window.onload = function() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filter-tanggal').value = today;
+            
+            muatOpsiKelas();
+            muatLaporanSupabase();
+        };
 
-                const matchesSearch = nama.includes(searchValue) || nisn.includes(searchValue);
-                const matchesKelas = selectedKelas === 'semua' || kelas === selectedKelas;
-
-                if (matchesSearch && matchesKelas) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
+        // Populate Dropdown Filter Kelas dari Database Siswa
+        async function muatOpsiKelas() {
+            if (!supabaseClient) return;
+            const { data } = await supabaseClient.from('siswa').select('kelas');
+            if (data) {
+                const uniqueKelas = [...new Set(data.map(item => item.kelas))].filter(Boolean).sort();
+                const selectEl = document.getElementById('filter-kelas');
+                selectEl.innerHTML = '<option value="semua">Semua Kelas</option>' + 
+                    uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+            }
         }
 
-        function updateDateDisplay() {
-            const inputDate = document.getElementById('filter-tanggal').value;
-            if (!inputDate) return;
-            
-            const options = { year: 'numeric', month: 'long', day: 'numeric' };
-            const dateObj = new Date(inputDate);
-            const formattedDate = dateObj.toLocaleDateString('id-ID', options);
+        // Fetch Laporan Utama dari Database Supabase
+        async function muatLaporanSupabase() {
+            const dateVal = document.getElementById('filter-tanggal').value;
+            const searchVal = document.getElementById('filter-search').value.toLowerCase().trim();
+            const kelasVal = document.getElementById('filter-kelas').value;
 
+            // Update Label Tanggal Cetak PDF & Tampilan
+            const dateObj = new Date(dateVal + 'T00:00:00');
+            const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            
             document.getElementById('report-date-text').textContent = 'Tanggal: ' + formattedDate;
             document.getElementById('print-date').textContent = 'Tanggal Cetak: ' + formattedDate;
-            document.getElementById('print-location-date').textContent = 'Karanganyar, ' + formattedDate;
+
+            if (!supabaseClient) return;
+
+            // Fetch Data Presensi + Join Data Siswa
+            const { data: presensiData, error } = await supabaseClient
+                .from('presensi')
+                .select('*, siswa(nama, kelas)')
+                .gte('created_at', dateVal + 'T00:00:00')
+                .lte('created_at', dateVal + 'T23:59:59');
+
+            const tbody = document.getElementById('table-body');
+            const containerTidakMasuk = document.getElementById('container-tidak-masuk');
+            const containerTerlambat = document.getElementById('container-terlambat');
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+                return;
+            }
+
+            let filtered = presensiData || [];
+
+            // Filter Search NISN/Nama
+            if (searchVal) {
+                filtered = filtered.filter(p => 
+                    (p.nisn && p.nisn.toLowerCase().includes(searchVal)) || 
+                    (p.siswa && p.siswa.nama && p.siswa.nama.toLowerCase().includes(searchVal))
+                );
+            }
+
+            // Filter Kelas
+            if (kelasVal !== 'semua') {
+                filtered = filtered.filter(p => p.siswa && p.siswa.kelas === kelasVal);
+            }
+
+            // Render Highlights: Tidak Masuk (Sakit / Izin / Alpa)
+            const listTidakMasuk = filtered.filter(p => ['Sakit', 'Izin', 'Alpa'].includes(p.status));
+            document.getElementById('badge-tidak-masuk').innerText = `${listTidakMasuk.length} Siswa`;
+
+            if (listTidakMasuk.length === 0) {
+                containerTidakMasuk.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Nihil (Semua siswa masuk)</p>';
+            } else {
+                containerTidakMasuk.innerHTML = listTidakMasuk.map(p => `
+                    <div class="flex items-center justify-between p-2.5 bg-red-50/60 rounded-lg border border-red-100 text-xs">
+                        <div>
+                            <p class="font-bold text-slate-800">${p.siswa ? p.siswa.nama : 'Siswa'} <span class="font-normal text-slate-500">(${p.nisn})</span></p>
+                            <p class="text-[11px] text-slate-500">Kelas: ${p.siswa ? p.siswa.kelas : '-'}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-[11px]">${p.status}</span>
+                            <p class="text-[10px] text-slate-500 mt-1">${p.keterangan || '-'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render Highlights: Terlambat / Pulang Awal
+            const listTerlambat = filtered.filter(p => ['Terlambat', 'Pulang Mendahului'].includes(p.status));
+            document.getElementById('badge-terlambat').innerText = `${listTerlambat.length} Siswa`;
+
+            if (listTerlambat.length === 0) {
+                containerTerlambat.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Nihil</p>';
+            } else {
+                containerTerlambat.innerHTML = listTerlambat.map(p => `
+                    <div class="flex items-center justify-between p-2.5 bg-amber-50/60 rounded-lg border border-amber-100 text-xs">
+                        <div>
+                            <p class="font-bold text-slate-800">${p.siswa ? p.siswa.nama : 'Siswa'} <span class="font-normal text-slate-500">(${p.nisn})</span></p>
+                            <p class="text-[11px] text-slate-500">Kelas: ${p.siswa ? p.siswa.kelas : '-'} &bull; Jam: ${p.jam_masuk || '-'}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold text-[11px]">${p.status}</span>
+                            <p class="text-[10px] text-amber-800 mt-1 font-medium">${p.keterangan || '-'}</p>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            // Render Tabel Utama Laporan
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">Tidak ada data presensi pada tanggal ini.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map((p, idx) => {
+                let badgeClass = 'bg-emerald-100 text-emerald-800';
+                if (['Sakit', 'Izin'].includes(p.status)) badgeClass = 'bg-blue-100 text-blue-800';
+                if (['Terlambat', 'Pulang Mendahului'].includes(p.status)) badgeClass = 'bg-amber-100 text-amber-800';
+                if (p.status === 'Alpa') badgeClass = 'bg-red-100 text-red-800';
+
+                return `
+                    <tr class="hover:bg-slate-50 border-b border-slate-200">
+                        <td class="p-3 border text-center font-mono">${idx + 1}</td>
+                        <td class="p-3 border font-mono">${p.nisn}</td>
+                        <td class="p-3 border font-semibold text-slate-800">${p.siswa ? p.siswa.nama : '-'}</td>
+                        <td class="p-3 border">${p.siswa ? p.siswa.kelas : '-'}</td>
+                        <td class="p-3 border"><span class="${badgeClass} px-2 py-0.5 rounded font-medium">${p.status}</span></td>
+                        <td class="p-3 border font-mono">${p.jam_masuk || '-'}</td>
+                        <td class="p-3 border text-slate-600">${p.keterangan || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
         }
 
+        // Export Tabel ke Excel
         function exportToExcel() {
             const table = document.getElementById('main-report-table');
-            const dateVal = document.getElementById('filter-tanggal').value || '2026-10-21';
-            
-            // Create Excel workbook from HTML Table
+            const dateVal = document.getElementById('filter-tanggal').value;
             const wb = XLSX.utils.table_to_book(table, { sheet: "Laporan Presensi" });
-            
-            // Save as file
             XLSX.writeFile(wb, `Laporan_Presensi_SMAN2_Karanganyar_${dateVal}.xlsx`);
         }
-
-        // Initialize default dates
-        window.onload = function() {
-            updateDateDisplay();
-        };
     </script>
 </body>
 </html>
