@@ -212,24 +212,50 @@
             <!-- 3. TAMPILAN ADMIN                          -->
             <!-- ========================================== -->
             <section id="view-admin" class="role-view hidden space-y-6">
+                <!-- GRID FITUR MANAJEMEN -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     
-                    <!-- Card Import Excel -->
+                    <!-- 1. Tambah Siswa Manual (Tanpa Import) -->
+                    <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
+                        <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                            <i class="fa-solid fa-user-graduate text-indigo-600"></i>
+                            <span>Tambah Siswa Manual</span>
+                        </h3>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
+                            <input type="text" id="admin-siswa-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+                            <input type="text" id="admin-siswa-nama" placeholder="Nama Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
+                            <input type="text" id="admin-siswa-kelas" placeholder="Contoh: XII F1" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                            <input type="password" id="admin-siswa-pass" placeholder="Default: 123456" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        </div>
+                        <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition">Tambah Data Siswa</button>
+                    </div>
+
+                    <!-- 2. Import Excel Siswa Massal -->
                     <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
                             <i class="fa-solid fa-file-excel text-emerald-600"></i>
-                            <span>Import Master Data Siswa (.xlsx)</span>
+                            <span>Import Master Siswa (.xlsx)</span>
                         </h3>
                         <p class="text-xs text-slate-500">Unggah file Excel berisi data siswa (Kolom: nisn, nama, kelas, pass).</p>
                         <input type="file" id="input-excel-siswa" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer"/>
                         <button onclick="importSiswaExcel()" id="btn-import-excel" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-xs transition">Proses Import Data</button>
                     </div>
 
-                    <!-- Tambah User Pengguna Baru -->
+                    <!-- 3. Tambah User Petugas (Piket/BK/Admin) -->
                     <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
-                            <i class="fa-solid fa-user-plus text-blue-600"></i>
-                            <span>Tambah User Pengguna</span>
+                            <i class="fa-solid fa-user-shield text-blue-600"></i>
+                            <span>Tambah Petugas / Guru</span>
                         </h3>
                         <div>
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Username / NIP</label>
@@ -251,26 +277,42 @@
                                 <option value="admin">Administrator</option>
                             </select>
                         </div>
-                        <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition">Tambah User</button>
+                        <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition">Tambah User Petugas</button>
                     </div>
 
-                    <!-- Pengaturan Koordinat & Lokasi -->
-                    <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
-                            <i class="fa-solid fa-location-dot text-red-600"></i>
-                            <span>Pengaturan Koordinat Sekolah (GPS)</span>
-                        </h3>
-                        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700">Lintang (Latitude):</label>
-                                <input type="text" id="gps-lat" value="-7.6005890" class="w-full border px-2 py-1 rounded text-slate-600 font-mono text-xs">
-                            </div>
-                            <div>
-                                <label class="block text-[11px] font-bold text-slate-700">Bujur (Longitude):</label>
-                                <input type="text" id="gps-long" value="110.9783970" class="w-full border px-2 py-1 rounded text-slate-600 font-mono text-xs">
-                            </div>
+                </div>
+
+                <!-- TABEL MANAJEMEN DATA SISWA (BISA EDIT & HAPUS/DELETE) -->
+                <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
+                    <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
+                        <div>
+                            <h3 class="font-bold text-slate-800 text-base">Kelola Data Siswa</h3>
+                            <p class="text-xs text-slate-500">Daftar siswa tersimpan di database Supabase.</p>
                         </div>
-                        <button onclick="alert('Koordinat Sekolah Berhasil Disimpan!')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs transition">Simpan Setting Lokasi</button>
+                        <div class="flex items-center space-x-2">
+                            <input type="text" id="search-siswa-input" onkeyup="muatDaftarSiswa()" placeholder="Cari NISN atau Nama..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                            <button onclick="muatDaftarSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                                <i class="fa-solid fa-rotate"></i> Refresh Data
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto max-h-96">
+                        <table class="w-full text-xs text-left text-slate-600">
+                            <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
+                                <tr>
+                                    <th class="p-3">NISN</th>
+                                    <th class="p-3">Nama Siswa</th>
+                                    <th class="p-3">Kelas</th>
+                                    <th class="p-3 text-center">Aksi Hapus</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-siswa-body" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="4" class="p-4 text-center text-slate-400">Klik "Refresh Data" atau ketik pencarian untuk memuat daftar siswa.</td>
+                                </tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </section>
@@ -285,15 +327,17 @@
 
     <!-- JAVASCRIPT KONEKSI SUPABASE & LOGIKA -->
     <script>
-        // 1. INISIALISASI SUPABASE CLIENT DENGAN KREDENSIAL API PROYEK ANDA
+        // 1. INISIALISASI SUPABASE CLIENT (KREDENSIAL API ANDA)
         const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
         
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        const supabaseClient = (window.supabase && window.supabase.createClient) 
+            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
+            : null;
 
         let currentActiveUser = null;
 
-        // 2. LOGIKA LOGIN USER VIA DATABASE SUPABASE
+        // 2. LOGIKA LOGIN USER
         async function handleLogin(e) {
             e.preventDefault();
             const usernameInput = document.getElementById('login-username').value.trim();
@@ -302,31 +346,43 @@
 
             errorAlert.classList.add('hidden');
 
+            if (!supabaseClient) {
+                alert("Pustaka Supabase gagal dimuat. Periksa koneksi internet Anda.");
+                return;
+            }
+
             try {
-                const { data, error } = await supabase
+                const { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
                     .eq('username', usernameInput)
-                    .eq('password_hash', passwordInput)
-                    .single();
+                    .eq('password_hash', passwordInput);
 
-                if (error || !data) {
+                if (error) {
+                    alert("Error Supabase: " + error.message);
+                    return;
+                }
+
+                if (!data || data.length === 0) {
+                    errorAlert.innerText = "Username atau Password salah!";
                     errorAlert.classList.remove('hidden');
                     return;
                 }
 
-                currentActiveUser = data;
-                document.getElementById('user-display-name').textContent = data.nama;
-                document.getElementById('user-display-role').textContent = data.role;
+                const user = data[0];
+                currentActiveUser = user;
+
+                document.getElementById('user-display-name').textContent = user.nama || user.username;
+                document.getElementById('user-display-role').textContent = user.role || 'piket';
 
                 document.getElementById('view-login').classList.add('hidden');
                 document.getElementById('app-container').classList.remove('hidden');
 
-                switchRole(data.role);
+                switchRole(user.role);
 
             } catch (err) {
-                console.error("Login Error:", err);
-                alert("Terjadi kesalahan sistem saat mencoba login.");
+                console.error("Login Exception:", err);
+                alert("Terjadi kesalahan sistem: " + err.message);
             }
         }
 
@@ -341,10 +397,101 @@
         function switchRole(role) {
             document.querySelectorAll('.role-view').forEach(el => el.classList.add('hidden'));
             const target = document.getElementById('view-' + role);
-            if (target) target.classList.remove('hidden');
+            if (target) {
+                target.classList.remove('hidden');
+                if (role === 'admin') {
+                    muatDaftarSiswa();
+                }
+            }
         }
 
-        // 3. FUNGSI IMPORT DATA SISWA DARI EXCEL KE SUPABASE
+        // 3. FUNGSI TAMBAH SISWA MANUAL (SATUAN)
+        async function tambahSiswaManual() {
+            const nisn = document.getElementById('admin-siswa-nisn').value.trim();
+            const nama = document.getElementById('admin-siswa-nama').value.trim();
+            const kelas = document.getElementById('admin-siswa-kelas').value.trim();
+            const pass = document.getElementById('admin-siswa-pass').value.trim() || '123456';
+
+            if (!nisn || !nama || !kelas) {
+                alert("NISN, Nama, dan Kelas wajib diisi!");
+                return;
+            }
+
+            const { error } = await supabaseClient.from('siswa').upsert([
+                { nisn: nisn, nama: nama, kelas: kelas, password: pass }
+            ], { onConflict: 'nisn' });
+
+            if (error) {
+                alert("Gagal menambahkan siswa: " + error.message);
+            } else {
+                alert(`Siswa ${nama} (NISN: ${nisn}) berhasil ditambahkan!`);
+                document.getElementById('admin-siswa-nisn').value = '';
+                document.getElementById('admin-siswa-nama').value = '';
+                document.getElementById('admin-siswa-kelas').value = '';
+                document.getElementById('admin-siswa-pass').value = '';
+                muatDaftarSiswa();
+            }
+        }
+
+        // 4. FUNGSI HAPUS SISWA (DELETE)
+        async function hapusSiswa(nisn, nama) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus data siswa "${nama}" (NISN: ${nisn})?`)) {
+                return;
+            }
+
+            const { error } = await supabaseClient
+                .from('siswa')
+                .delete()
+                .eq('nisn', nisn);
+
+            if (error) {
+                alert("Gagal menghapus siswa: " + error.message);
+            } else {
+                alert(`Siswa "${nama}" berhasil dihapus.`);
+                muatDaftarSiswa();
+            }
+        }
+
+        // 5. FUNGSI MUAT & CARI DAFTAR SISWA UNTUK TABEL ADMIN
+        async function muatDaftarSiswa() {
+            const tbody = document.getElementById('tabel-siswa-body');
+            const keyword = document.getElementById('search-siswa-input').value.trim();
+
+            tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat data siswa...</td></tr>';
+
+            let query = supabaseClient.from('siswa').select('*').limit(100);
+
+            if (keyword) {
+                query = query.or(`nisn.ilike.%${keyword}%,nama.ilike.%${keyword}%`);
+            }
+
+            const { data, error } = await query;
+
+            if (error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+                return;
+            }
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Tidak ada data siswa ditemukan.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(s => `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="p-3 font-mono font-medium">${s.nisn}</td>
+                    <td class="p-3 font-semibold text-slate-800">${s.nama}</td>
+                    <td class="p-3 text-slate-600">${s.kelas}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="hapusSiswa('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs transition">
+                            <i class="fa-solid fa-trash"></i> Hapus
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // 6. FUNGSI IMPORT DATA SISWA DARI EXCEL
         async function importSiswaExcel() {
             const fileInput = document.getElementById('input-excel-siswa');
             const btnImport = document.getElementById('btn-import-excel');
@@ -376,7 +523,6 @@
                         return;
                     }
 
-                    // Format data sesuai nama kolom di Excel Anda (nisn, nama, kelas, pass)
                     const formattedData = jsonData.map(item => ({
                         nisn: String(item.nisn || '').trim(),
                         nama: String(item.nama || '').trim(),
@@ -384,14 +530,14 @@
                         password: String(item.pass || '123456').trim()
                     }));
 
-                    // Kirim batch data ke tabel 'siswa' di Supabase
-                    const { error } = await supabase.from('siswa').upsert(formattedData, { onConflict: 'nisn' });
+                    const { error } = await supabaseClient.from('siswa').upsert(formattedData, { onConflict: 'nisn' });
 
                     if (error) {
                         alert("Gagal mengimpor data ke Supabase: " + error.message);
                     } else {
                         alert(`Berhasil mengimpor ${formattedData.length} data siswa ke database!`);
                         fileInput.value = '';
+                        muatDaftarSiswa();
                     }
                 } catch (err) {
                     console.error(err);
@@ -405,14 +551,14 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // 4. FUNGSI DISIPLIN & PRESENSI (GURU PIKET)
+        // 7. FUNGSI PRESENSI GURU PIKET
         async function simpanPresensiPiket(status) {
             const nisn = document.getElementById('piket-nisn').value.trim() || document.getElementById('pulang-nisn').value.trim();
             const alasan = document.getElementById('pulang-alasan').value.trim();
 
             if (!nisn) { alert("Siswa/NISN wajib diisi!"); return; }
 
-            const { data, error } = await supabase.from('presensi').insert([
+            const { error } = await supabaseClient.from('presensi').insert([
                 { nisn: nisn, status: status, keterangan: alasan, jam_masuk: new Date().toLocaleTimeString() }
             ]);
 
@@ -426,7 +572,7 @@
             }
         }
 
-        // 5. FUNGSI KETIDAKHADIRAN (GURU BK)
+        // 8. FUNGSI KETIDAKHADIRAN GURU BK
         async function simpanPresensiBK() {
             const nisn = document.getElementById('bk-nisn').value.trim();
             const status = document.getElementById('bk-status').value;
@@ -434,7 +580,7 @@
 
             if (!nisn) { alert("NISN wajib diisi!"); return; }
 
-            const { error } = await supabase.from('presensi').insert([
+            const { error } = await supabaseClient.from('presensi').insert([
                 { nisn: nisn, status: status, keterangan: ket }
             ]);
 
@@ -446,14 +592,14 @@
             }
         }
 
-        // 6. FUNGSI PELANGGARAN (GURU BK)
+        // 9. FUNGSI PELANGGARAN GURU BK
         async function simpanPelanggaranBK() {
             const nisn = document.getElementById('pelanggaran-nisn').value.trim();
             const catatan = document.getElementById('pelanggaran-catatan').value.trim();
 
             if (!nisn || !catatan) { alert("NISN dan Catatan Wajib diisi!"); return; }
 
-            const { error } = await supabase.from('kedisiplinan').insert([
+            const { error } = await supabaseClient.from('kedisiplinan').insert([
                 { nisn: nisn, catatan_pelanggaran: catatan, diinput_oleh: currentActiveUser ? currentActiveUser.id : null }
             ]);
 
@@ -465,7 +611,7 @@
             }
         }
 
-        // 7. FUNGSI TAMBAH USER PENGGUNA (ADMIN)
+        // 10. FUNGSI TAMBAH USER PETUGAS
         async function tambahUserBaru() {
             const username = document.getElementById('admin-new-username').value.trim();
             const nama = document.getElementById('admin-new-nama').value.trim();
@@ -474,7 +620,7 @@
 
             if (!username || !nama || !pass) { alert("Semua kolom wajib diisi!"); return; }
 
-            const { error } = await supabase.from('users').insert([
+            const { error } = await supabaseClient.from('users').insert([
                 { username: username, nama: nama, password_hash: pass, role: role }
             ]);
 
