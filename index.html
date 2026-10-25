@@ -922,29 +922,39 @@
             return R * c;
         }
 
-        async function prosesPresensiSiswa(jenis) {
-            const maxRadius = parseInt(document.getElementById('gps-radius').value) || 100;
+       async function prosesPresensiSiswa(jenis) {
+    const maxRadius = parseInt(document.getElementById('gps-radius').value) || 100;
 
-            if (siswaDistanceMeters === null) {
-                alert("Sedang mendeteksi GPS. Mohon tunggu sebentar.");
-                return;
-            }
+    if (siswaDistanceMeters === null) {
+        alert("Sedang mendeteksi GPS. Mohon tunggu sebentar.");
+        return;
+    }
 
-            if (siswaDistanceMeters > maxRadius) {
-                alert(`Presensi gagal. Anda berada di luar radius sekolah (${siswaDistanceMeters}m dari batas ${maxRadius}m).`);
-                return;
-            }
+    if (siswaDistanceMeters > maxRadius) {
+        alert(`Presensi gagal. Anda berada di luar radius sekolah (${siswaDistanceMeters}m dari batas ${maxRadius}m).`);
+        return;
+    }
 
-            const { error } = await supabaseClient.from('presensi').insert([
-                { nisn: currentActiveUser.nisn, status: jenis, keterangan: `Presensi Mandiri GPS (${siswaDistanceMeters}m)`, jam_masuk: new Date().toLocaleTimeString() }
-            ]);
+    // Format jam wajib HH:mm:ss (menggunakan titik dua, bukan titik)
+    const sekarang = new Date();
+    const jamFormatted = sekarang.toTimeString().split(' ')[0]; // Hasil: "15:29:11"
 
-            if (error) { alert("Gagal melakukan presensi: " + error.message); }
-            else {
-                alert(`Presensi ${jenis} berhasil dicatat!`);
-                muatRiwayatSiswa();
-            }
+    const { error } = await supabaseClient.from('presensi').insert([
+        { 
+            nisn: currentActiveUser.nisn, 
+            status: jenis, 
+            keterangan: `Presensi Mandiri GPS (${siswaDistanceMeters}m)`, 
+            jam_masuk: jamFormatted 
         }
+    ]);
+
+    if (error) { 
+        alert("Gagal melakukan presensi: " + error.message); 
+    } else {
+        alert(`Presensi ${jenis} berhasil dicatat!`);
+        muatRiwayatSiswa();
+    }
+}
 
         async function muatRiwayatSiswa() {
             if (!currentActiveUser || !currentActiveUser.nisn) return;
