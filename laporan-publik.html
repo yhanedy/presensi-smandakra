@@ -83,7 +83,7 @@
                                 <th class="p-3">Nama Kelas (Klik Rincian)</th>
                                 <th class="p-3 text-center text-emerald-700">Siswa Hadir</th>
                                 <th class="p-3 text-center text-amber-700">Siswa Terlambat (> 07:01)</th>
-                                <th class="p-3 text-center text-purple-700">Pulang Awal</th>
+                                <th class="p-3 text-center text-purple-700">Pulang Awal / TAP</th>
                                 <th class="p-3 text-center text-red-700">Alpha (> 08:30)</th>
                                 <th class="p-3 text-center text-blue-700">Siswa Tidak Masuk (S/I)</th>
                                 <th class="p-3 text-center">Total Siswa</th>
@@ -159,12 +159,12 @@
                     </button>
                 </div>
 
-                <!-- 3. KARTU RINGKASAN PULANG MENDAGULUI -->
+                <!-- 3. KARTU RINGKASAN PULANG MENDAGULUI & TAP -->
                 <div class="bg-white rounded-xl shadow-md p-5 border border-purple-200 space-y-3">
                     <div class="flex justify-between items-center border-b pb-2">
                         <h4 class="font-bold text-purple-900 text-xs flex items-center space-x-2">
                             <i class="fa-solid fa-person-walking-arrow-right text-purple-600"></i>
-                            <span>Daftar Siswa Pulang Mendahului</span>
+                            <span>Daftar Pulang Mendahului & TAP</span>
                         </h4>
                         <span id="badge-count-pulangawal" class="bg-purple-100 text-purple-800 text-[10px] font-bold px-2 py-0.5 rounded-full">0 Siswa</span>
                     </div>
@@ -237,7 +237,7 @@
 
     <!-- FOOTER -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 mt-8">
-        <p>&copy; yhanedy @ 2026 SMAN 2 Karanganyar. All rights reserved.</p>
+        <p>&copy; yhnaedy@2026 SMAN 2 Karanganyar-Silahkan ditiru aplikasinya.</p>
     </footer>
 
     <!-- JAVASCRIPT KONEKSI SUPABASE & LOGIKA REKAP KELAS -->
@@ -323,10 +323,13 @@
                     return;
                 }
 
-                // Waktu batas alpha (08:30)
+                // Waktu Pengecekan (Selesai Jam Sekolah / Batas Alpha)
                 const sekarang = new Date();
+                const todayStr = sekarang.toISOString().split('T')[0];
                 const jamSekarangStr = sekarang.toTimeString().split(' ')[0];
-                const isLewatBatasAlpha = (tanggalSelected < new Date().toISOString().split('T')[0]) || (jamSekarangStr >= '08:30:00');
+
+                const isLewatBatasAlpha = (tanggalSelected < todayStr) || (jamSekarangStr >= '08:30:00');
+                const isLewatJam1730 = (tanggalSelected < todayStr) || (jamSekarangStr >= '17:30:00');
 
                 let rowsHtml = '';
                 sortedKelasKeys.forEach((kelasName, index) => {
@@ -340,16 +343,16 @@
 
                     daftarSiswa.forEach(siswa => {
                         const pList = globalPresensiList.filter(p => p.nisn === siswa.nisn);
-                        const statusObj = hitungStatusSiswa(pList, isLewatBatasAlpha);
+                        const statusObj = hitungStatusSiswa(pList, isLewatBatasAlpha, isLewatJam1730);
 
                         const itemGlobal = { nama: siswa.nama, kelas: kelasName, ket: statusObj.catatan };
 
-                        if (statusObj.status === 'Hadir') {
+                        if (statusObj.status === 'Hadir' || statusObj.status === 'Hadir Pagi (HP)') {
                             countHadir++;
                         } else if (statusObj.status === 'Terlambat') {
                             countTerlambat++;
                             listGlobalTerlambat.push(itemGlobal);
-                        } else if (statusObj.status === 'Pulang Awal') {
+                        } else if (statusObj.status === 'Pulang Awal' || statusObj.status === 'TAP (Tanpa Absen Pulang)') {
                             countPulangAwal++;
                             listGlobalPulangAwal.push(itemGlobal);
                         } else if (statusObj.status === 'Alpha') {
@@ -391,8 +394,8 @@
             }
         }
 
-        // 2. LOGIKA PENENTUAN STATUS KEHADIRAN (HADIR, TERLAMBAT > 07:01, PULANG AWAL, ALPHA > 08:30)
-        function hitungStatusSiswa(presensiList, isLewatBatasAlpha) {
+        // 2. LOGIKA PENENTUAN STATUS KEHADIRAN (HADIR PAGI, HADIR LENGKAP, TERLAMBAT, PULANG AWAL, TAP, ALPHA)
+        function hitungStatusSiswa(presensiList, isLewatBatasAlpha, isLewatJam1730) {
             if (!presensiList || presensiList.length === 0) {
                 if (isLewatBatasAlpha) {
                     return { status: 'Alpha', jamMasuk: '-', jamPulang: '-', catatan: 'Alpha (Tanpa Keterangan)' };
@@ -422,10 +425,22 @@
             }
 
             if (pMasuk) {
-                if (jamMasukVal > '07:01:00' || pMasuk.status === 'Terlambat') {
+                const isTerlambat = (jamMasukVal > '07:01:00' || pMasuk.status === 'Terlambat');
+
+                // Cek jika siswa belum presensi pulang
+                if (!pPulang) {
+                    if (isLewatJam1730) {
+                        return { status: 'TAP (Tanpa Absen Pulang)', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `TAP - Tidak Presensi Pulang s.d. 17:30` };
+                    } else {
+                        return { status: 'Hadir Pagi (HP)', jamMasuk: jamMasukVal, jamPulang: '-', catatan: isTerlambat ? `Hadir Pagi - Terlambat (${jamMasukVal})` : `Hadir Pagi Tepat Waktu (${jamMasukVal})` };
+                    }
+                }
+
+                // Jika sudah presensi pulang
+                if (isTerlambat) {
                     return { status: 'Terlambat', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Terlambat (${jamMasukVal})` };
                 } else {
-                    return { status: 'Hadir', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir (${jamMasukVal})` };
+                    return { status: 'Hadir', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Lengkap (${jamMasukVal} - ${jamPulangVal})` };
                 }
             }
 
@@ -479,14 +494,17 @@
             
             const tanggalSelected = document.getElementById('filter-tanggal').value;
             const sekarang = new Date();
+            const todayStr = sekarang.toISOString().split('T')[0];
             const jamSekarangStr = sekarang.toTimeString().split(' ')[0];
-            const isLewatBatasAlpha = (tanggalSelected < new Date().toISOString().split('T')[0]) || (jamSekarangStr >= '08:30:00');
+
+            const isLewatBatasAlpha = (tanggalSelected < todayStr) || (jamSekarangStr >= '08:30:00');
+            const isLewatJam1730 = (tanggalSelected < todayStr) || (jamSekarangStr >= '17:30:00');
 
             const siswaKelas = globalSiswaList.filter(s => (s.kelas || 'Tanpa Kelas') === kelasName);
             
             dataDetailTerpilih = siswaKelas.map((siswa, idx) => {
                 const pList = globalPresensiList.filter(p => p.nisn === siswa.nisn);
-                const res = hitungStatusSiswa(pList, isLewatBatasAlpha);
+                const res = hitungStatusSiswa(pList, isLewatBatasAlpha, isLewatJam1730);
                 return {
                     no: idx + 1,
                     nama: siswa.nama,
@@ -515,8 +533,10 @@
             tbody.innerHTML = listData.map(d => {
                 let badgeClass = 'bg-slate-100 text-slate-700';
                 if (d.status === 'Hadir') badgeClass = 'bg-emerald-100 text-emerald-800';
+                else if (d.status === 'Hadir Pagi (HP)') badgeClass = 'bg-teal-100 text-teal-800';
                 else if (d.status === 'Terlambat') badgeClass = 'bg-amber-100 text-amber-800';
                 else if (d.status === 'Pulang Awal') badgeClass = 'bg-purple-100 text-purple-800';
+                else if (d.status === 'TAP (Tanpa Absen Pulang)') badgeClass = 'bg-fuchsia-100 text-fuchsia-800';
                 else if (d.status === 'Alpha') badgeClass = 'bg-red-100 text-red-800';
                 else if (d.status === 'Sakit' || d.status === 'Izin') badgeClass = 'bg-blue-100 text-blue-800';
 
