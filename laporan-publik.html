@@ -237,7 +237,7 @@
 
     <!-- FOOTER -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 mt-8">
-        <p>&copy; yhnaedy@2026 SMAN 2 Karanganyar-Silahkan ditiru aplikasinya.</p>
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. Silahkan ditiru Aplikasinya.</p>
     </footer>
 
     <!-- JAVASCRIPT KONEKSI SUPABASE & LOGIKA REKAP KELAS -->
@@ -349,7 +349,7 @@
 
                         if (statusObj.status === 'Hadir' || statusObj.status === 'Hadir Pagi (HP)') {
                             countHadir++;
-                        } else if (statusObj.status === 'Terlambat') {
+                        } else if (statusObj.status === 'Hadir Terlambat (HT)' || statusObj.status === 'Terlambat (Belum Pulang)') {
                             countTerlambat++;
                             listGlobalTerlambat.push(itemGlobal);
                         } else if (statusObj.status === 'Pulang Awal' || statusObj.status === 'TAP (Tanpa Absen Pulang)') {
@@ -394,7 +394,7 @@
             }
         }
 
-        // 2. LOGIKA PENENTUAN STATUS KEHADIRAN (HADIR PAGI, HADIR LENGKAP, TERLAMBAT, PULANG AWAL, TAP, ALPHA)
+        // 2. LOGIKA PENENTUAN STATUS KEHADIRAN (DENGAN ISTILAH HADIR TERLAMBAT (HT))
         function hitungStatusSiswa(presensiList, isLewatBatasAlpha, isLewatJam1730) {
             if (!presensiList || presensiList.length === 0) {
                 if (isLewatBatasAlpha) {
@@ -432,13 +432,17 @@
                     if (isLewatJam1730) {
                         return { status: 'TAP (Tanpa Absen Pulang)', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `TAP - Tidak Presensi Pulang s.d. 17:30` };
                     } else {
-                        return { status: 'Hadir Pagi (HP)', jamMasuk: jamMasukVal, jamPulang: '-', catatan: isTerlambat ? `Hadir Pagi - Terlambat (${jamMasukVal})` : `Hadir Pagi Tepat Waktu (${jamMasukVal})` };
+                        if (isTerlambat) {
+                            return { status: 'Terlambat (Belum Pulang)', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Terlambat (${jamMasukVal})` };
+                        } else {
+                            return { status: 'Hadir Pagi (HP)', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Hadir Pagi Tepat Waktu (${jamMasukVal})` };
+                        }
                     }
                 }
 
                 // Jika sudah presensi pulang
                 if (isTerlambat) {
-                    return { status: 'Terlambat', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Terlambat (${jamMasukVal})` };
+                    return { status: 'Hadir Terlambat (HT)', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Terlambat (${jamMasukVal} - ${jamPulangVal})` };
                 } else {
                     return { status: 'Hadir', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Lengkap (${jamMasukVal} - ${jamPulangVal})` };
                 }
@@ -534,7 +538,7 @@
                 let badgeClass = 'bg-slate-100 text-slate-700';
                 if (d.status === 'Hadir') badgeClass = 'bg-emerald-100 text-emerald-800';
                 else if (d.status === 'Hadir Pagi (HP)') badgeClass = 'bg-teal-100 text-teal-800';
-                else if (d.status === 'Terlambat') badgeClass = 'bg-amber-100 text-amber-800';
+                else if (d.status === 'Hadir Terlambat (HT)' || d.status === 'Terlambat (Belum Pulang)') badgeClass = 'bg-amber-100 text-amber-800';
                 else if (d.status === 'Pulang Awal') badgeClass = 'bg-purple-100 text-purple-800';
                 else if (d.status === 'TAP (Tanpa Absen Pulang)') badgeClass = 'bg-fuchsia-100 text-fuchsia-800';
                 else if (d.status === 'Alpha') badgeClass = 'bg-red-100 text-red-800';
