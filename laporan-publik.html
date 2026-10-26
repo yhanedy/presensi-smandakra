@@ -3,170 +3,145 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Laporan Presensi & Kedisiplinan Publik - SMAN 2 Karanganyar</title>
+    <title>Laporan Presensi Kehadiran Publik - SMAN 2 Karanganyar</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- SheetJS (xlsx) for Excel Export -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
         @media print {
             .no-print { display: none !important; }
-            .print-only { display: block !important; }
-            body { background: white; color: black; font-size: 11pt; }
-            .shadow-lg, .shadow-md, .shadow, .shadow-sm { box-shadow: none !important; }
-            .border { border-color: #000 !important; }
+            body { background: white; color: black; }
+            .shadow-md, .shadow-lg { box-shadow: none !important; }
         }
-        .print-only { display: none; }
     </style>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
-    <!-- HEADER / NAVBAR PUBLIK -->
-    <header class="bg-blue-900 text-white shadow-md no-print sticky top-0 z-50">
+    <!-- HEADER / NAVBAR -->
+    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
             <div class="flex items-center space-x-3">
                 <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo SMAN 2 Karanganyar">
                 <div>
                     <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-xs text-blue-200">Laporan Kehadiran & Kedisiplinan Siswa (Publik)</p>
+                    <p class="text-xs text-blue-200">Portal Kehadiran Siswa Real-Time (Publik)</p>
                 </div>
             </div>
-            <a href="index.html" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center space-x-1.5">
-                <i class="fa-solid fa-right-to-bracket"></i>
-                <span>Login</span>
-            </a>
+            <div class="no-print mt-2 sm:mt-0 flex items-center space-x-2">
+                <button onclick="window.print()" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Cetak / PDF</span>
+                </button>
+                <a href="index.html" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Login Petugas</span>
+                </a>
+            </div>
         </div>
     </header>
 
-    <!-- KONTEN UTAMA LAPORAN -->
+    <!-- MAIN CONTENT -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
 
-        <!-- KOP REKAPITULASI RESMI (HANYA MUNCUL SAAT DICETAK/PDF) -->
-        <div class="print-only text-center mb-6 border-b-2 border-black pb-4">
-            <h2 class="text-lg font-bold uppercase">PEMERINTAH PROVINSI JAWA TENGAH</h2>
-            <h1 class="text-2xl font-black uppercase">SMA NEGERI 2 KARANGANYAR</h1>
-            <p class="text-xs">Jl. Ronggowarsito, Bejen, Karanganyar, Jawa Tengah 57716 | Telp: (0271)495795</p>
-            <hr class="mt-2 border-t-2 border-black">
-            <h3 class="text-base font-bold mt-4 underline">LAPORAN REKAPITULASI PRESENSI & KEDISIPLINAN SISWA</h3>
-            <p class="text-xs" id="print-date">Tanggal Cetak: -</p>
-        </div>
-
-        <!-- PANEL FILTER LAPORAN & EKSPOR -->
-        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 no-print space-y-4">
-            <div class="flex flex-wrap justify-between items-center gap-2 pb-3 border-b border-slate-100">
-                <div>
-                    <h2 class="text-xl font-bold text-slate-800">Pencarian & Laporan Kehadiran</h2>
-                    <p class="text-xs text-slate-500">Data terhubung langsung secara real-time dengan Supabase database.</p>
-                </div>
-                <!-- MENU PRINT PDF DAN EXCEL -->
-                <div class="flex items-center space-x-2">
-                    <button onclick="exportToExcel()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-4 py-2.5 rounded-lg font-medium transition flex items-center space-x-2 shadow-sm">
-                        <i class="fa-solid fa-file-excel text-sm"></i>
-                        <span>Ekspor Excel (.xlsx)</span>
-                    </button>
-                    <button onclick="window.print()" class="bg-blue-900 hover:bg-blue-950 text-white text-xs px-4 py-2.5 rounded-lg font-medium transition flex items-center space-x-2 shadow-sm">
-                        <i class="fa-solid fa-print text-sm"></i>
-                        <span>Cetak / PDF</span>
-                    </button>
-                </div>
+        <!-- FILTER TANGGAL & HEADER METRIC -->
+        <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <h2 class="text-base font-bold text-slate-800">Rekapitulasi Presensi Kehadiran Per Kelas</h2>
+                <p class="text-xs text-slate-500">Pilih tanggal untuk melihat rekap per kelas. Klik nama kelas untuk melihat rincian nama siswa.</p>
             </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Cari NISN / Nama Siswa</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 text-xs">
-                            <i class="fa-solid fa-magnifying-glass"></i>
-                        </span>
-                        <input type="text" id="filter-search" oninput="muatLaporanSupabase()" placeholder="Ketik NISN atau Nama Siswa..." class="w-full pl-9 border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Filter Kelas</label>
-                    <select id="filter-kelas" onchange="muatLaporanSupabase()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-                        <option value="semua">Semua Kelas</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Tanggal Laporan</label>
-                    <input type="date" id="filter-tanggal" onchange="muatLaporanSupabase()" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-blue-500 outline-none">
-                </div>
+            <div class="flex items-center space-x-2 no-print">
+                <label class="text-xs font-semibold text-slate-600">Tanggal:</label>
+                <input type="date" id="filter-tanggal" onchange="muatDataRekapKelas()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                <button onclick="muatDataRekapKelas()" class="bg-blue-900 hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-lg font-semibold transition">
+                    <i class="fa-solid fa-rotate"></i> Refresh
+                </button>
             </div>
         </div>
 
-        <!-- DAFTAR HIGHLIGHT: TIDAK MASUK & TERLAMBAT HARI INI -->
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            
-            <!-- LIST SISWA TIDAK MASUK (SAKIT / IZIN / ALPA) -->
-            <div class="bg-white rounded-xl shadow-md p-5 border border-red-200">
-                <div class="flex items-center justify-between pb-3 border-b border-red-100 mb-3">
-                    <h3 class="font-bold text-red-700 text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-user-xmark text-red-600 text-base"></i>
-                        <span>Daftar Siswa Tidak Masuk</span>
-                    </h3>
-                    <span id="badge-tidak-masuk" class="bg-red-100 text-red-800 font-bold text-xs px-2.5 py-0.5 rounded-full">0 Siswa</span>
-                </div>
-                <div class="space-y-2.5" id="container-tidak-masuk">
-                    <p class="text-xs text-slate-400 text-center py-2">Memuat data...</p>
-                </div>
+        <!-- ========================================== -->
+        <!-- VIEW 1: TABEL REKAPITULASI JUMLAH PER KELAS-->
+        <!-- ========================================== -->
+        <div id="section-rekap-kelas" class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
+            <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-school text-blue-600"></i>
+                    <span>Daftar Kelas Hari Ini</span>
+                </h3>
+                <span id="label-tanggal-rekap" class="text-xs font-mono font-bold bg-blue-50 text-blue-900 px-2.5 py-1 rounded-lg border border-blue-200"></span>
             </div>
 
-            <!-- LIST SISWA TERLAMBAT / PULANG MENDAHULUI -->
-            <div class="bg-white rounded-xl shadow-md p-5 border border-amber-200">
-                <div class="flex items-center justify-between pb-3 border-b border-amber-100 mb-3">
-                    <h3 class="font-bold text-amber-800 text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-clock text-amber-600 text-base"></i>
-                        <span>Daftar Siswa Terlambat / Pulang Awal</span>
-                    </h3>
-                    <span id="badge-terlambat" class="bg-amber-100 text-amber-800 font-bold text-xs px-2.5 py-0.5 rounded-full">0 Siswa</span>
-                </div>
-                <div class="space-y-2.5" id="container-terlambat">
-                    <p class="text-xs text-slate-400 text-center py-2">Memuat data...</p>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- TABEL REKAPITULASI KEHADIRAN KELAS LENGKAP -->
-        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
-            <div class="flex flex-wrap justify-between items-center pb-2">
-                <h3 class="font-bold text-slate-800 text-sm">Tabel Presensi Seluruh Siswa</h3>
-                <span class="text-xs text-slate-500" id="report-date-text">Tanggal: -</span>
-            </div>
-            
             <div class="overflow-x-auto">
-                <table id="main-report-table" class="w-full text-xs text-left border-collapse">
-                    <thead>
-                        <tr class="bg-slate-100 text-slate-700 uppercase font-semibold border-b border-slate-300">
-                            <th class="p-3 border text-center">No</th>
-                            <th class="p-3 border">NISN</th>
-                            <th class="p-3 border">Nama Siswa</th>
-                            <th class="p-3 border">Kelas</th>
-                            <th class="p-3 border">Status Kehadiran</th>
-                            <th class="p-3 border">Waktu</th>
-                            <th class="p-3 border">Catatan Kedisiplinan / Keterangan</th>
+                <table class="w-full text-xs text-left text-slate-600">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
+                        <tr>
+                            <th class="p-3">No</th>
+                            <th class="p-3">Nama Kelas (Klik Rincian)</th>
+                            <th class="p-3 text-center text-emerald-700">Siswa Hadir</th>
+                            <th class="p-3 text-center text-amber-700">Siswa Terlambat (> 07:01)</th>
+                            <th class="p-3 text-center text-purple-700">Pulang Awal</th>
+                            <th class="p-3 text-center text-red-700">Alpha (> 08:30)</th>
+                            <th class="p-3 text-center text-blue-700">Siswa Tidak Masuk (S/I)</th>
+                            <th class="p-3 text-center">Total Siswa</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-200" id="table-body">
-                        <tr>
-                            <td colspan="7" class="p-4 text-center text-slate-400">Memuat data dari database Supabase...</td>
-                        </tr>
+                    <tbody id="tabel-rekap-kelas-body" class="divide-y divide-slate-100">
+                        <tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat rekapitulasi data kelas...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <!-- ========================================== -->
+        <!-- VIEW 2: TABEL DETAIL SISWA PER KELAS       -->
+        <!-- ========================================== -->
+        <div id="section-detail-kelas" class="hidden bg-white rounded-xl shadow-md p-6 border border-blue-200 space-y-4">
+            <div class="flex flex-wrap justify-between items-center pb-3 border-b border-blue-100 gap-2">
+                <div class="flex items-center space-x-3">
+                    <button onclick="tutupDetailKelas()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 no-print">
+                        <i class="fa-solid fa-arrow-left"></i>
+                        <span>Kembali ke Rekap Kelas</span>
+                    </button>
+                    <div>
+                        <h3 class="font-bold text-blue-900 text-base" id="detail-judul-kelas">Detail Kelas: -</h3>
+                        <p class="text-xs text-slate-500">Daftar presensi siswa pada kelas terpilih.</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="search-detail-siswa" onkeyup="filterTabelDetail()" placeholder="Cari nama siswa..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none no-print">
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left text-slate-600">
+                    <thead class="bg-blue-900 text-white uppercase font-semibold">
+                        <tr>
+                            <th class="p-3">No</th>
+                            <th class="p-3">Nama Siswa</th>
+                            <th class="p-3">NISN</th>
+                            <th class="p-3 text-center">Jam Masuk</th>
+                            <th class="p-3 text-center">Jam Pulang</th>
+                            <th class="p-3 text-center">Status Kehadiran</th>
+                            <th class="p-3">Catatan / Keterangan</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-detail-siswa-body" class="divide-y divide-slate-100">
+                        <tr><td colspan="7" class="p-4 text-center text-slate-400">Memuat rincian siswa...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
     </main>
 
     <!-- FOOTER -->
-    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 no-print mt-8">
-        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. Sistem Informasi Presensi & Kedisiplinan Digital.</p>
+    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 mt-8">
+        <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- JAVASCRIPT SUPABASE REALTIME & SYNC TANGGAL -->
+    <!-- JAVASCRIPT KONEKSI SUPABASE & LOGIKA REKAP KELAS -->
     <script>
         const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
@@ -175,147 +150,234 @@
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
             : null;
 
-        // Inisialisasi Tanggal Hari Ini saat Halaman Dimuat
+        let globalSiswaList = [];
+        let globalPresensiList = [];
+        let dataDetailTerpilih = [];
+
+        // Inisialisasi Tanggal Hari Ini
         window.onload = function() {
             const today = new Date().toISOString().split('T')[0];
             document.getElementById('filter-tanggal').value = today;
-            
-            muatOpsiKelas();
-            muatLaporanSupabase();
+            muatDataRekapKelas();
         };
 
-        // Populate Dropdown Filter Kelas dari Database Siswa
-        async function muatOpsiKelas() {
+        // 1. MEMUAT REKAPITULASI KELAS
+        async function muatDataRekapKelas() {
+            const tanggalSelected = document.getElementById('filter-tanggal').value;
+            document.getElementById('label-tanggal-rekap').textContent = new Date(tanggalSelected).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            const tbody = document.getElementById('tabel-rekap-kelas-body');
+            tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat data dari database...</td></tr>';
+
             if (!supabaseClient) return;
-            const { data } = await supabaseClient.from('siswa').select('kelas');
-            if (data) {
-                const uniqueKelas = [...new Set(data.map(item => item.kelas))].filter(Boolean).sort();
-                const selectEl = document.getElementById('filter-kelas');
-                selectEl.innerHTML = '<option value="semua">Semua Kelas</option>' + 
-                    uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+
+            try {
+                // Fetch Master Siswa
+                const { data: siswaData, error: errS } = await supabaseClient.from('siswa').select('*').neq('status_siswa', 'Lulus');
+                
+                // Fetch Presensi Tanggal Terpilih
+                const startDate = `${tanggalSelected}T00:00:00`;
+                const endDate = `${tanggalSelected}T23:59:59`;
+                const { data: presensiData, error: errP } = await supabaseClient
+                    .from('presensi')
+                    .select('*')
+                    .gte('created_at', startDate)
+                    .lte('created_at', endDate);
+
+                if (errS || errP) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500">Gagal mengambil data: ${errS?.message || errP?.message}</td></tr>`;
+                    return;
+                }
+
+                globalSiswaList = siswaData || [];
+                globalPresensiList = presensiData || [];
+
+                // Grouping berdasarkan Kelas
+                const kelasMap = {};
+                globalSiswaList.forEach(s => {
+                    const k = s.kelas || 'Tanpa Kelas';
+                    if (!kelasMap[k]) kelasMap[k] = [];
+                    kelasMap[k].push(s);
+                });
+
+                const sortedKelasKeys = Object.keys(kelasMap).sort();
+
+                if (sortedKelasKeys.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Tidak ada data siswa aktif.</td></tr>';
+                    return;
+                }
+
+                // Waktu batas alpha (08:30)
+                const sekarang = new Date();
+                const jamSekarangStr = sekarang.toTimeString().split(' ')[0];
+                const isLewatBatasAlpha = (tanggalSelected < new Date().toISOString().split('T')[0]) || (jamSekarangStr >= '08:30:00');
+
+                let rowsHtml = '';
+                sortedKelasKeys.forEach((kelasName, index) => {
+                    const daftarSiswa = kelasMap[kelasName];
+                    
+                    let countHadir = 0;
+                    let countTerlambat = 0;
+                    let countPulangAwal = 0;
+                    let countAlpha = 0;
+                    let countTidakMasuk = 0;
+
+                    daftarSiswa.forEach(siswa => {
+                        const pList = globalPresensiList.filter(p => p.nisn === siswa.nisn);
+                        const statusObj = hitungStatusSiswa(pList, isLewatBatasAlpha);
+
+                        if (statusObj.status === 'Hadir') countHadir++;
+                        else if (statusObj.status === 'Terlambat') countTerlambat++;
+                        else if (statusObj.status === 'Pulang Awal') countPulangAwal++;
+                        else if (statusObj.status === 'Alpha') countAlpha++;
+                        else if (statusObj.status === 'Sakit' || statusObj.status === 'Izin' || statusObj.status === 'Siswa Tidak Masuk') countTidakMasuk++;
+                    });
+
+                    rowsHtml += `
+                        <tr class="hover:bg-blue-50/50 border-b border-slate-100 transition cursor-pointer" onclick="bukaDetailKelas('${kelasName}')">
+                            <td class="p-3 font-mono font-medium">${index + 1}</td>
+                            <td class="p-3 font-bold text-blue-900 hover:underline flex items-center space-x-2">
+                                <i class="fa-solid fa-folder-open text-amber-500"></i>
+                                <span>KELAS ${kelasName}</span>
+                            </td>
+                            <td class="p-3 text-center font-bold text-emerald-600 bg-emerald-50/30">${countHadir}</td>
+                            <td class="p-3 text-center font-bold text-amber-600 bg-amber-50/30">${countTerlambat}</td>
+                            <td class="p-3 text-center font-bold text-purple-600 bg-purple-50/30">${countPulangAwal}</td>
+                            <td class="p-3 text-center font-bold text-red-600 bg-red-50/30">${countAlpha}</td>
+                            <td class="p-3 text-center font-bold text-blue-600 bg-blue-50/30">${countTidakMasuk}</td>
+                            <td class="p-3 text-center font-bold font-mono">${daftarSiswa.length} Siswa</td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = rowsHtml;
+
+            } catch (err) {
+                console.error(err);
+                tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-red-500">Terjadi kesalahan sistem.</td></tr>';
             }
         }
 
-        // Fetch Laporan Utama dari Database Supabase
-        async function muatLaporanSupabase() {
-            const dateVal = document.getElementById('filter-tanggal').value;
-            const searchVal = document.getElementById('filter-search').value.toLowerCase().trim();
-            const kelasVal = document.getElementById('filter-kelas').value;
+        // 2. LOGIKA PENENTUAN STATUS KEHADIRAN (HADIR, TERLAMBAT > 07:01, PULANG AWAL, ALPHA > 08:30)
+        function hitungStatusSiswa(presensiList, isLewatBatasAlpha) {
+            if (!presensiList || presensiList.length === 0) {
+                if (isLewatBatasAlpha) {
+                    return { status: 'Alpha', jamMasuk: '-', jamPulang: '-', catatan: 'Alpha (Tidak presensi hingga 08.30)' };
+                } else {
+                    return { status: 'Belum Presensi', jamMasuk: '-', jamPulang: '-', catatan: 'Belum presensi hari ini' };
+                }
+            }
 
-            // Update Label Tanggal Cetak PDF & Tampilan
-            const dateObj = new Date(dateVal + 'T00:00:00');
-            const formattedDate = dateObj.toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' });
+            // Cek jika ada input Sakit / Izin / Pulang Mendahului dari BK/Piket
+            const pSakit = presensiList.find(p => p.status === 'Sakit');
+            if (pSakit) return { status: 'Sakit', jamMasuk: '-', jamPulang: '-', catatan: pSakit.keterangan || 'Sakit (Surat Izin)' };
+
+            const pIzin = presensiList.find(p => p.status === 'Izin');
+            if (pIzin) return { status: 'Izin', jamMasuk: '-', jamPulang: '-', catatan: pIzin.keterangan || 'Izin Resmi' };
+
+            const pAlphaBK = presensiList.find(p => p.status === 'Alpa' || p.status === 'Alpha');
+            if (pAlphaBK) return { status: 'Alpha', jamMasuk: '-', jamPulang: '-', catatan: pAlphaBK.keterangan || 'Alpha (Catatan BK/Piket)' };
+
+            // Cek Pulang Mendahului
+            const pPulangAwal = presensiList.find(p => p.status === 'Pulang Mendahului');
             
-            document.getElementById('report-date-text').textContent = 'Tanggal: ' + formattedDate;
-            document.getElementById('print-date').textContent = 'Tanggal Cetak: ' + formattedDate;
+            // Cek Presensi Masuk & Pulang Siswa
+            const pMasuk = presensiList.find(p => p.status === 'Hadir' || p.status === 'Terlambat');
+            const pPulang = presensiList.find(p => p.status === 'Pulang');
 
-            if (!supabaseClient) return;
+            const jamMasukVal = pMasuk ? (pMasuk.jam_masuk || '-') : '-';
+            const jamPulangVal = pPulangAwal ? (pPulangAwal.jam_masuk || '-') : (pPulang ? (pPulang.jam_masuk || '-') : '-');
 
-            // Fetch Data Presensi + Join Data Siswa
-            const { data: presensiData, error } = await supabaseClient
-                .from('presensi')
-                .select('*, siswa(nama, kelas)')
-                .gte('created_at', dateVal + 'T00:00:00')
-                .lte('created_at', dateVal + 'T23:59:59');
+            if (pPulangAwal) {
+                return { status: 'Pulang Awal', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: pPulangAwal.keterangan || 'Izin Pulang Mendahului' };
+            }
 
-            const tbody = document.getElementById('table-body');
-            const containerTidakMasuk = document.getElementById('container-tidak-masuk');
-            const containerTerlambat = document.getElementById('container-terlambat');
+            if (pMasuk) {
+                // Terlambat jika presensi masuk melebihi 07:01:00
+                if (jamMasukVal > '07:01:00' || pMasuk.status === 'Terlambat') {
+                    return { status: 'Terlambat', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Terlambat (Masuk Pukul ${jamMasukVal})` };
+                } else {
+                    return { status: 'Hadir', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Tepat Waktu (${jamMasukVal})` };
+                }
+            }
 
-            if (error) {
-                tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-red-500">Error: ${error.message}</td></tr>`;
+            return { status: 'Belum Presensi', jamMasuk: '-', jamPulang: '-', catatan: '-' };
+        }
+
+        // 3. TAMPILKAN DETAIL NAMA SISWA PER KELAS
+        function bukaDetailKelas(kelasName) {
+            document.getElementById('detail-judul-kelas').textContent = `Detail Presensi Siswa: KELAS ${kelasName}`;
+            
+            const tanggalSelected = document.getElementById('filter-tanggal').value;
+            const sekarang = new Date();
+            const jamSekarangStr = sekarang.toTimeString().split(' ')[0];
+            const isLewatBatasAlpha = (tanggalSelected < new Date().toISOString().split('T')[0]) || (jamSekarangStr >= '08:30:00');
+
+            const siswaKelas = globalSiswaList.filter(s => (s.kelas || 'Tanpa Kelas') === kelasName);
+            
+            dataDetailTerpilih = siswaKelas.map((siswa, idx) => {
+                const pList = globalPresensiList.filter(p => p.nisn === siswa.nisn);
+                const res = hitungStatusSiswa(pList, isLewatBatasAlpha);
+                return {
+                    no: idx + 1,
+                    nama: siswa.nama,
+                    nisn: siswa.nisn,
+                    jamMasuk: res.jamMasuk,
+                    jamPulang: res.jamPulang,
+                    status: res.status,
+                    catatan: res.catatan
+                };
+            });
+
+            renderTabelDetail(dataDetailTerpilih);
+
+            document.getElementById('section-rekap-kelas').classList.add('hidden');
+            document.getElementById('section-detail-kelas').classList.remove('hidden');
+        }
+
+        function renderTabelDetail(listData) {
+            const tbody = document.getElementById('tabel-detail-siswa-body');
+            
+            if (listData.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">Tidak ada data siswa.</td></tr>';
                 return;
             }
 
-            let filtered = presensiData || [];
-
-            // Filter Search NISN/Nama
-            if (searchVal) {
-                filtered = filtered.filter(p => 
-                    (p.nisn && p.nisn.toLowerCase().includes(searchVal)) || 
-                    (p.siswa && p.siswa.nama && p.siswa.nama.toLowerCase().includes(searchVal))
-                );
-            }
-
-            // Filter Kelas
-            if (kelasVal !== 'semua') {
-                filtered = filtered.filter(p => p.siswa && p.siswa.kelas === kelasVal);
-            }
-
-            // Render Highlights: Tidak Masuk (Sakit / Izin / Alpa)
-            const listTidakMasuk = filtered.filter(p => ['Sakit', 'Izin', 'Alpa'].includes(p.status));
-            document.getElementById('badge-tidak-masuk').innerText = `${listTidakMasuk.length} Siswa`;
-
-            if (listTidakMasuk.length === 0) {
-                containerTidakMasuk.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Nihil (Semua siswa masuk)</p>';
-            } else {
-                containerTidakMasuk.innerHTML = listTidakMasuk.map(p => `
-                    <div class="flex items-center justify-between p-2.5 bg-red-50/60 rounded-lg border border-red-100 text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">${p.siswa ? p.siswa.nama : 'Siswa'} <span class="font-normal text-slate-500">(${p.nisn})</span></p>
-                            <p class="text-[11px] text-slate-500">Kelas: ${p.siswa ? p.siswa.kelas : '-'}</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold text-[11px]">${p.status}</span>
-                            <p class="text-[10px] text-slate-500 mt-1">${p.keterangan || '-'}</p>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            // Render Highlights: Terlambat / Pulang Awal
-            const listTerlambat = filtered.filter(p => ['Terlambat', 'Pulang Mendahului'].includes(p.status));
-            document.getElementById('badge-terlambat').innerText = `${listTerlambat.length} Siswa`;
-
-            if (listTerlambat.length === 0) {
-                containerTerlambat.innerHTML = '<p class="text-xs text-slate-400 text-center py-2">Nihil</p>';
-            } else {
-                containerTerlambat.innerHTML = listTerlambat.map(p => `
-                    <div class="flex items-center justify-between p-2.5 bg-amber-50/60 rounded-lg border border-amber-100 text-xs">
-                        <div>
-                            <p class="font-bold text-slate-800">${p.siswa ? p.siswa.nama : 'Siswa'} <span class="font-normal text-slate-500">(${p.nisn})</span></p>
-                            <p class="text-[11px] text-slate-500">Kelas: ${p.siswa ? p.siswa.kelas : '-'} &bull; Jam: ${p.jam_masuk || '-'}</p>
-                        </div>
-                        <div class="text-right">
-                            <span class="bg-amber-100 text-amber-800 px-2 py-0.5 rounded font-bold text-[11px]">${p.status}</span>
-                            <p class="text-[10px] text-amber-800 mt-1 font-medium">${p.keterangan || '-'}</p>
-                        </div>
-                    </div>
-                `).join('');
-            }
-
-            // Render Tabel Utama Laporan
-            if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-slate-400">Tidak ada data presensi pada tanggal ini.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = filtered.map((p, idx) => {
-                let badgeClass = 'bg-emerald-100 text-emerald-800';
-                if (['Sakit', 'Izin'].includes(p.status)) badgeClass = 'bg-blue-100 text-blue-800';
-                if (['Terlambat', 'Pulang Mendahului'].includes(p.status)) badgeClass = 'bg-amber-100 text-amber-800';
-                if (p.status === 'Alpa') badgeClass = 'bg-red-100 text-red-800';
+            tbody.innerHTML = listData.map(d => {
+                let badgeClass = 'bg-slate-100 text-slate-700';
+                if (d.status === 'Hadir') badgeClass = 'bg-emerald-100 text-emerald-800';
+                else if (d.status === 'Terlambat') badgeClass = 'bg-amber-100 text-amber-800';
+                else if (d.status === 'Pulang Awal') badgeClass = 'bg-purple-100 text-purple-800';
+                else if (d.status === 'Alpha') badgeClass = 'bg-red-100 text-red-800';
+                else if (d.status === 'Sakit' || d.status === 'Izin') badgeClass = 'bg-blue-100 text-blue-800';
 
                 return `
-                    <tr class="hover:bg-slate-50 border-b border-slate-200">
-                        <td class="p-3 border text-center font-mono">${idx + 1}</td>
-                        <td class="p-3 border font-mono">${p.nisn}</td>
-                        <td class="p-3 border font-semibold text-slate-800">${p.siswa ? p.siswa.nama : '-'}</td>
-                        <td class="p-3 border">${p.siswa ? p.siswa.kelas : '-'}</td>
-                        <td class="p-3 border"><span class="${badgeClass} px-2 py-0.5 rounded font-medium">${p.status}</span></td>
-                        <td class="p-3 border font-mono">${p.jam_masuk || '-'}</td>
-                        <td class="p-3 border text-slate-600">${p.keterangan || '-'}</td>
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-3 font-mono">${d.no}</td>
+                        <td class="p-3 font-bold text-slate-800">${d.nama}</td>
+                        <td class="p-3 font-mono text-slate-500">${d.nisn}</td>
+                        <td class="p-3 text-center font-mono font-bold text-emerald-700">${d.jamMasuk}</td>
+                        <td class="p-3 text-center font-mono font-bold text-blue-700">${d.jamPulang}</td>
+                        <td class="p-3 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${badgeClass}">
+                                ${d.status}
+                            </span>
+                        </td>
+                        <td class="p-3 text-slate-600">${d.catatan}</td>
                     </tr>
                 `;
             }).join('');
         }
 
-        // Export Tabel ke Excel
-        function exportToExcel() {
-            const table = document.getElementById('main-report-table');
-            const dateVal = document.getElementById('filter-tanggal').value;
-            const wb = XLSX.utils.table_to_book(table, { sheet: "Laporan Presensi" });
-            XLSX.writeFile(wb, `Laporan_Presensi_SMAN2_Karanganyar_${dateVal}.xlsx`);
+        function filterTabelDetail() {
+            const keyword = document.getElementById('search-detail-siswa').value.toLowerCase().trim();
+            const filtered = dataDetailTerpilih.filter(d => d.nama.toLowerCase().includes(keyword) || d.nisn.toLowerCase().includes(keyword));
+            renderTabelDetail(filtered);
+        }
+
+        function tutupDetailKelas() {
+            document.getElementById('section-detail-kelas').classList.add('hidden');
+            document.getElementById('section-rekap-kelas').classList.remove('hidden');
         }
     </script>
 </body>
