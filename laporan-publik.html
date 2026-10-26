@@ -531,6 +531,70 @@ async function muatLaporanPublikHariIni() {
     // Perbarui UI angka di tabel rekap
     // ...
 }
+        // PERBAIKAN LOGIKA RINCIAN SISWA PER KELAS DI LAPORAN-PUBLIK.HTML
+function renderTabelDetailSiswa(daftarSiswa, dataPresensiHariIni) {
+    const tbody = document.getElementById('tabel-detail-siswa-body');
+    
+    tbody.innerHTML = daftarSiswa.map((siswa, index) => {
+        // 1. Cari record presensi siswa hari ini berdasarkan NISN
+        const p = dataPresensiHariIni.find(item => item.nisn === siswa.nisn);
+
+        let jamMasuk = '-';
+        let jamPulang = '-';
+        let statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">Alpha</span>';
+        let catatan = 'Alpha (Tanpa Keterangan)';
+
+        if (p) {
+            // Ambil jam masuk & jam pulang dari kolom database
+            jamMasuk = p.jam_masuk || '-';
+            jamPulang = p.jam_pulang || '-';
+
+            // 2. Tentukan Status & Badge secara Otomatis
+            if (p.status === 'Sakit' || p.status === 'Izin') {
+                statusBadge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800">${p.status}</span>`;
+                catatan = p.keterangan || p.status;
+            } else if (p.status === 'Pulang Mendahului') {
+                statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-800">Pulang Awal</span>';
+                catatan = p.keterangan || 'Izin Pulang Mendahului';
+            } else if (jamMasuk !== '-') {
+                const isTerlambat = (jamMasuk > '07:01:00' || p.status === 'Terlambat');
+
+                // Jika Sudah Absen Pulang
+                if (jamPulang !== '-') {
+                    if (isTerlambat) {
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Hadir Terlambat (HT)</span>';
+                        catatan = `Hadir Terlambat (${jamMasuk} - ${jamPulang})`;
+                    } else {
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">Hadir (H)</span>';
+                        catatan = `Hadir Tepat Waktu (${jamMasuk} - ${jamPulang})`;
+                    }
+                } 
+                // Jika Belum Absen Pulang
+                else {
+                    if (isTerlambat) {
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800">Terlambat</span>';
+                        catatan = `Terlambat Masuk (${jamMasuk})`;
+                    } else {
+                        statusBadge = '<span class="px-2.5 py-1 rounded-full text-xs font-bold bg-teal-100 text-teal-800">Hadir Pagi (HP)</span>';
+                        catatan = `Hadir Pagi Tepat Waktu (${jamMasuk})`;
+                    }
+                }
+            }
+        }
+
+        return `
+            <tr class="hover:bg-slate-50 border-b border-slate-100">
+                <td class="p-3 text-center">${index + 1}</td>
+                <td class="p-3 font-bold text-slate-800">${siswa.nama}</td>
+                <td class="p-3 font-mono text-slate-500">${siswa.nisn}</td>
+                <td class="p-3 text-center font-mono font-bold text-emerald-600">${jamMasuk}</td>
+                <td class="p-3 text-center font-mono font-bold text-blue-600">${jamPulang}</td>
+                <td class="p-3 text-center">${statusBadge}</td>
+                <td class="p-3 text-xs text-slate-600">${catatan}</td>
+            </tr>
+        `;
+    }).join('');
+}
         // 4. TAMPILKAN DETAIL NAMA SISWA PER KELAS
         function bukaDetailKelas(kelasName) {
             document.getElementById('detail-judul-kelas').textContent = `Detail Presensi Siswa: KELAS ${kelasName}`;
