@@ -491,7 +491,46 @@
             else if (type === 'tidakmasuk') renderKartuGlobal('tidakmasuk', listGlobalTidakMasuk);
             else if (type === 'pulangawal') renderKartuGlobal('pulangawal', listGlobalPulangAwal);
         }
+// PERBAIKAN FUNGSI QUERY REKAP DI LAPORAN-PUBLIK.HTML
+async function muatLaporanPublikHariIni() {
+    // 1. Ambil tanggal lokal WIB format YYYY-MM-DD (misal: '2026-10-25')
+    const tglHariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
+    // 2. Query ke Supabase mencocokkan kolom 'tanggal' atau rentang ISO WIB
+    const { data: presensiList, error } = await supabaseClient
+        .from('presensi')
+        .select('*')
+        .or(`tanggal.eq.${tglHariIni},created_at.gte.${tglHariIni}T00:00:00+07:00`);
+
+    if (error || !presensiList) return;
+
+    // 3. Logika Penghitungan Rekap per Siswa / per Kelas:
+    let totalHadir = 0;
+    let totalTerlambat = 0;
+    let totalPulangAwalOrTAP = 0;
+    let totalAlpha = 0;
+
+    presensiList.forEach(p => {
+        // Jika jam_masuk terisi
+        if (p.jam_masuk) {
+            if (p.jam_masuk <= '07:01:00') {
+                totalHadir++;
+            } else {
+                totalTerlambat++;
+            }
+        }
+
+        // Cek status Pulang Awal / TAP / Sakit / Izin / Alpha
+        if (p.status === 'Pulang Mendahului' || p.status === 'TAP') {
+            totalPulangAwalOrTAP++;
+        } else if (p.status === 'Alpha' || p.status === 'Alpa') {
+            totalAlpha++;
+        }
+    });
+
+    // Perbarui UI angka di tabel rekap
+    // ...
+}
         // 4. TAMPILKAN DETAIL NAMA SISWA PER KELAS
         function bukaDetailKelas(kelasName) {
             document.getElementById('detail-judul-kelas').textContent = `Detail Presensi Siswa: KELAS ${kelasName}`;
