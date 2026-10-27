@@ -78,7 +78,7 @@
         </div>
     </section>
 
-    <!-- CONTAINER UNTUK USER YANG SUDAH LOGIN -->
+    <!-- CONTAINER UNTUK USER YANG SUDAH LOGIN (PETUGAS / ADMIN) -->
     <div id="app-container" class="hidden flex-grow flex flex-col justify-between">
         
         <!-- HEADER / NAVBAR APLIKASI INTERNAL -->
@@ -95,10 +95,13 @@
                 <!-- NAVIGATION & ROLE NAVIGATOR UNTUK ADMIN -->
                 <div class="mt-2 sm:mt-0 flex flex-wrap gap-2 items-center text-xs">
                     <div id="admin-role-switcher" class="hidden flex gap-1 bg-blue-950 p-1 rounded-lg">
-                        <button onclick="switchRole('siswa')" id="btn-nav-siswa" class="px-2.5 py-1 rounded text-blue-200 hover:text-white font-medium">Menu Siswa</button>
                         <button onclick="switchRole('piket')" id="btn-nav-piket" class="px-2.5 py-1 rounded text-blue-200 hover:text-white font-medium">Menu Piket</button>
                         <button onclick="switchRole('bk')" id="btn-nav-bk" class="px-2.5 py-1 rounded text-blue-200 hover:text-white font-medium">Menu BK-STP2K</button>
                         <button onclick="switchRole('admin')" id="btn-nav-admin" class="px-2.5 py-1 rounded bg-blue-600 text-white font-medium">Panel Admin</button>
+                        <a href="manajemen-siswa.html" id="btn-nav-manajemen-siswa" class="px-2.5 py-1 rounded bg-purple-700 hover:bg-purple-800 text-white font-bold flex items-center space-x-1">
+                            <i class="fa-solid fa-users-gear"></i>
+                            <span>Manajemen Siklus Siswa</span>
+                        </a>
                     </div>
 
                     <div class="bg-blue-950 px-3 py-1.5 rounded-lg text-blue-200 font-mono">
@@ -115,162 +118,7 @@
         <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow">
 
             <!-- ========================================== -->
-            <!-- 1. TAMPILAN PORTAL SISWA                   -->
-            <!-- ========================================== -->
-            <section id="view-siswa" class="role-view hidden space-y-6">
-                
-                <!-- KARTU PROFIL IDENTITAS SISWA -->
-                <div class="bg-gradient-to-r from-blue-900 to-indigo-800 text-white rounded-xl shadow-md p-5 border border-blue-950">
-                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div class="space-y-1">
-                            <p class="text-xs text-blue-200 uppercase tracking-wider font-semibold">Selamat Datang,</p>
-                            <h2 id="siswa-profil-nama" class="text-xl sm:text-2xl font-black tracking-wide text-white">-</h2>
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
-                            <div class="bg-blue-950/80 border border-blue-700/50 px-3 py-1.5 rounded-lg">
-                                <span class="text-blue-200">Kelas: </span>
-                                <span id="siswa-profil-kelas" class="font-bold text-white font-mono">-</span>
-                            </div>
-                            <div class="bg-blue-950/80 border border-blue-700/50 px-3 py-1.5 rounded-lg">
-                                <span class="text-blue-200">NISN: </span>
-                                <span id="siswa-profil-nisn" class="font-bold text-white font-mono">-</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- KARTU RINGKASAN STATUS PRESENSI REAL-TIME HARI INI -->
-                <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-4">
-                    <div class="flex justify-between items-center border-b pb-3">
-                        <div>
-                            <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
-                                <i class="fa-solid fa-id-badge text-blue-600"></i>
-                                <span>Status Presensi Hari Ini (WIB)</span>
-                            </h3>
-                            <p class="text-xs text-slate-500" id="siswa-tanggal-hari-ini">-</p>
-                        </div>
-                        <span id="siswa-badge-status" class="px-3 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-700">
-                            Belum Presensi
-                        </span>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4 text-center">
-                        <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                            <span class="text-[10px] uppercase font-bold text-emerald-600 block">Jam Masuk</span>
-                            <span id="siswa-jam-masuk" class="text-base sm:text-lg font-mono font-bold text-emerald-900">--:--:--</span>
-                        </div>
-                        <div class="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                            <span class="text-[10px] uppercase font-bold text-blue-600 block">Jam Pulang</span>
-                            <span id="siswa-jam-pulang" class="text-base sm:text-lg font-mono font-bold text-blue-900">--:--:--</span>
-                        </div>
-                    </div>
-
-                    <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-slate-600 flex items-start space-x-2">
-                        <i class="fa-solid fa-circle-info text-blue-600 mt-0.5"></i>
-                        <span id="siswa-catatan-status">Silakan lakukan presensi masuk saat tiba di lokasi sekolah.</span>
-                    </div>
-                </div>
-
-                <!-- KARTU INFORMASI RADIUS & GEOLOKASI SISWA (RATA KANAN & MODERN UI) -->
-                <div class="bg-slate-900 text-white rounded-2xl p-5 shadow-lg border border-slate-800 space-y-4">
-                    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                        <div id="gps-status-pill" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                            <span class="relative flex h-2.5 w-2.5">
-                                <span id="gps-pulse-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                <span id="gps-pulse-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                            </span>
-                            <span id="gps-status-badge">Mendeteksi Lokasi...</span>
-                        </div>
-
-                        <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                            <span>Status Geolokasi GPS</span>
-                            <i class="fa-solid fa-location-dot text-blue-400"></i>
-                        </h3>
-                    </div>
-
-                    <div class="flex flex-col items-end text-right space-y-2">
-                        <div class="space-y-0.5">
-                            <span class="text-[11px] text-slate-400 font-medium block">Posisi Anda Saat Ini</span>
-                            <div id="siswa-status-radius-text" class="text-sm font-black tracking-wide text-amber-400 flex items-center justify-end space-x-1.5">
-                                <span>Memeriksa Koordinat...</span>
-                            </div>
-                        </div>
-
-                        <div class="pt-1 border-t border-slate-800/80 w-full flex justify-between items-center text-xs">
-                            <span class="text-slate-500 text-[11px]">Batas Toleransi: <strong id="siswa-radius-limit" class="text-slate-300 font-mono">100m</strong></span>
-                            <div class="text-right">
-                                <span class="text-slate-400">Jarak ke Sekolah: </span>
-                                <span id="siswa-jarak" class="font-mono font-bold text-blue-400 text-sm">-</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="flex justify-end pt-1 gap-3">
-                        <button onclick="cekSiswaGPS()" class="group relative inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md hover:from-blue-500 hover:to-indigo-500 border border-blue-400/30">
-                            <i class="fa-solid fa-location-crosshairs mr-2 text-blue-200 group-hover:rotate-45 transition-transform duration-300"></i>
-                            <span>Perbarui Lokasi Saya</span>
-                        </button>
-                    </div>
-
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
-                        <button onclick="prosesPresensiSiswa('Hadir')" id="btn-siswa-masuk" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow">
-                            <i class="fa-solid fa-right-to-bracket"></i>
-                            <span>Presensi Masuk</span>
-                        </button>
-                        <button onclick="prosesPresensiSiswa('Pulang')" id="btn-siswa-pulang" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow">
-                            <i class="fa-solid fa-right-from-bracket"></i>
-                            <span>Presensi Pulang</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- GRID DUA KOLOM: RIWAYAT KEHADIRAN & MENU GANTI PASSWORD SISWA -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="md:col-span-2 bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-3">
-                        <h3 class="font-bold text-slate-800 text-sm">Riwayat Presensi Saya (5 Kolom Lengkap)</h3>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-xs text-left text-slate-600">
-                                <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
-                                    <tr>
-                                        <th class="p-3">Tanggal</th>
-                                        <th class="p-3 text-center">Jam Masuk</th>
-                                        <th class="p-3 text-center">Jam Pulang</th>
-                                        <th class="p-3 text-center">Status</th>
-                                        <th class="p-3">Keterangan</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="tabel-riwayat-siswa" class="divide-y divide-slate-100">
-                                    <tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data presensi tercatat.</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3 bg-slate-50/50">
-                        <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
-                            <i class="fa-solid fa-key text-amber-600"></i>
-                            <span>Ganti Password Akun</span>
-                        </h3>
-                        <p class="text-xs text-slate-500">Ubah password default demi keamanan akun Anda.</p>
-                        
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
-                            <input type="password" id="siswa-pass-baru" placeholder="Masukkan password baru..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password Baru</label>
-                            <input type="password" id="siswa-pass-konfirm" placeholder="Ulangi password baru..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
-                        </div>
-
-                        <button onclick="gantiPasswordSiswa()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition">
-                            Perbarui Password
-                        </button>
-                    </div>
-                </div>
-            </section>
-
-            <!-- ========================================== -->
-            <!-- 2. TAMPILAN GURU PIKET                     -->
+            <!-- 1. TAMPILAN GURU PIKET                     -->
             <!-- ========================================== -->
             <section id="view-piket" class="role-view hidden space-y-6">
                 <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
@@ -337,7 +185,7 @@
             </section>
 
             <!-- ========================================== -->
-            <!-- 3. TAMPILAN GURU BK                        -->
+            <!-- 2. TAMPILAN GURU BK                        -->
             <!-- ========================================== -->
             <section id="view-bk" class="role-view hidden space-y-6">
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -434,9 +282,24 @@
             </section>
 
             <!-- ========================================== -->
-            <!-- 4. TAMPILAN ADMIN                          -->
+            <!-- 3. TAMPILAN ADMIN                          -->
             <!-- ========================================== -->
             <section id="view-admin" class="role-view hidden space-y-6">
+                <!-- LINK CEPAT KE MANAJEMEN SIKLUS SISWA -->
+                <div class="bg-gradient-to-r from-purple-900 to-indigo-900 text-white p-5 rounded-xl shadow-md border border-purple-950 flex flex-wrap justify-between items-center gap-4">
+                    <div>
+                        <h3 class="text-base font-bold flex items-center space-x-2">
+                            <i class="fa-solid fa-users-gear text-amber-400"></i>
+                            <span>Modul Administrasi & Siklus Siswa</span>
+                        </h3>
+                        <p class="text-xs text-purple-200 mt-0.5">Kelola Penjurusan X ke XI, Kenaikan Kelas Masal, Kelulusan Alumni Kelas XII, dan Mutasi Siswa.</p>
+                    </div>
+                    <a href="manajemen-siswa.html" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-black px-4 py-2.5 rounded-lg text-xs transition flex items-center space-x-2 shadow">
+                        <span>Buka Modul Siklus Siswa</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </a>
+                </div>
+
                 <!-- GRID FITUR MANAJEMEN ADMIN (4 CARDS) -->
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     
@@ -505,7 +368,7 @@
                         <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition">Tambah User Petugas</button>
                     </div>
 
-                    <!-- 4. Pengaturan Geo Tag GPS & Radius (Diperbarui untuk menyimpan permanen ke DB) -->
+                    <!-- 4. Pengaturan Geo Tag GPS & Radius -->
                     <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
                         <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
                             <i class="fa-solid fa-gear text-purple-600"></i>
@@ -623,7 +486,6 @@
             : null;
 
         let currentActiveUser = null;
-        let siswaDistanceMeters = null;
 
         // HELPER UTAMA ZONA WAKTU WIB (Asia/Jakarta)
         function getTanggalWIB(d = new Date()) {
@@ -655,7 +517,11 @@
             const savedUser = localStorage.getItem('smada_user');
             if (savedUser) {
                 currentActiveUser = JSON.parse(savedUser);
-                setupUserSession(currentActiveUser.nama || currentActiveUser.username, currentActiveUser.role || 'siswa');
+                if (currentActiveUser.role === 'siswa') {
+                    window.location.href = 'siswa.html'; // Redirect otomatis jika role siswa
+                    return;
+                }
+                setupUserSession(currentActiveUser.nama || currentActiveUser.username, currentActiveUser.role || 'piket');
             } else {
                 document.getElementById('view-login').classList.remove('hidden');
                 document.getElementById('app-container').classList.add('hidden');
@@ -675,9 +541,6 @@
                     if (data.latitude) document.getElementById('gps-lat').value = data.latitude;
                     if (data.longitude) document.getElementById('gps-long').value = data.longitude;
                     if (data.radius_meter) document.getElementById('gps-radius').value = data.radius_meter;
-                    
-                    const limitElem = document.getElementById('siswa-radius-limit');
-                    if (limitElem) limitElem.textContent = `${data.radius_meter}m`;
                 }
             } catch (e) {
                 console.log("Setting sekolah belum ada/menggunakan nilai default.");
@@ -705,9 +568,6 @@
                 }
             }
 
-            const limitElem = document.getElementById('siswa-radius-limit');
-            if (limitElem) limitElem.textContent = `${radius}m`;
-
             alert(`Pengaturan Berhasil Disimpan Permanen!\n\n• Koordinat GPS: ${lat}, ${long}\n• Radius Akses: ${radius} Meter`);
         }
 
@@ -725,7 +585,7 @@
             }
 
             try {
-                // Check 1: Tabel Users (Petugas/Admin - mendukung 'password_hash' atau 'password')
+                // Check 1: Tabel Users (Petugas/Admin)
                 let { data: usersData } = await supabaseClient
                     .from('users')
                     .select('*')
@@ -753,7 +613,9 @@
                     currentActiveUser = { ...siswa, role: 'siswa' };
                     localStorage.setItem('smada_user', JSON.stringify(currentActiveUser));
                     simpanLogHPUser(siswa.nisn);
-                    setupUserSession(siswa.nama, 'siswa');
+                    
+                    // REDIRECT KE siswa.html LENGKAP
+                    window.location.href = 'siswa.html';
                     return;
                 }
 
@@ -800,15 +662,13 @@
                 if (role === 'admin') {
                     muatDaftarSiswa();
                     muatLogPerangkatHP();
-                } else if (role === 'siswa') {
-                    muatPortalSiswa();
                 } else if (role === 'bk') {
                     muatOpsiKelasBK();
                 }
             }
 
             if (currentActiveUser && currentActiveUser.role === 'admin') {
-                ['siswa', 'piket', 'bk', 'admin'].forEach(r => {
+                ['piket', 'bk', 'admin'].forEach(r => {
                     const btn = document.getElementById('btn-nav-' + r);
                     if (btn) {
                         btn.className = (r === role) 
@@ -819,323 +679,7 @@
             }
         }
 
-        // 3. LOGIKA PORTAL SISWA, STATUS REAL-TIME & GPS (KONSISTEN WIB)
-        async function muatPortalSiswa() {
-            if (!currentActiveUser) return;
-
-            document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || '-';
-            document.getElementById('siswa-profil-kelas').textContent = currentActiveUser.kelas || '-';
-            document.getElementById('siswa-profil-nisn').textContent = currentActiveUser.nisn || currentActiveUser.username || '-';
-
-            const hariIni = new Date();
-            document.getElementById('siswa-tanggal-hari-ini').textContent = hariIni.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-            cekSiswaGPS();
-            muatPresensiSiswaHariIni();
-            muatRiwayatSiswa();
-        }
-
-        function cekSiswaGPS() {
-            const badgeText = document.getElementById('gps-status-badge');
-            badgeText.textContent = "Memeriksa GPS...";
-
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (pos) => {
-                        const latSekolah = parseFloat(document.getElementById('gps-lat').value) || -7.6005890;
-                        const longSekolah = parseFloat(document.getElementById('gps-long').value) || 110.9783970;
-                        const maxRadius = parseInt(document.getElementById('gps-radius').value) || 100;
-
-                        const dist = hitungJarakHaversine(pos.coords.latitude, pos.coords.longitude, latSekolah, longSekolah);
-                        siswaDistanceMeters = Math.round(dist);
-                        perbaruiTampilanGPS(siswaDistanceMeters, maxRadius);
-                    },
-                    (err) => {
-                        console.error(err);
-                        badgeText.textContent = "Gagal Mengakses GPS";
-                    },
-                    { enableHighAccuracy: true }
-                );
-            }
-        }
-
-        function perbaruiTampilanGPS(jarakMeter, limitRadius) {
-            const statusPill = document.getElementById('gps-status-pill');
-            const pulsePing = document.getElementById('gps-pulse-ping');
-            const pulseDot = document.getElementById('gps-pulse-dot');
-            const badgeText = document.getElementById('gps-status-badge');
-            const radiusText = document.getElementById('siswa-status-radius-text');
-            const jarakElem = document.getElementById('siswa-jarak');
-
-            if (jarakElem) jarakElem.textContent = `${jarakMeter} Meter`;
-
-            if (jarakMeter <= limitRadius) {
-                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
-                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
-                badgeText.textContent = "GPS Terverifikasi";
-
-                radiusText.innerHTML = `<span>Di Dalam Radius Sekolah</span> <i class="fa-solid fa-circle-check text-emerald-400 ml-1"></i>`;
-                radiusText.className = "text-sm font-black tracking-wide text-emerald-400 flex items-center justify-end space-x-1.5";
-            } else {
-                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30";
-                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
-                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
-                badgeText.textContent = "Di Luar Jangkauan";
-
-                radiusText.innerHTML = `<span>Di Luar Radius Sekolah</span> <i class="fa-solid fa-circle-xmark text-rose-400 ml-1"></i>`;
-                radiusText.className = "text-sm font-black tracking-wide text-rose-400 flex items-center justify-end space-x-1.5";
-            }
-        }
-
-        function hitungJarakHaversine(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
-
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-            return R * c;
-        }
-
-        async function muatPresensiSiswaHariIni() {
-            if (!currentActiveUser) return;
-            const nisn = currentActiveUser.nisn || currentActiveUser.username;
-
-            const tglWIB = getTanggalWIB();
-            const startWIB = `${tglWIB}T00:00:00+07:00`;
-            const endWIB = `${tglWIB}T23:59:59+07:00`;
-
-            const { data, error } = await supabaseClient
-                .from('presensi')
-                .select('*')
-                .eq('nisn', nisn)
-                .gte('created_at', startWIB)
-                .lte('created_at', endWIB);
-
-            if (error) return;
-
-            const res = hitungStatusSiswaAkun(data);
-            
-            const badgeElem = document.getElementById('siswa-badge-status');
-            badgeElem.textContent = res.status;
-            badgeElem.className = `px-3 py-1 rounded-full text-xs font-bold border ${res.badgeClass}`;
-
-            document.getElementById('siswa-jam-masuk').textContent = res.jamMasuk;
-            document.getElementById('siswa-jam-pulang').textContent = res.jamPulang;
-            document.getElementById('siswa-catatan-status').textContent = res.catatan;
-        }
-
-        function hitungStatusSiswaAkun(presensiListHariIni) {
-            const jamSekarangStr = getJamWIB();
-
-            const isLewatBatasAlpha = (jamSekarangStr >= '08:30:00');
-            const isLewatJam1730 = (jamSekarangStr >= '17:30:00');
-
-            if (!presensiListHariIni || presensiListHariIni.length === 0) {
-                if (isLewatBatasAlpha) {
-                    return { status: 'Alpha', badgeClass: 'bg-red-100 text-red-800 border-red-300', jamMasuk: '-', jamPulang: '-', catatan: 'Alpha (Belum presensi hingga 08:30 WIB)' };
-                } else {
-                    return { status: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700 border-slate-300', jamMasuk: '-', jamPulang: '-', catatan: 'Silakan lakukan presensi masuk sebelum 07:00 WIB' };
-                }
-            }
-
-            const pSakit = presensiListHariIni.find(p => p.status === 'Sakit');
-            if (pSakit) return { status: 'Sakit', badgeClass: 'bg-blue-100 text-blue-800 border-blue-300', jamMasuk: '-', jamPulang: '-', catatan: pSakit.keterangan || 'Sakit (Surat Izin)' };
-
-            const pIzin = presensiListHariIni.find(p => p.status === 'Izin');
-            if (pIzin) return { status: 'Izin', badgeClass: 'bg-blue-100 text-blue-800 border-blue-300', jamMasuk: '-', jamPulang: '-', catatan: pIzin.keterangan || 'Izin Resmi' };
-
-            const pAlphaBK = presensiListHariIni.find(p => p.status === 'Alpa' || p.status === 'Alpha');
-            if (pAlphaBK) return { status: 'Alpha', badgeClass: 'bg-red-100 text-red-800 border-red-300', jamMasuk: '-', jamPulang: '-', catatan: pAlphaBK.keterangan || 'Alpha (Catatan BK/Piket)' };
-
-            const pPulangAwal = presensiListHariIni.find(p => p.status === 'Pulang Mendahului');
-            const pMasuk = presensiListHariIni.find(p => p.status === 'Hadir' || p.status === 'Terlambat' || p.jam_masuk);
-            const pPulang = presensiListHariIni.find(p => p.status === 'Pulang' || p.jam_pulang);
-
-            const jamMasukVal = pMasuk ? (pMasuk.jam_masuk || '-') : '-';
-            const jamPulangVal = pPulangAwal ? (pPulangAwal.jam_masuk || pPulangAwal.jam_pulang || '-') : (pPulang ? (pPulang.jam_pulang || pPulang.jam_masuk || '-') : '-');
-
-            if (pPulangAwal) {
-                return { status: 'Pulang Awal', badgeClass: 'bg-purple-100 text-purple-800 border-purple-300', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: pPulangAwal.keterangan || 'Izin Pulang Mendahului' };
-            }
-
-            if (pMasuk) {
-                const isTerlambat = (jamMasukVal > '07:01:00' || pMasuk.status === 'Terlambat');
-
-                if (!pPulang) {
-                    if (isLewatJam1730) {
-                        return { status: 'TAP (Tanpa Absen Pulang)', badgeClass: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300', jamMasuk: jamMasukVal, jamPulang: '-', catatan: 'TAP - Anda tidak presensi pulang hingga lewat 17:30 WIB' };
-                    } else {
-                        if (isTerlambat) {
-                            return { status: 'Terlambat (Belum Pulang)', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Terlambat masuk (${jamMasukVal}). Jangan lupa presensi pulang.` };
-                        } else {
-                            return { status: 'Hadir Pagi (HP)', badgeClass: 'bg-teal-100 text-teal-800 border-teal-300', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Hadir Pagi Tepat Waktu (${jamMasukVal}). Jangan lupa presensi pulang saat jam pulang.` };
-                        }
-                    }
-                }
-
-                if (isTerlambat) {
-                    return { status: 'Hadir Terlambat (HT)', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Terlambat (${jamMasukVal} - ${jamPulangVal})` };
-                } else {
-                    return { status: 'Hadir (H)', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Lengkap Tepat Waktu (${jamMasukVal} - ${jamPulangVal})` };
-                }
-            }
-
-            return { status: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700 border-slate-300', jamMasuk: '-', jamPulang: '-', catatan: '-' };
-        }
-
-        // PERBAIKAN PEMISAHAN KOLOM jam_masuk & jam_pulang + RECORD AUDIT GPS SERVER
-        async function prosesPresensiSiswa(jenis) {
-            const maxRadius = parseInt(document.getElementById('gps-radius').value) || 100;
-
-            if (siswaDistanceMeters === null) {
-                alert("Sedang mendeteksi GPS. Mohon tunggu sebentar.");
-                return;
-            }
-
-            if (siswaDistanceMeters > maxRadius) {
-                alert(`Presensi gagal. Anda berada di luar radius sekolah (${siswaDistanceMeters}m dari batas ${maxRadius}m).`);
-                return;
-            }
-
-            const jamWIB = getJamWIB();
-            const tglWIB = getTanggalWIB();
-            const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
-
-            // Cari record hari ini untuk siswa
-            const startWIB = `${tglWIB}T00:00:00+07:00`;
-            const endWIB = `${tglWIB}T23:59:59+07:00`;
-
-            const { data: existingRecords } = await supabaseClient
-                .from('presensi')
-                .select('*')
-                .eq('nisn', nisnVal)
-                .gte('created_at', startWIB)
-                .lte('created_at', endWIB);
-
-            let resultError = null;
-
-            if (jenis === 'Hadir') {
-                const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
-                const payload = {
-                    nisn: nisnVal,
-                    status: statusKategori,
-                    jam_masuk: jamWIB,
-                    keterangan: `Presensi Masuk GPS (${siswaDistanceMeters}m)`,
-                    created_at: getISOTimestampWIB()
-                };
-                const { error } = await supabaseClient.from('presensi').insert([payload]);
-                resultError = error;
-            } else if (jenis === 'Pulang') {
-                const recordMasuk = existingRecords ? existingRecords.find(r => r.jam_masuk) : null;
-                if (recordMasuk) {
-                    // Update record hari ini dengan jam_pulang
-                    const { error } = await supabaseClient
-                        .from('presensi')
-                        .update({ 
-                            jam_pulang: jamWIB, 
-                            status: recordMasuk.status === 'Terlambat' ? 'Terlambat' : 'Hadir',
-                            keterangan: `${recordMasuk.keterangan || ''} | Pulang (${siswaDistanceMeters}m)` 
-                        })
-                        .eq('id', recordMasuk.id);
-                    resultError = error;
-                } else {
-                    // Presensi pulang langsung tanpa record masuk
-                    const payload = {
-                        nisn: nisnVal,
-                        status: 'Pulang',
-                        jam_pulang: jamWIB,
-                        keterangan: `Presensi Pulang Mandiri (${siswaDistanceMeters}m)`,
-                        created_at: getISOTimestampWIB()
-                    };
-                    const { error } = await supabaseClient.from('presensi').insert([payload]);
-                    resultError = error;
-                }
-            }
-
-            if (resultError) { 
-                alert("Gagal melakukan presensi: " + resultError.message); 
-            } else {
-                alert(`Presensi ${jenis} berhasil dicatat!`);
-                muatPresensiSiswaHariIni();
-                muatRiwayatSiswa();
-            }
-        }
-
-        // PERBAIKAN HTML TABEL RIWAYAT 5 KOLOM LENGKAP
-        async function muatRiwayatSiswa() {
-            if (!currentActiveUser) return;
-            const nisn = currentActiveUser.nisn || currentActiveUser.username;
-
-            const tbody = document.getElementById('tabel-riwayat-siswa');
-            const { data, error } = await supabaseClient
-                .from('presensi')
-                .select('*')
-                .eq('nisn', nisn)
-                .order('created_at', { ascending: false })
-                .limit(10);
-
-            if (error || !data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada riwayat presensi bulan ini.</td></tr>';
-                return;
-            }
-
-            tbody.innerHTML = data.map(r => {
-                let badgeClass = "bg-slate-100 text-slate-800";
-                if (r.status === 'Hadir') badgeClass = "bg-emerald-100 text-emerald-800";
-                else if (r.status === 'Terlambat') badgeClass = "bg-amber-100 text-amber-800";
-                else if (r.status === 'Sakit' || r.status === 'Izin') badgeClass = "bg-blue-100 text-blue-800";
-                else if (r.status === 'Alpa' || r.status === 'Alpha') badgeClass = "bg-red-100 text-red-800";
-
-                const tglDisplay = new Date(r.created_at || Date.now()).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
-                return `
-                    <tr class="hover:bg-slate-50 border-b border-slate-100">
-                        <td class="p-3 font-mono">${tglDisplay}</td>
-                        <td class="p-3 text-center font-semibold text-emerald-700">${r.jam_masuk || '-'}</td>
-                        <td class="p-3 text-center font-semibold text-blue-700">${r.jam_pulang || '-'}</td>
-                        <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${r.status || 'Hadir'}</span></td>
-                        <td class="p-3 text-slate-500">${r.keterangan || '-'}</td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        async function gantiPasswordSiswa() {
-            const passBaru = document.getElementById('siswa-pass-baru').value.trim();
-            const passKonfirm = document.getElementById('siswa-pass-konfirm').value.trim();
-
-            if (!passBaru || !passKonfirm) {
-                alert("Password baru dan konfirmasi wajib diisi!");
-                return;
-            }
-
-            if (passBaru !== passKonfirm) {
-                alert("Konfirmasi password tidak cocok!");
-                return;
-            }
-
-            const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
-            const { error } = await supabaseClient
-                .from('siswa')
-                .update({ password: passBaru })
-                .eq('nisn', nisnVal);
-
-            if (error) {
-                alert("Gagal memperbarui password: " + error.message);
-            } else {
-                alert("Password Anda berhasil diperbarui!");
-                document.getElementById('siswa-pass-baru').value = '';
-                document.getElementById('siswa-pass-konfirm').value = '';
-            }
-        }
-
-        // 4. LOGIKA GURU PIKET & BK INPUT
+        // 3. LOGIKA GURU PIKET & BK INPUT
         async function simpanStatusKetidakhadiranPiket() {
             const nisn = document.getElementById('piket-sakit-nisn').value.trim();
             const status = document.getElementById('piket-sakit-status').value;
@@ -1284,7 +828,7 @@
             window.location.href = 'laporan-publik.html';
         }
 
-        // 5. LOGIKA PANEL ADMIN & LOG HP MULTI-AKUN
+        // 4. LOGIKA PANEL ADMIN & LOG HP MULTI-AKUN
         function muatLogPerangkatHP() {
             const tbody = document.getElementById('tabel-log-hp-body');
             const logs = JSON.parse(localStorage.getItem('smada_hp_logs') || '[]');
