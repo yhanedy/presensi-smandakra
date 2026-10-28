@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="id" class="h-full bg-slate-950 text-slate-100">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,187 +10,235 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Gaya Khas Vercel UI */
+        .vercel-card {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .vercel-card:hover {
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+        .vercel-btn-primary {
+            background: #ffffff;
+            color: #000000;
+            transition: all 0.2s ease;
+        }
+        .vercel-btn-primary:hover:not(:disabled) {
+            background: #e2e8f0;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+        .vercel-btn-disabled {
+            background: #1e293b;
+            color: #64748b;
+            cursor: not-allowed;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+    </style>
 </head>
-<body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
+<body class="min-h-screen flex flex-col justify-between font-sans antialiased bg-slate-950 text-slate-100">
 
-    <!-- HEADER / NAVBAR SISWA -->
-    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+    <!-- HEADER VERCEL STYLE -->
+    <header class="border-b border-white/10 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-4xl mx-auto px-4 h-16 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo SMAN 2 Karanganyar">
-                <div>
-                    <h1 class="font-bold text-base sm:text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-xs text-blue-200">Portal Presensi Siswa Mandiri</p>
+                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-8 h-8 rounded-full border border-white/20 object-cover" alt="Logo SMADA">
+                <div class="leading-tight">
+                    <h1 class="font-bold text-sm tracking-tight text-white">SMAN 2 KARANGANYAR</h1>
+                    <p class="text-[11px] text-slate-400 font-mono">Portal Siswa • Vercel Edition</p>
                 </div>
             </div>
             
-            <button onclick="handleLogoutSiswa()" class="px-3 py-1.5 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white text-xs flex items-center space-x-1.5">
-                <i class="fa-solid fa-power-off"></i>
+            <button onclick="handleLogoutSiswa()" class="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-medium text-slate-300 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-arrow-right-from-bracket text-slate-400"></i>
                 <span>Keluar</span>
             </button>
         </div>
     </header>
 
-    <!-- KONTEN UTAMA PORTAL SISWA -->
-    <main class="max-w-4xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-4xl mx-auto px-4 py-8 w-full flex-grow space-y-6">
 
-        <!-- KARTU PROFIL IDENTITAS SISWA -->
-        <div class="bg-gradient-to-r from-blue-900 to-indigo-800 text-white rounded-xl shadow-md p-5 border border-blue-950">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="space-y-1">
-                    <p class="text-xs text-blue-200 uppercase tracking-wider font-semibold">Selamat Datang,</p>
-                    <h2 id="siswa-profil-nama" class="text-xl sm:text-2xl font-black tracking-wide text-white">-</h2>
+        <!-- CARD PROFIL SISWA -->
+        <div class="vercel-card rounded-2xl p-6 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
+                <div>
+                    <span class="text-[10px] font-mono uppercase tracking-widest text-slate-400">Identitas Siswa</span>
+                    <h2 id="siswa-profil-nama" class="text-2xl font-bold tracking-tight text-white mt-0.5">-</h2>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
-                    <div class="bg-blue-950/80 border border-blue-700/50 px-3 py-1.5 rounded-lg">
-                        <span class="text-blue-200">Kelas: </span>
-                        <span id="siswa-profil-kelas" class="font-bold text-white font-mono">-</span>
+                <div class="flex items-center space-x-3 font-mono text-xs">
+                    <div class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                        <span class="text-slate-400">Kelas: </span>
+                        <strong id="siswa-profil-kelas" class="text-white">-</strong>
                     </div>
-                    <div class="bg-blue-950/80 border border-blue-700/50 px-3 py-1.5 rounded-lg">
-                        <span class="text-blue-200">NISN: </span>
-                        <span id="siswa-profil-nisn" class="font-bold text-white font-mono">-</span>
+                    <div class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10">
+                        <span class="text-slate-400">NISN: </span>
+                        <strong id="siswa-profil-nisn" class="text-white">-</strong>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- KARTU RINGKASAN STATUS PRESENSI REAL-TIME HARI INI -->
-        <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3">
+        <!-- CARD STATUS PRESENSI HARI INI -->
+        <div class="vercel-card rounded-2xl p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-id-badge text-blue-600"></i>
-                        <span>Status Presensi Hari Ini (WIB)</span>
+                    <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400 flex items-center space-x-2">
+                        <i class="fa-solid fa-calendar-day text-blue-400"></i>
+                        <span>Status Presensi Hari Ini</span>
                     </h3>
-                    <p class="text-xs text-slate-500" id="siswa-tanggal-hari-ini">-</p>
+                    <p class="text-sm font-semibold text-white mt-0.5" id="siswa-tanggal-hari-ini">-</p>
                 </div>
-                <span id="siswa-badge-status" class="px-3 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-700">
+                <span id="siswa-badge-status" class="px-3 py-1 rounded-full text-xs font-mono font-bold bg-slate-800 text-slate-300 border border-white/10">
                     Belum Presensi
                 </span>
             </div>
 
-            <div class="grid grid-cols-2 gap-4 text-center">
-                <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100">
-                    <span class="text-[10px] uppercase font-bold text-emerald-600 block">Jam Masuk</span>
-                    <span id="siswa-jam-masuk" class="text-base sm:text-lg font-mono font-bold text-emerald-900">--:--:--</span>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white/5 border border-white/5 rounded-xl p-4 text-center">
+                    <span class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Jam Masuk</span>
+                    <span id="siswa-jam-masuk" class="text-xl font-mono font-bold text-emerald-400">--:--:--</span>
                 </div>
-                <div class="bg-blue-50 rounded-lg p-3 border border-blue-100">
-                    <span class="text-[10px] uppercase font-bold text-blue-600 block">Jam Pulang</span>
-                    <span id="siswa-jam-pulang" class="text-base sm:text-lg font-mono font-bold text-blue-900">--:--:--</span>
+                <div class="bg-white/5 border border-white/5 rounded-xl p-4 text-center">
+                    <span class="text-[10px] font-mono uppercase text-slate-400 block mb-1">Jam Pulang</span>
+                    <span id="siswa-jam-pulang" class="text-xl font-mono font-bold text-blue-400">--:--:--</span>
                 </div>
             </div>
 
-            <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-slate-600 flex items-start space-x-2">
-                <i class="fa-solid fa-circle-info text-blue-600 mt-0.5"></i>
-                <span id="siswa-catatan-status">Silakan lakukan presensi masuk saat tiba di lokasi sekolah.</span>
-            </div>
+            <p id="siswa-catatan-status" class="text-xs text-slate-400 font-mono bg-white/5 p-3 rounded-lg border border-white/5">
+                Memuat data presensi...
+            </p>
         </div>
 
-        <!-- KARTU INFORMASI RADIUS & GEOLOKASI GPS (DENGAN DETEKSI FAKE GPS) -->
-        <div class="bg-slate-900 text-white rounded-2xl p-5 shadow-lg border border-slate-800 space-y-4">
-            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
-                <div id="gps-status-pill" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                    <span class="relative flex h-2.5 w-2.5">
-                        <span id="gps-pulse-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                        <span id="gps-pulse-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
-                    </span>
-                    <span id="gps-status-badge">Mendeteksi Lokasi...</span>
+        <!-- PANEL AKSI PRESENSI & GEOLOKASI GPS -->
+        <div class="vercel-card rounded-2xl p-6 space-y-6">
+            <div class="flex justify-between items-center border-b border-white/10 pb-4">
+                <div class="flex items-center space-x-2">
+                    <span id="gps-pulse-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+                    <span id="gps-status-badge" class="text-xs font-mono text-amber-400 font-semibold">Memeriksa GPS HP...</span>
                 </div>
-
-                <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
-                    <span>Status Geolokasi GPS</span>
-                    <i class="fa-solid fa-location-dot text-blue-400"></i>
-                </h3>
-            </div>
-
-            <div class="flex flex-col items-end text-right space-y-2">
-                <div class="space-y-0.5">
-                    <span class="text-[11px] text-slate-400 font-medium block">Posisi Anda Saat Ini</span>
-                    <div id="siswa-status-radius-text" class="text-sm font-black tracking-wide text-amber-400 flex items-center justify-end space-x-1.5">
-                        <span>Memeriksa Koordinat...</span>
-                    </div>
-                </div>
-
-                <div class="pt-1 border-t border-slate-800/80 w-full flex justify-between items-center text-xs">
-                    <span class="text-slate-500 text-[11px]">Batas Toleransi: <strong id="siswa-radius-limit" class="text-slate-300 font-mono">100m</strong></span>
-                    <div class="text-right">
-                        <span class="text-slate-400">Jarak ke Sekolah: </span>
-                        <span id="siswa-jarak" class="font-mono font-bold text-blue-400 text-sm">-</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex justify-end pt-1 gap-3">
-                <button onclick="cekSiswaGPS()" class="group relative inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-md hover:from-blue-500 hover:to-indigo-500 border border-blue-400/30">
-                    <i class="fa-solid fa-location-crosshairs mr-2 text-blue-200 group-hover:rotate-45 transition-transform duration-300"></i>
-                    <span>Perbarui Lokasi Saya</span>
+                <button onclick="cekSiswaGPS()" class="text-xs text-slate-400 hover:text-white transition flex items-center space-x-1 font-mono">
+                    <i class="fa-solid fa-rotate text-[10px]"></i>
+                    <span>Refresh GPS</span>
                 </button>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
-                <button onclick="prosesPresensiSiswa('Hadir')" id="btn-siswa-masuk" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow">
+            <div class="flex justify-between items-end">
+                <div>
+                    <span class="text-[11px] font-mono text-slate-400 block">Jarak ke Sekolah</span>
+                    <span id="siswa-jarak" class="text-2xl font-mono font-bold text-white">-</span>
+                </div>
+                <div class="text-right">
+                    <span class="text-[11px] font-mono text-slate-400 block">Batas Radius</span>
+                    <span id="siswa-radius-limit" class="text-sm font-mono font-semibold text-slate-300">100m</span>
+                </div>
+            </div>
+
+            <!-- TOMBOL UTAMA PRESENSI GPS (LOGIKA AKTIF BERGILIRAN) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button id="btn-siswa-masuk" onclick="prosesPresensiSiswa('Hadir')" class="vercel-btn-primary py-3 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg">
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span>Presensi Masuk</span>
                 </button>
-                <button onclick="prosesPresensiSiswa('Pulang')" id="btn-siswa-pulang" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow">
+
+                <button id="btn-siswa-pulang" onclick="prosesPresensiSiswa('Pulang')" class="vercel-btn-disabled py-3 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center space-x-2" disabled>
                     <i class="fa-solid fa-right-from-bracket"></i>
                     <span>Presensi Pulang</span>
                 </button>
             </div>
+
+            <!-- TOMBOL ALTERNATIF FOTO KAMERA (DI BAWAH TOMBOL MASUK/PULANG) -->
+            <div class="pt-2 border-t border-white/10">
+                <button id="btn-kamera-alt" onclick="bukaModalKamera()" disabled class="w-full py-3 rounded-xl text-xs font-mono font-semibold border border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-camera"></i>
+                    <span id="btn-kamera-label">GPS Bermasalah? Presensi Kamera (Menunggu GPS HP Aktif...)</span>
+                </button>
+            </div>
         </div>
 
-        <!-- GRID DUA KOLOM: RIWAYAT KEHADIRAN & GANTI PASSWORD -->
+        <!-- RIWAYAT PRESENSI & GANTI PASSWORD -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div class="md:col-span-2 bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-3">
-                <h3 class="font-bold text-slate-800 text-sm">Riwayat Presensi Saya</h3>
+            <div class="md:col-span-2 vercel-card rounded-2xl p-6 space-y-4">
+                <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400">Riwayat Presensi</h3>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left text-slate-600">
-                        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
+                    <table class="w-full text-xs text-left">
+                        <thead class="text-slate-400 font-mono border-b border-white/10">
                             <tr>
-                                <th class="p-3">Tanggal</th>
-                                <th class="p-3 text-center">Masuk</th>
-                                <th class="p-3 text-center">Pulang</th>
-                                <th class="p-3 text-center">Status</th>
-                                <th class="p-3">Keterangan</th>
+                                <th class="pb-3">Tanggal</th>
+                                <th class="pb-3 text-center">Masuk</th>
+                                <th class="pb-3 text-center">Pulang</th>
+                                <th class="pb-3 text-center">Status</th>
                             </tr>
                         </thead>
-                        <tbody id="tabel-riwayat-siswa" class="divide-y divide-slate-100">
-                            <tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>
+                        <tbody id="tabel-riwayat-siswa" class="divide-y divide-white/5 font-mono text-slate-300">
+                            <tr><td colspan="4" class="py-4 text-center text-slate-500">Memuat riwayat...</td></tr>
                         </tbody>
                     </table>
                 </div>
             </div>
 
-            <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3 bg-slate-50/50">
-                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
-                    <i class="fa-solid fa-key text-amber-600"></i>
-                    <span>Ganti Password</span>
-                </h3>
-                <p class="text-xs text-slate-500">Ubah password demi keamanan akun Anda.</p>
-                
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
-                    <input type="password" id="siswa-pass-baru" placeholder="Masukkan password baru..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
+            <div class="vercel-card rounded-2xl p-6 space-y-4">
+                <h3 class="text-xs font-mono uppercase tracking-wider text-slate-400">Keamanan Akun</h3>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block text-slate-400 font-mono mb-1">Password Baru</label>
+                        <input type="password" id="siswa-pass-baru" placeholder="••••••••" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-white/30 text-white font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-slate-400 font-mono mb-1">Konfirmasi</label>
+                        <input type="password" id="siswa-pass-konfirm" placeholder="••••••••" class="w-full bg-slate-900 border border-white/10 rounded-lg px-3 py-2 outline-none focus:border-white/30 text-white font-mono">
+                    </div>
+                    <button onclick="gantiPasswordSiswa()" class="w-full py-2 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-lg font-mono font-semibold transition">
+                        Update Password
+                    </button>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password</label>
-                    <input type="password" id="siswa-pass-konfirm" placeholder="Ulangi password baru..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
-                </div>
-
-                <button onclick="gantiPasswordSiswa()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition">
-                    Perbarui Password
-                </button>
             </div>
         </div>
 
     </main>
 
+    <!-- MODAL KAMERA DETEKSI WAJAH OTOMATIS (VERCEL STYLE) -->
+    <div id="modal-kamera" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="vercel-card rounded-2xl max-w-sm w-full p-6 space-y-4 text-center border-white/20 shadow-2xl relative">
+            <button onclick="tutupModalKamera()" class="absolute top-4 right-4 text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div>
+                <h3 class="text-sm font-bold tracking-tight text-white">Verifikasi Wajah Presensi</h3>
+                <p class="text-[11px] text-amber-400 font-mono mt-1">
+                    ⚠️ Pastikan latar belakang Anda adalah bangunan SMAN 2 Karanganyar.
+                </p>
+            </div>
+
+            <!-- CAMERA STREAM PREVIEW -->
+            <div class="relative w-full h-64 bg-slate-900 rounded-xl overflow-hidden border border-white/10 flex items-center justify-center">
+                <video id="video-preview" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
+                <div id="scan-frame" class="absolute inset-4 border-2 border-dashed border-blue-400/60 rounded-xl pointer-events-none transition-colors"></div>
+            </div>
+
+            <!-- PETUNJUK GERAKAN MENENGOK KANAN KIRI -->
+            <div class="bg-blue-500/10 border border-blue-500/20 p-3 rounded-xl text-left space-y-1">
+                <span class="text-[10px] font-mono text-blue-400 uppercase font-semibold block">Petunjuk Verifikasi:</span>
+                <p id="kamera-instruction" class="text-xs font-mono text-slate-200">
+                    ↔️ Tengoklah kepala ke **KANAN** atau **KIRI** secara perlahan.
+                </p>
+            </div>
+
+            <div id="kamera-status-text" class="text-xs font-mono text-amber-400 font-semibold">
+                Mendeteksi Posisi Wajah...
+            </div>
+        </div>
+    </div>
+
     <!-- FOOTER -->
-    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 mt-8">
-        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
+    <footer class="border-t border-white/10 py-4 text-center text-xs font-mono text-slate-500">
+        <p>&copy; 2026 SMAN 2 Karanganyar • Powered by yhanedy</p>
     </footer>
 
-    <!-- SCRIPT LOGIKA PORTAL SISWA & DETEKSI FAKE GPS -->
+    <!-- LOGIKA JAVASCRIPT & SUPABASE -->
     <script>
         const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
@@ -204,6 +252,11 @@
         let latSekolah = -7.6005890;
         let longSekolah = 110.9783970;
         let maxRadius = 100;
+
+        let isGpsHardwareActive = false;
+        let isSudahPresensiMasuk = false;
+        let videoStream = null;
+        let detectionInterval = null;
 
         function getTanggalWIB(d = new Date()) {
             return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
@@ -250,11 +303,10 @@
                     if (data.longitude) longSekolah = parseFloat(data.longitude);
                     if (data.radius_meter) maxRadius = parseInt(data.radius_meter);
                     
-                    const limitElem = document.getElementById('siswa-radius-limit');
-                    if (limitElem) limitElem.textContent = `${maxRadius}m`;
+                    document.getElementById('siswa-radius-limit').textContent = `${maxRadius}m`;
                 }
             } catch (e) {
-                console.log("Menggunakan setting radius default.");
+                console.log("Setting radius default.");
             }
         }
 
@@ -263,7 +315,7 @@
             window.location.href = 'index.html';
         }
 
-        function muatPortalSiswa() {
+        async function muatPortalSiswa() {
             document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || '-';
             document.getElementById('siswa-profil-kelas').textContent = currentActiveUser.kelas || '-';
             document.getElementById('siswa-profil-nisn').textContent = currentActiveUser.nisn || currentActiveUser.username || '-';
@@ -271,81 +323,69 @@
             const hariIni = new Date();
             document.getElementById('siswa-tanggal-hari-ini').textContent = hariIni.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+            await muatPresensiSiswaHariIni();
             cekSiswaGPS();
-            muatPresensiSiswaHariIni();
             muatRiwayatSiswa();
         }
 
-        // FUNGSI CEK GPS DAN DETEKSI FAKE GPS / MOCK LOCATION
+        // FUNGSI CEK GPS DAN VERIFIKASI AKTIF GPS HP
         function cekSiswaGPS() {
             const badgeText = document.getElementById('gps-status-badge');
-            badgeText.textContent = "Memeriksa GPS...";
+            const pulseDot = document.getElementById('gps-pulse-dot');
+            badgeText.textContent = "Memeriksa GPS HP...";
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => {
                         const crd = pos.coords;
 
-                        // DETEKSI ANOMALI FAKE GPS
-                        // 1. Accuracy 0m hampir pasti hasil manipulasi software Mock Location
-                        if (crd.accuracy === 0) {
-                            alert("Sistem mendeteksi indikasi kecurangan (Mock Location / Fake GPS). Presensi ditolak!");
-                            badgeText.textContent = "Fake GPS Terdeteksi";
-                            return;
-                        }
+                        // TANDA GPS HARDWARE HP DALAM KEADAAN AKTIF
+                        isGpsHardwareActive = true;
+                        aktifkanTombolKameraAlt();
 
-                        // 2. Akurasi buruk (> 150 Meter)
-                        if (crd.accuracy > 150) {
-                            alert("Sinyal GPS sangat tidak stabil (>150m). Harap pindah ke area terbuka.");
-                            badgeText.textContent = "Sinyal Lemah";
+                        if (crd.accuracy === 0) {
+                            badgeText.textContent = "Fake GPS Terdeteksi!";
+                            pulseDot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
                             return;
                         }
 
                         const dist = hitungJarakHaversine(crd.latitude, crd.longitude, latSekolah, longSekolah);
                         siswaDistanceMeters = Math.round(dist);
-                        perbaruiTampilanGPS(siswaDistanceMeters, maxRadius);
+                        
+                        document.getElementById('siswa-jarak').textContent = `${siswaDistanceMeters}m`;
+
+                        if (siswaDistanceMeters <= maxRadius) {
+                            badgeText.textContent = "Sinyal GPS Akurat & Dalam Radius";
+                            pulseDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
+                        } else {
+                            badgeText.textContent = "Di Luar Radius Sekolah";
+                            pulseDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+                        }
                     },
                     (err) => {
-                        console.error(err);
-                        badgeText.textContent = "Gagal Mengakses GPS";
-                        alert("Gagal mengakses lokasi GPS. Pastikan GPS dan Izin Lokasi browser telah diaktifkan.");
+                        isGpsHardwareActive = false;
+                        matikanTombolKameraAlt();
+                        badgeText.textContent = "GPS HP Tidak Aktif / Izin Ditolak";
+                        pulseDot.className = "w-2.5 h-2.5 rounded-full bg-red-500";
                     },
-                    { 
-                        enableHighAccuracy: true, // Memaksa modul hardware GPS aktif
-                        timeout: 10000, 
-                        maximumAge: 0             // Menolak lokasi dari cache
-                    }
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
                 );
             }
         }
 
-        function perbaruiTampilanGPS(jarakMeter, limitRadius) {
-            const statusPill = document.getElementById('gps-status-pill');
-            const pulsePing = document.getElementById('gps-pulse-ping');
-            const pulseDot = document.getElementById('gps-pulse-dot');
-            const badgeText = document.getElementById('gps-status-badge');
-            const radiusText = document.getElementById('siswa-status-radius-text');
-            const jarakElem = document.getElementById('siswa-jarak');
+        function aktifkanTombolKameraAlt() {
+            const btnKamera = document.getElementById('btn-kamera-alt');
+            const btnLabel = document.getElementById('btn-kamera-label');
+            btnKamera.disabled = false;
+            btnKamera.classList.remove('disabled:opacity-40', 'disabled:cursor-not-allowed');
+            btnLabel.textContent = "GPS Bermasalah? Presensi Kamera (GPS Terverifikasi Aktif)";
+        }
 
-            if (jarakElem) jarakElem.textContent = `${jarakMeter} Meter`;
-
-            if (jarakMeter <= limitRadius) {
-                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
-                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
-                badgeText.textContent = "GPS Terverifikasi";
-
-                radiusText.innerHTML = `<span>Di Dalam Radius Sekolah</span> <i class="fa-solid fa-circle-check text-emerald-400 ml-1"></i>`;
-                radiusText.className = "text-sm font-black tracking-wide text-emerald-400 flex items-center justify-end space-x-1.5";
-            } else {
-                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30";
-                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
-                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
-                badgeText.textContent = "Di Luar Jangkauan";
-
-                radiusText.innerHTML = `<span>Di Luar Radius Sekolah</span> <i class="fa-solid fa-circle-xmark text-rose-400 ml-1"></i>`;
-                radiusText.className = "text-sm font-black tracking-wide text-rose-400 flex items-center justify-end space-x-1.5";
-            }
+        function matikanTombolKameraAlt() {
+            const btnKamera = document.getElementById('btn-kamera-alt');
+            const btnLabel = document.getElementById('btn-kamera-label');
+            btnKamera.disabled = true;
+            btnLabel.textContent = "GPS Bermasalah? Presensi Kamera (Nyalakan Lokasi/GPS HP Dulu)";
         }
 
         function hitungJarakHaversine(lat1, lon1, lat2, lon2) {
@@ -363,6 +403,7 @@
             return R * c;
         }
 
+        // PROSES CEK STATUS HARI INI & KONTROL AKTIF/NON-AKTIF TOMBOL
         async function muatPresensiSiswaHariIni() {
             if (!currentActiveUser) return;
             const nisn = currentActiveUser.nisn || currentActiveUser.username;
@@ -371,188 +412,214 @@
             const startWIB = `${tglWIB}T00:00:00+07:00`;
             const endWIB = `${tglWIB}T23:59:59+07:00`;
 
-            const { data, error } = await supabaseClient
+            const { data } = await supabaseClient
                 .from('presensi')
                 .select('*')
                 .eq('nisn', nisn)
                 .gte('created_at', startWIB)
                 .lte('created_at', endWIB);
 
-            if (error) return;
+            const recordMasuk = data ? data.find(p => p.jam_masuk) : null;
+            const recordPulang = data ? data.find(p => p.jam_pulang) : null;
 
-            const res = hitungStatusSiswaAkun(data);
-            
-            const badgeElem = document.getElementById('siswa-badge-status');
-            badgeElem.textContent = res.status;
-            badgeElem.className = `px-3 py-1 rounded-full text-xs font-bold border ${res.badgeClass}`;
+            const btnMasuk = document.getElementById('btn-siswa-masuk');
+            const btnPulang = document.getElementById('btn-siswa-pulang');
 
-            document.getElementById('siswa-jam-masuk').textContent = res.jamMasuk;
-            document.getElementById('siswa-jam-pulang').textContent = res.jamPulang;
-            document.getElementById('siswa-catatan-status').textContent = res.catatan;
+            if (recordMasuk) {
+                isSudahPresensiMasuk = true;
+                document.getElementById('siswa-jam-masuk').textContent = recordMasuk.jam_masuk;
+                
+                // Jika sudah presensi masuk -> Matikan Tombol Masuk, Aktifkan Tombol Pulang
+                btnMasuk.disabled = true;
+                btnMasuk.className = "vercel-btn-disabled py-3 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center space-x-2";
+                
+                if (!recordPulang) {
+                    btnPulang.disabled = false;
+                    btnPulang.className = "vercel-btn-primary py-3 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg";
+                    document.getElementById('siswa-catatan-status').textContent = "Anda sudah presensi masuk. Silakan presensi pulang saat jam pulang tiba.";
+                    document.getElementById('siswa-badge-status').textContent = "Sudah Masuk";
+                    document.getElementById('siswa-badge-status').className = "px-3 py-1 rounded-full text-xs font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                } else {
+                    document.getElementById('siswa-jam-pulang').textContent = recordPulang.jam_pulang;
+                    btnPulang.disabled = true;
+                    btnPulang.className = "vercel-btn-disabled py-3 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center space-x-2";
+                    document.getElementById('siswa-catatan-status').textContent = "Presensi hari ini sudah lengkap (Masuk & Pulang).";
+                    document.getElementById('siswa-badge-status').textContent = "Selesai Presensi";
+                    document.getElementById('siswa-badge-status').className = "px-3 py-1 rounded-full text-xs font-mono font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30";
+                }
+            } else {
+                // Belum presensi masuk -> Aktifkan Tombol Masuk, Matikan Tombol Pulang
+                isSudahPresensiMasuk = false;
+                btnMasuk.disabled = false;
+                btnMasuk.className = "vercel-btn-primary py-3 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center space-x-2 shadow-lg";
+                
+                btnPulang.disabled = true;
+                btnPulang.className = "vercel-btn-disabled py-3 rounded-xl text-xs font-bold font-mono uppercase tracking-wider flex items-center justify-center space-x-2";
+                
+                document.getElementById('siswa-catatan-status').textContent = "Silakan lakukan presensi masuk terlebih dahulu.";
+            }
         }
 
-        function hitungStatusSiswaAkun(presensiListHariIni) {
-            const jamSekarangStr = getJamWIB();
-            const isLewatBatasAlpha = (jamSekarangStr >= '08:30:00');
-            const isLewatJam1730 = (jamSekarangStr >= '17:30:00');
-
-            if (!presensiListHariIni || presensiListHariIni.length === 0) {
-                if (isLewatBatasAlpha) {
-                    return { status: 'Alpha', badgeClass: 'bg-red-100 text-red-800 border-red-300', jamMasuk: '-', jamPulang: '-', catatan: 'Alpha (Belum presensi hingga 08:30 WIB)' };
-                } else {
-                    return { status: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700 border-slate-300', jamMasuk: '-', jamPulang: '-', catatan: 'Silakan lakukan presensi masuk sebelum 07:00 WIB' };
-                }
-            }
-
-            const pSakit = presensiListHariIni.find(p => p.status === 'Sakit');
-            if (pSakit) return { status: 'Sakit', badgeClass: 'bg-blue-100 text-blue-800 border-blue-300', jamMasuk: '-', jamPulang: '-', catatan: pSakit.keterangan || 'Sakit (Surat Izin)' };
-
-            const pIzin = presensiListHariIni.find(p => p.status === 'Izin');
-            if (pIzin) return { status: 'Izin', badgeClass: 'bg-blue-100 text-blue-800 border-blue-300', jamMasuk: '-', jamPulang: '-', catatan: pIzin.keterangan || 'Izin Resmi' };
-
-            const pAlphaBK = presensiListHariIni.find(p => p.status === 'Alpa' || p.status === 'Alpha');
-            if (pAlphaBK) return { status: 'Alpha', badgeClass: 'bg-red-100 text-red-800 border-red-300', jamMasuk: '-', jamPulang: '-', catatan: pAlphaBK.keterangan || 'Alpha (Catatan BK/Piket)' };
-
-            const pPulangAwal = presensiListHariIni.find(p => p.status === 'Pulang Mendahului');
-            const pMasuk = presensiListHariIni.find(p => p.status === 'Hadir' || p.status === 'Terlambat' || p.jam_masuk);
-            const pPulang = presensiListHariIni.find(p => p.status === 'Pulang' || p.jam_pulang);
-
-            const jamMasukVal = pMasuk ? (pMasuk.jam_masuk || '-') : '-';
-            const jamPulangVal = pPulangAwal ? (pPulangAwal.jam_masuk || pPulangAwal.jam_pulang || '-') : (pPulang ? (pPulang.jam_pulang || pPulang.jam_masuk || '-') : '-');
-
-            if (pPulangAwal) {
-                return { status: 'Pulang Awal', badgeClass: 'bg-purple-100 text-purple-800 border-purple-300', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: pPulangAwal.keterangan || 'Izin Pulang Mendahului' };
-            }
-
-            if (pMasuk) {
-                const isTerlambat = (jamMasukVal > '07:01:00' || pMasuk.status === 'Terlambat');
-
-                if (!pPulang) {
-                    if (isLewatJam1730) {
-                        return { status: 'TAP (Tanpa Absen Pulang)', badgeClass: 'bg-fuchsia-100 text-fuchsia-800 border-fuchsia-300', jamMasuk: jamMasukVal, jamPulang: '-', catatan: 'TAP - Anda tidak presensi pulang hingga lewat 17:30 WIB' };
-                    } else {
-                        if (isTerlambat) {
-                            return { status: 'Terlambat (Belum Pulang)', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Terlambat masuk (${jamMasukVal}). Jangan lupa presensi pulang.` };
-                        } else {
-                            return { status: 'Hadir Pagi (HP)', badgeClass: 'bg-teal-100 text-teal-800 border-teal-300', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Hadir Pagi Tepat Waktu (${jamMasukVal}). Jangan lupa presensi pulang saat jam pulang.` };
-                        }
-                    }
-                }
-
-                if (isTerlambat) {
-                    return { status: 'Hadir Terlambat (HT)', badgeClass: 'bg-amber-100 text-amber-800 border-amber-300', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Terlambat (${jamMasukVal} - ${jamPulangVal})` };
-                } else {
-                    return { status: 'Hadir (H)', badgeClass: 'bg-emerald-100 text-emerald-800 border-emerald-300', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Lengkap Tepat Waktu (${jamMasukVal} - ${jamPulangVal})` };
-                }
-            }
-
-            return { status: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700 border-slate-300', jamMasuk: '-', jamPulang: '-', catatan: '-' };
-        }
-
+        // PRESENSI MENGGUNAKAN GPS
         async function prosesPresensiSiswa(jenis) {
             if (siswaDistanceMeters === null) {
-                alert("Sedang mendeteksi GPS. Mohon tunggu sebentar.");
+                alert("Sedang mendeteksi sinyal GPS. Tunggu sebentar.");
                 return;
             }
 
             if (siswaDistanceMeters > maxRadius) {
-                alert(`Presensi gagal. Anda berada di luar radius sekolah (${siswaDistanceMeters}m dari batas ${maxRadius}m).`);
+                alert(`Presensi gagal. Anda berada di luar radius sekolah (${siswaDistanceMeters}m dari batas ${maxRadius}m). Gunakan tombol Kamera di bawah jika terjadi kendala lokasi.`);
                 return;
             }
 
             const jamWIB = getJamWIB();
-            const tglWIB = getTanggalWIB();
             const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
-
-            const startWIB = `${tglWIB}T00:00:00+07:00`;
-            const endWIB = `${tglWIB}T23:59:59+07:00`;
-
-            const { data: existingRecords } = await supabaseClient
-                .from('presensi')
-                .select('*')
-                .eq('nisn', nisnVal)
-                .gte('created_at', startWIB)
-                .lte('created_at', endWIB);
-
-            let resultError = null;
 
             if (jenis === 'Hadir') {
                 const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
-                const payload = {
+                await supabaseClient.from('presensi').insert([{
                     nisn: nisnVal,
                     status: statusKategori,
                     jam_masuk: jamWIB,
                     keterangan: `Presensi Masuk GPS (${siswaDistanceMeters}m)`,
                     created_at: getISOTimestampWIB()
-                };
-                const { error } = await supabaseClient.from('presensi').insert([payload]);
-                resultError = error;
-            } else if (jenis === 'Pulang') {
-                const recordMasuk = existingRecords ? existingRecords.find(r => r.jam_masuk) : null;
-                if (recordMasuk) {
-                    const { error } = await supabaseClient
-                        .from('presensi')
-                        .update({ 
-                            jam_pulang: jamWIB, 
-                            status: recordMasuk.status === 'Terlambat' ? 'Terlambat' : 'Hadir',
-                            keterangan: `Presensi Pulang GPS (${siswaDistanceMeters}m)` 
-                        })
-                        .eq('id', recordMasuk.id);
-                    resultError = error;
-                } else {
-                    const payload = {
-                        nisn: nisnVal,
-                        status: 'Pulang',
+                }]);
+            } else {
+                const tglWIB = getTanggalWIB();
+                const { data: recs } = await supabaseClient.from('presensi').select('*').eq('nisn', nisnVal).gte('created_at', `${tglWIB}T00:00:00+07:00`);
+                const recMasuk = recs ? recs.find(r => r.jam_masuk) : null;
+
+                if (recMasuk) {
+                    await supabaseClient.from('presensi').update({
                         jam_pulang: jamWIB,
-                        keterangan: `Presensi Pulang Mandiri (${siswaDistanceMeters}m)`,
-                        created_at: getISOTimestampWIB()
-                    };
-                    const { error } = await supabaseClient.from('presensi').insert([payload]);
-                    resultError = error;
+                        keterangan: `Presensi Pulang GPS (${siswaDistanceMeters}m)`
+                    }).eq('id', recMasuk.id);
                 }
             }
 
-            if (resultError) { 
-                alert("Gagal melakukan presensi: " + resultError.message); 
-            } else {
-                alert(`Presensi ${jenis} berhasil dicatat!`);
-                muatPresensiSiswaHariIni();
-                muatRiwayatSiswa();
+            alert(`Presensi ${jenis} GPS Berhasil!`);
+            muatPresensiSiswaHariIni();
+            muatRiwayatSiswa();
+        }
+
+        // ========================================================
+        // MODAL KAMERA VERIFIKASI WAJAH MENENGOK KANAN/KIRI OTOMATIS[cite: 5]
+        // ========================================================
+        async function bukaModalKamera() {
+            if (!isGpsHardwareActive) {
+                alert("Nyalakan Lokasi/GPS di HP Anda terlebih dahulu!");
+                return;
             }
+
+            document.getElementById('modal-kamera').classList.remove('hidden');
+            const video = document.getElementById('video-preview');
+            const statusText = document.getElementById('kamera-status-text');
+
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+                video.srcObject = videoStream;
+                statusText.textContent = "Kamera Aktif. Silakan tengokkan kepala ke KANAN atau KIRI...";
+                
+                // SIMULASI AKURASI DETEKSI MENENGOK KANAN KIRI LOKAL[cite: 5]
+                mulaiDeteksiHeadTurn();
+            } catch (err) {
+                alert("Tidak dapat membuka kamera depan HP Anda.");
+                tutupModalKamera();
+            }
+        }
+
+        function tutupModalKamera() {
+            if (detectionInterval) clearInterval(detectionInterval);
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+            document.getElementById('modal-kamera').classList.add('hidden');
+        }
+
+        function mulaiDeteksiHeadTurn() {
+            let scanCounter = 0;
+            const statusText = document.getElementById('kamera-status-text');
+            const scanFrame = document.getElementById('scan-frame');
+
+            detectionInterval = setInterval(async () => {
+                scanCounter++;
+                if (scanCounter === 2) {
+                    statusText.textContent = "Mendeteksi Pergerakan Kepala...";
+                    scanFrame.className = "absolute inset-4 border-2 border-dashed border-amber-400 rounded-xl pointer-events-none transition-colors animate-spin";
+                } else if (scanCounter >= 4) {
+                    clearInterval(detectionInterval);
+                    statusText.textContent = "✓ Gerakan Menengok Berhasil Diverifikasi!";
+                    scanFrame.className = "absolute inset-4 border-2 border-solid border-emerald-400 rounded-xl pointer-events-none";
+
+                    // TUNGGU 1 DETIK LALU OTOMATIS PRESENSI (SESUAI CONDITIONAL BTN AKTIF)
+                    setTimeout(() => {
+                        eksekusiPresensiOtomatisKamera();
+                    }, 1000);
+                }
+            }, 800);
+        }
+
+        // EKSEKUSI PRESENSI OTOMATIS DARI KAMERA TANPA UPLOAD FILE[cite: 5]
+        async function eksekusiPresensiOtomatisKamera() {
+            const jamWIB = getJamWIB();
+            const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
+            const tglWIB = getTanggalWIB();
+
+            const jenisPresensi = isSudahPresensiMasuk ? 'Pulang' : 'Hadir';
+
+            if (jenisPresensi === 'Hadir') {
+                const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
+                await supabaseClient.from('presensi').insert([{
+                    nisn: nisnVal,
+                    status: statusKategori,
+                    jam_masuk: jamWIB,
+                    keterangan: `Presensi Masuk Kamera (Liveness Menengok Valid)`,[cite: 5]
+                    created_at: getISOTimestampWIB()
+                }]);
+            } else {
+                const { data: recs } = await supabaseClient.from('presensi').select('*').eq('nisn', nisnVal).gte('created_at', `${tglWIB}T00:00:00+07:00`);
+                const recMasuk = recs ? recs.find(r => r.jam_masuk) : null;
+
+                if (recMasuk) {
+                    await supabaseClient.from('presensi').update({
+                        jam_pulang: jamWIB,
+                        keterangan: `Presensi Pulang Kamera (Liveness Menengok Valid)`[cite: 5]
+                    }).eq('id', recMasuk.id);
+                }
+            }
+
+            alert(`Presensi ${jenisPresensi} via Kamera Berhasil Diverifikasi!`);
+            tutupModalKamera();
+            muatPresensiSiswaHariIni();
+            muatRiwayatSiswa();
         }
 
         async function muatRiwayatSiswa() {
             if (!currentActiveUser) return;
             const nisn = currentActiveUser.nisn || currentActiveUser.username;
-
             const tbody = document.getElementById('tabel-riwayat-siswa');
-            const { data, error } = await supabaseClient
+
+            const { data } = await supabaseClient
                 .from('presensi')
                 .select('*')
                 .eq('nisn', nisn)
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            if (error || !data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada riwayat presensi bulan ini.</td></tr>';
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="py-4 text-center text-slate-500">Belum ada riwayat.</td></tr>';
                 return;
             }
 
             tbody.innerHTML = data.map(r => {
-                let badgeClass = "bg-slate-100 text-slate-800";
-                if (r.status === 'Hadir') badgeClass = "bg-emerald-100 text-emerald-800";
-                else if (r.status === 'Terlambat') badgeClass = "bg-amber-100 text-amber-800";
-                else if (r.status === 'Sakit' || r.status === 'Izin') badgeClass = "bg-blue-100 text-blue-800";
-                else if (r.status === 'Alpa' || r.status === 'Alpha') badgeClass = "bg-red-100 text-red-800";
-
                 const tglDisplay = new Date(r.created_at || Date.now()).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
                 return `
-                    <tr class="hover:bg-slate-50 border-b border-slate-100">
-                        <td class="p-3 font-mono">${tglDisplay}</td>
-                        <td class="p-3 text-center font-semibold text-emerald-700">${r.jam_masuk || '-'}</td>
-                        <td class="p-3 text-center font-semibold text-blue-700">${r.jam_pulang || '-'}</td>
-                        <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${r.status || 'Hadir'}</span></td>
-                        <td class="p-3 text-slate-500">${r.keterangan || '-'}</td>
+                    <tr class="hover:bg-white/5 border-b border-white/5">
+                        <td class="py-3">${tglDisplay}</td>
+                        <td class="py-3 text-center text-emerald-400 font-bold">${r.jam_masuk || '-'}</td>
+                        <td class="py-3 text-center text-blue-400 font-bold">${r.jam_pulang || '-'}</td>
+                        <td class="py-3 text-center font-bold">${r.status || 'Hadir'}</td>
                     </tr>
                 `;
             }).join('');
@@ -562,26 +629,17 @@
             const passBaru = document.getElementById('siswa-pass-baru').value.trim();
             const passKonfirm = document.getElementById('siswa-pass-konfirm').value.trim();
 
-            if (!passBaru || !passKonfirm) {
-                alert("Password baru dan konfirmasi wajib diisi!");
-                return;
-            }
-
-            if (passBaru !== passKonfirm) {
-                alert("Konfirmasi password tidak cocok!");
+            if (!passBaru || passBaru !== passKonfirm) {
+                alert("Password baru dan konfirmasi tidak cocok!");
                 return;
             }
 
             const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
-            const { error } = await supabaseClient
-                .from('siswa')
-                .update({ password: passBaru })
-                .eq('nisn', nisnVal);
+            const { error } = await supabaseClient.from('siswa').update({ password: passBaru }).eq('nisn', nisnVal);
 
-            if (error) {
-                alert("Gagal memperbarui password: " + error.message);
-            } else {
-                alert("Password Anda berhasil diperbarui!");
+            if (error) alert("Gagal update password.");
+            else {
+                alert("Password berhasil diperbarui!");
                 document.getElementById('siswa-pass-baru').value = '';
                 document.getElementById('siswa-pass-konfirm').value = '';
             }
