@@ -24,7 +24,7 @@
                 </div>
             </div>
             
-            <button onclick="handleLogoutSiswa()" class="px-3 py-1.5 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white text-xs flex items-center space-x-1.5">
+            <button onclick="handleLogoutSiswa()" class="px-3 py-1.5 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white text-xs flex items-center space-x-1.5 cursor-pointer">
                 <i class="fa-solid fa-power-off"></i>
                 <span>Keluar</span>
             </button>
@@ -39,7 +39,7 @@
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div class="space-y-1 text-left">
                     <p class="text-xs text-blue-200 uppercase tracking-wider font-semibold">Selamat Datang,</p>
-                    <h2 id="siswa-profil-nama" class="text-xl sm:text-2xl font-black tracking-wide text-white">-</h2>
+                    <h2 id="siswa-profil-nama" class="text-xl sm:text-2xl font-black tracking-wide text-white">Memuat...</h2>
                 </div>
                 <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
                     <div class="bg-blue-950/80 border border-blue-700/50 px-3 py-1.5 rounded-lg">
@@ -86,7 +86,7 @@
             </div>
         </div>
 
-        <!-- KARTU INFORMASI RADIUS & GEOLOKASI GPS (SEMUA TATA LETAK RATA KIRI) -->
+        <!-- KARTU INFORMASI RADIUS & GEOLOKASI GPS -->
         <div class="bg-slate-900 text-white rounded-2xl p-5 shadow-lg border border-slate-800 space-y-4 text-left">
             <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
                 <div id="gps-status-pill" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
@@ -103,7 +103,7 @@
                 </h3>
             </div>
 
-            <!-- ELEMEN POSISI & RADIUS DIBUAT RATA KIRI -->
+            <!-- ELEMEN POSISI & RADIUS RATA KIRI -->
             <div class="flex flex-col space-y-2 text-left">
                 <div class="space-y-0.5">
                     <span class="text-[11px] text-slate-400 font-medium block">Posisi Anda Saat Ini</span>
@@ -137,7 +137,7 @@
                 </button>
             </div>
 
-            <!-- MENU FOTO ALTERNATIF (LANGSUNG AKTIF TANPA MENUNGGU GPS) -->
+            <!-- MENU FOTO ALTERNATIF -->
             <div class="pt-3 border-t border-slate-800/80">
                 <button id="btn-kamera-alt" onclick="bukaModalKamera()" class="w-full py-3 px-4 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition flex items-center justify-center space-x-2 shadow">
                     <i class="fa-solid fa-camera"></i>
@@ -192,7 +192,7 @@
 
     </main>
 
-    <!-- MODAL KAMERA VERIFIKASI WAJAH MENENGOK KANAN/KIRI -->
+    <!-- MODAL KAMERA VERIFIKASI WAJAH -->
     <div id="modal-kamera" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 text-left shadow-2xl relative">
             <button onclick="tutupModalKamera()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
@@ -233,14 +233,20 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- SCRIPT LOGIKA PORTAL SISWA & SUPABASE -->
+    <!-- SCRIPT JAVASCRIPT KONEKSI SUPABASE & LOGIKA APPS -->
     <script>
         const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
         
-        const supabaseClient = (window.supabase && window.supabase.createClient) 
-            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
-            : null;
+        let supabaseClient = null;
+
+        // Inisialisasi Supabase dengan aman
+        function getSupabase() {
+            if (!supabaseClient && window.supabase && window.supabase.createClient) {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            }
+            return supabaseClient;
+        }
 
         let currentActiveUser = null;
         let siswaDistanceMeters = null;
@@ -266,27 +272,42 @@
             return `${tgl}T${jam}+07:00`;
         }
 
-        window.onload = async function() {
+        // FUNGSI OUT KELUAR PENGGUNA (MEMAKSA LOGOUT)
+        function handleLogoutSiswa() {
+            localStorage.clear();
+            window.location.replace('index.html');
+        }
+
+        window.onload = function() {
+            getSupabase();
+
             const savedUser = localStorage.getItem('smada_user');
             if (!savedUser) {
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
                 return;
             }
 
-            currentActiveUser = JSON.parse(savedUser);
-            if (currentActiveUser.role !== 'siswa') {
-                window.location.href = 'index.html';
+            try {
+                currentActiveUser = JSON.parse(savedUser);
+            } catch (e) {
+                handleLogoutSiswa();
                 return;
             }
 
-            await muatSettingSekolah();
+            if (!currentActiveUser || (currentActiveUser.role && currentActiveUser.role !== 'siswa')) {
+                window.location.replace('index.html');
+                return;
+            }
+
+            muatSettingSekolah();
             muatPortalSiswa();
         };
 
         async function muatSettingSekolah() {
-            if (!supabaseClient) return;
+            const client = getSupabase();
+            if (!client) return;
             try {
-                const { data, error } = await supabaseClient
+                const { data, error } = await client
                     .from('setting_sekolah')
                     .select('*')
                     .eq('id', 1)
@@ -301,17 +322,12 @@
                     if (limitElem) limitElem.textContent = `${maxRadius}m`;
                 }
             } catch (e) {
-                console.log("Menggunakan radius default.");
+                console.log("Setting radius default.");
             }
         }
 
-        function handleLogoutSiswa() {
-            localStorage.removeItem('smada_user');
-            window.location.href = 'index.html';
-        }
-
         function muatPortalSiswa() {
-            document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || '-';
+            document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || currentActiveUser.username || '-';
             document.getElementById('siswa-profil-kelas').textContent = currentActiveUser.kelas || '-';
             document.getElementById('siswa-profil-nisn').textContent = currentActiveUser.nisn || currentActiveUser.username || '-';
 
@@ -323,13 +339,11 @@
             muatRiwayatSiswa();
         }
 
-        // FUNGSI CEK GPS DENGAN TIMEOUT CEPAT (MEMUDAHKAN SISWA)
         function cekSiswaGPS() {
             const badgeText = document.getElementById('gps-status-badge');
             const radiusText = document.getElementById('siswa-status-radius-text');
             badgeText.textContent = "Mendeteksi Lokasi...";
 
-            // Skenario timeout jika GPS HP siswa lambat (3 detik)
             const gpsTimeout = setTimeout(() => {
                 if (siswaDistanceMeters === null) {
                     badgeText.textContent = "GPS Lambat / Bermasalah";
@@ -355,7 +369,6 @@
                     },
                     (err) => {
                         clearTimeout(gpsTimeout);
-                        console.error(err);
                         badgeText.textContent = "GPS HP Tidak Aktif / Terkendala";
                         radiusText.innerHTML = `<span>Silakan gunakan Presensi Kamera</span>`;
                     },
@@ -408,16 +421,17 @@
             return R * c;
         }
 
-        // MUAT PRESENSI SENSOR & AKTIVASI TOMBOL
         async function muatPresensiSiswaHariIni() {
             if (!currentActiveUser) return;
-            const nisn = currentActiveUser.nisn || currentActiveUser.username;
+            const client = getSupabase();
+            if (!client) return;
 
+            const nisn = currentActiveUser.nisn || currentActiveUser.username;
             const tglWIB = getTanggalWIB();
             const startWIB = `${tglWIB}T00:00:00+07:00`;
             const endWIB = `${tglWIB}T23:59:59+07:00`;
 
-            const { data, error } = await supabaseClient
+            const { data, error } = await client
                 .from('presensi')
                 .select('*')
                 .eq('nisn', nisn)
@@ -436,12 +450,10 @@
                 isSudahPresensiMasuk = true;
                 document.getElementById('siswa-jam-masuk').textContent = recordMasuk.jam_masuk;
 
-                // Matikan Tombol Masuk
                 btnMasuk.disabled = true;
                 btnMasuk.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
 
                 if (!recordPulang) {
-                    // Aktifkan Tombol Pulang
                     btnPulang.disabled = false;
                     btnPulang.className = "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow";
                     
@@ -451,7 +463,6 @@
                 } else {
                     document.getElementById('siswa-jam-pulang').textContent = recordPulang.jam_pulang;
                     
-                    // Matikan Tombol Pulang
                     btnPulang.disabled = true;
                     btnPulang.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
 
@@ -462,7 +473,6 @@
             } else {
                 isSudahPresensiMasuk = false;
                 
-                // Aktifkan Tombol Masuk & Matikan Tombol Pulang
                 btnMasuk.disabled = false;
                 btnMasuk.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow";
 
@@ -473,8 +483,10 @@
             }
         }
 
-        // PRESENSI DENGAN GPS
         async function prosesPresensiSiswa(jenis) {
+            const client = getSupabase();
+            if (!client) return;
+
             if (siswaDistanceMeters === null) {
                 alert("Sedang mendeteksi GPS. Jika lama, silakan gunakan tombol 'GPS Bermasalah? Presensi Kamera'.");
                 return;
@@ -491,7 +503,7 @@
 
             if (jenis === 'Hadir') {
                 const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
-                await supabaseClient.from('presensi').insert([{
+                await client.from('presensi').insert([{
                     nisn: nisnVal,
                     status: statusKategori,
                     jam_masuk: jamWIB,
@@ -499,11 +511,11 @@
                     created_at: getISOTimestampWIB()
                 }]);
             } else {
-                const { data: recs } = await supabaseClient.from('presensi').select('*').eq('nisn', nisnVal).gte('created_at', `${tglWIB}T00:00:00+07:00`);
+                const { data: recs } = await client.from('presensi').select('*').eq('nisn', nisnVal).gte('created_at', `${tglWIB}T00:00:00+07:00`);
                 const recMasuk = recs ? recs.find(r => r.jam_masuk) : null;
 
                 if (recMasuk) {
-                    await supabaseClient.from('presensi').update({
+                    await client.from('presensi').update({
                         jam_pulang: jamWIB,
                         keterangan: `Presensi Pulang GPS (${siswaDistanceMeters}m)`
                     }).eq('id', recMasuk.id);
@@ -515,9 +527,6 @@
             muatRiwayatSiswa();
         }
 
-        // ==========================================
-        // MODAL KAMERA VERIFIKASI WAJAH LOKAL (ZERO STORAGE)[cite: 5]
-        // ==========================================
         async function bukaModalKamera() {
             document.getElementById('modal-kamera').classList.remove('hidden');
             const video = document.getElementById('video-preview');
@@ -559,7 +568,6 @@
                     statusText.textContent = "✓ Gerakan Menengok Berhasil Diverifikasi!";
                     scanFrame.className = "absolute inset-6 border-4 border-solid border-emerald-500 rounded-2xl pointer-events-none";
 
-                    // AUTOMATIC SUBMIT SETELAH VERIFIKASI GERAKAN LOKAL[cite: 5]
                     setTimeout(() => {
                         eksekusiPresensiOtomatisKamera();
                     }, 1000);
@@ -568,6 +576,9 @@
         }
 
         async function eksekusiPresensiOtomatisKamera() {
+            const client = getSupabase();
+            if (!client) return;
+
             const jamWIB = getJamWIB();
             const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
             const tglWIB = getTanggalWIB();
@@ -576,21 +587,21 @@
 
             if (jenisPresensi === 'Hadir') {
                 const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
-                await supabaseClient.from('presensi').insert([{
+                await client.from('presensi').insert([{
                     nisn: nisnVal,
                     status: statusKategori,
                     jam_masuk: jamWIB,
-                    keterangan: `Presensi Masuk Kamera (Liveness Menengok Valid)`,[cite: 5]
+                    keterangan: `Presensi Masuk Kamera (Liveness Menengok Valid)`,
                     created_at: getISOTimestampWIB()
                 }]);
             } else {
-                const { data: recs } = await supabaseClient.from('presensi').select('*').eq('nisn', nisnVal).gte('created_at', `${tglWIB}T00:00:00+07:00`);
+                const { data: recs } = await client.from('presensi').select('*').eq('nisn', nisnVal).gte('created_at', `${tglWIB}T00:00:00+07:00`);
                 const recMasuk = recs ? recs.find(r => r.jam_masuk) : null;
 
                 if (recMasuk) {
-                    await supabaseClient.from('presensi').update({
+                    await client.from('presensi').update({
                         jam_pulang: jamWIB,
-                        keterangan: `Presensi Pulang Kamera (Liveness Menengok Valid)`[cite: 5]
+                        keterangan: `Presensi Pulang Kamera (Liveness Menengok Valid)`
                     }).eq('id', recMasuk.id);
                 }
             }
@@ -603,10 +614,13 @@
 
         async function muatRiwayatSiswa() {
             if (!currentActiveUser) return;
-            const nisn = currentActiveUser.nisn || currentActiveUser.username;
+            const client = getSupabase();
+            if (!client) return;
 
+            const nisn = currentActiveUser.nisn || currentActiveUser.username;
             const tbody = document.getElementById('tabel-riwayat-siswa');
-            const { data, error } = await supabaseClient
+
+            const { data, error } = await client
                 .from('presensi')
                 .select('*')
                 .eq('nisn', nisn)
@@ -639,6 +653,9 @@
         }
 
         async function gantiPasswordSiswa() {
+            const client = getSupabase();
+            if (!client) return;
+
             const passBaru = document.getElementById('siswa-pass-baru').value.trim();
             const passKonfirm = document.getElementById('siswa-pass-konfirm').value.trim();
 
@@ -653,7 +670,7 @@
             }
 
             const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
-            const { error } = await supabaseClient
+            const { error } = await client
                 .from('siswa')
                 .update({ password: passBaru })
                 .eq('nisn', nisnVal);
