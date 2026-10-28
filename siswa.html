@@ -553,27 +553,28 @@
             document.getElementById('modal-kamera').classList.add('hidden');
         }
 
-        function mulaiDeteksiHeadTurn() {
-            let scanCounter = 0;
-            const statusText = document.getElementById('kamera-status-text');
-            const scanFrame = document.getElementById('scan-frame');
+       function mulaiDeteksiHeadTurn() {
+    let scanCounter = 0;
+    const statusText = document.getElementById('kamera-status-text');
+    const scanFrame = document.getElementById('scan-frame');
 
-            detectionInterval = setInterval(() => {
-                scanCounter++;
-                if (scanCounter === 2) {
-                    statusText.textContent = "Mendeteksi Pergerakan Kepala...";
-                    scanFrame.className = "absolute inset-6 border-4 border-dashed border-amber-400 rounded-2xl pointer-events-none animate-spin";
-                } else if (scanCounter >= 4) {
-                    clearInterval(detectionInterval);
-                    statusText.textContent = "✓ Gerakan Menengok Berhasil Diverifikasi!";
-                    scanFrame.className = "absolute inset-6 border-4 border-solid border-emerald-500 rounded-2xl pointer-events-none";
+    // Mengubah interval pemeriksaan menjadi 7000ms (7 Detik)
+    detectionInterval = setInterval(() => {
+        scanCounter++;
+        if (scanCounter === 1) {
+            statusText.textContent = "Mendeteksi Pergerakan Kepala...";
+            scanFrame.className = "absolute inset-6 border-4 border-dashed border-amber-400 rounded-2xl pointer-events-none animate-spin";
+        } else if (scanCounter >= 2) {
+            clearInterval(detectionInterval);
+            statusText.textContent = "✓ Gerakan Menengok Berhasil Diverifikasi!";
+            scanFrame.className = "absolute inset-6 border-4 border-solid border-emerald-500 rounded-2xl pointer-events-none";
 
-                    setTimeout(() => {
-                        eksekusiPresensiOtomatisKamera();
-                    }, 1000);
-                }
-            }, 800);
+            setTimeout(() => {
+                eksekusiPresensiOtomatisKamera();
+            }, 1000);
         }
+    }, 7000); // <-- UBAH ANGKA INI MENJADI 7000 (7 Detik)
+}
 
         async function eksekusiPresensiOtomatisKamera() {
             const client = getSupabase();
