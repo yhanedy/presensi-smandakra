@@ -10,6 +10,30 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- PROTEKSI SESI KHUSUS SISWA MANDIRI -->
+    <script>
+        (function verifikasiSesiSiswa() {
+            // Menggunakan kunci 'smada_siswa' khusus untuk akun siswa
+            const rawSession = localStorage.getItem('smada_siswa');
+            
+            if (!rawSession || rawSession === "null" || rawSession === "undefined") {
+                window.location.replace('index.html');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(rawSession);
+                if (!parsed || (!parsed.nisn && !parsed.username && !parsed.id)) {
+                    localStorage.removeItem('smada_siswa');
+                    window.location.replace('index.html');
+                }
+            } catch (e) {
+                localStorage.removeItem('smada_siswa');
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
@@ -320,27 +344,28 @@
         }
 
         function handleLogoutSiswa() {
-            localStorage.clear();
+            localStorage.removeItem('smada_siswa');
             window.location.replace('index.html');
         }
 
         window.onload = function() {
             getSupabase();
 
-            const savedUser = localStorage.getItem('smada_user');
-            if (!savedUser) {
+            // MEMBACA DENGAN KUNCI UTAMA smada_siswa
+            const savedSiswa = localStorage.getItem('smada_siswa');
+            if (!savedSiswa) {
                 window.location.replace('index.html');
                 return;
             }
 
             try {
-                currentActiveUser = JSON.parse(savedUser);
+                currentActiveUser = JSON.parse(savedSiswa);
             } catch (e) {
                 handleLogoutSiswa();
                 return;
             }
 
-            if (!currentActiveUser || (currentActiveUser.role && currentActiveUser.role !== 'siswa')) {
+            if (!currentActiveUser) {
                 window.location.replace('index.html');
                 return;
             }
@@ -373,9 +398,10 @@
         }
 
         function muatPortalSiswa() {
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username || '-');
             document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || currentActiveUser.username || '-';
             document.getElementById('siswa-profil-kelas').textContent = currentActiveUser.kelas || '-';
-            document.getElementById('siswa-profil-nisn').textContent = currentActiveUser.nisn || currentActiveUser.username || '-';
+            document.getElementById('siswa-profil-nisn').textContent = nisnVal;
 
             const hariIni = new Date();
             document.getElementById('siswa-tanggal-hari-ini').textContent = hariIni.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -472,7 +498,7 @@
             const client = getSupabase();
             if (!client) return;
 
-            const nisn = currentActiveUser.nisn || currentActiveUser.username;
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
             const tglWIB = getTanggalWIB();
             const startWIB = `${tglWIB}T00:00:00+07:00`;
             const endWIB = `${tglWIB}T23:59:59+07:00`;
@@ -480,7 +506,7 @@
             const { data, error } = await client
                 .from('presensi')
                 .select('*')
-                .eq('nisn', nisn)
+                .eq('nisn', nisnVal)
                 .gte('created_at', startWIB)
                 .lte('created_at', endWIB);
 
@@ -544,7 +570,7 @@
             }
 
             const jamWIB = getJamWIB();
-            const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
             const tglWIB = getTanggalWIB();
 
             if (jenis === 'Hadir') {
@@ -585,7 +611,6 @@
         }
 
         function pilihModeKamera(jenis) {
-            // Validasi Pencegahan Iseng
             if (jenis === 'Hadir' && isSudahPresensiMasuk) {
                 alert("Anda sudah melakukan presensi masuk hari ini!");
                 return;
@@ -624,7 +649,6 @@
             document.getElementById('modal-kamera').classList.add('hidden');
         }
 
-        // AMBIL FOTO MANUAL DENGAN LOGIKA RANDOM CHECK 1 DARI 13
         async function prosesAmbilFotoSiswa() {
             let count = parseInt(localStorage.getItem('smada_camera_click_count') || '0') + 1;
             localStorage.setItem('smada_camera_click_count', count.toString());
@@ -635,7 +659,6 @@
             btnFoto.disabled = true;
             btnFoto.classList.add('opacity-50');
 
-            // Cek kondisi acak kelipatan 13
             if (count % 13 === 0) {
                 boxWarning.classList.remove('hidden');
                 btnFoto.disabled = false;
@@ -644,7 +667,6 @@
                 return;
             }
 
-            // Jika lulus verifikasi
             await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih);
             btnFoto.disabled = false;
             btnFoto.classList.remove('opacity-50');
@@ -656,7 +678,7 @@
             if (!client) return;
 
             const jamWIB = getJamWIB();
-            const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
             const tglWIB = getTanggalWIB();
 
             if (jenisPresensi === 'Hadir') {
@@ -691,13 +713,13 @@
             const client = getSupabase();
             if (!client) return;
 
-            const nisn = currentActiveUser.nisn || currentActiveUser.username;
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
             const tbody = document.getElementById('tabel-riwayat-siswa');
 
             const { data, error } = await client
                 .from('presensi')
                 .select('*')
-                .eq('nisn', nisn)
+                .eq('nisn', nisnVal)
                 .order('created_at', { ascending: false })
                 .limit(10);
 
@@ -743,7 +765,7 @@
                 return;
             }
 
-            const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
             const { error } = await client
                 .from('siswa')
                 .update({ password: passBaru })
