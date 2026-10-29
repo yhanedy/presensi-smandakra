@@ -3,180 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manajemen Siklus Siswa & Guru - SMAN 2 Karanganyar</title>
+    <title>Manajemen Data Siswa - SMAN 2 Karanganyar</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- SheetJS untuk Import/Export Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Inisialisasi Konfigurasi Supabase -->
     <script src="js/supabase-config.js"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
+    <!-- PROTEKSI HAK AKSES ADMIN / SUPER ADMIN -->
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
+        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin')) {
+            alert('Akses Ditolak! Anda harus login sebagai Admin.');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <!-- HEADER / NAVBAR -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo">
+                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo SMAN 2 Karanganyar">
                 <div>
                     <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-xs text-blue-200">Modul Administrasi Siswa & Civitas Guru</p>
+                    <p class="text-xs text-blue-200">Manajemen Data Siswa, Naik Kelas & Siklus Kelulusan</p>
                 </div>
             </div>
-            <a href="index.html" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold flex items-center space-x-1">
-                <i class="fa-solid fa-house"></i>
-                <span>Kembali</span>
-            </a>
+            <div class="flex items-center space-x-2">
+                <a href="admin.html" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Kembali ke Admin</span>
+                </a>
+            </div>
         </div>
     </header>
 
+    <!-- MAIN CONTAINER -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
 
-        <!-- TABS NAVIGASI -->
-        <div class="bg-white rounded-xl shadow-md p-2 border border-slate-200 flex flex-wrap gap-2 text-xs font-bold">
-            <button onclick="showTab('tab-penjurusan')" id="btn-tab-penjurusan" class="tab-btn px-4 py-2.5 rounded-lg bg-blue-900 text-white">
-                <i class="fa-solid fa-diagram-project"></i> 1. Penjurusan & Kenaikan
+        <!-- TAB NAVIGASI UTAMA MANAJEMEN SISWA -->
+        <div class="bg-white p-2 rounded-xl shadow-md border border-slate-200 flex flex-wrap gap-2">
+            <button onclick="switchTab('tab-import')" id="btn-tab-import" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 bg-blue-900 text-white">
+                <i class="fa-solid fa-file-import"></i>
+                <span>Import Data Siswa</span>
             </button>
-            <button onclick="showTab('tab-lulus')" id="btn-tab-lulus" class="tab-btn px-4 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100">
-                <i class="fa-solid fa-user-graduate"></i> 2. Kelulusan (Kelas XII)
+            <button onclick="switchTab('tab-penjurusan')" id="btn-tab-penjurusan" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <i class="fa-solid fa-arrow-up-right-dots"></i>
+                <span>Penjurusan / Naik Kelas</span>
             </button>
-            <button onclick="showTab('tab-siswabaru')" id="btn-tab-siswabaru" class="tab-btn px-4 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100">
-                <i class="fa-solid fa-file-excel text-emerald-600"></i> 3. Import Siswa Baru
-            </button>
-            <button onclick="showTab('tab-guru')" id="btn-tab-guru" class="tab-btn px-4 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100">
-                <i class="fa-solid fa-chalkboard-user text-purple-600"></i> 4. Import & Kelola Guru
+            <button onclick="switchTab('tab-kelulusan')" id="btn-tab-kelulusan" class="tab-btn px-4 py-2 rounded-lg text-xs font-bold transition flex items-center space-x-2 bg-slate-100 text-slate-700 hover:bg-slate-200">
+                <i class="fa-solid fa-user-graduate"></i>
+                <span>Kelulusan / Siklus Siswa</span>
             </button>
         </div>
 
-        <!-- TAB 3: IMPORT SISWA BARU -->
-        <section id="tab-siswabaru" class="tab-content hidden space-y-6">
-            <div class="bg-white rounded-xl shadow-md p-6 border border-emerald-200 space-y-4">
-                <h3 class="font-bold text-emerald-900 text-base">Import Master Data Siswa (.xlsx)</h3>
-                <p class="text-xs text-slate-500">Unggah berkas Excel berisi data siswa. Format kolom wajib: <code class="font-bold font-mono">nisn</code>, <code class="font-bold font-mono">nama</code>, <code class="font-bold font-mono">kelas</code>.</p>
-                <input type="file" id="excel-siswa-baru" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 border border-slate-300 rounded-lg p-2"/>
-                <button onclick="prosesImportSiswaBaru()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 px-4 rounded-lg text-xs">
-                    Proses Import Data Siswa
-                </button>
-            </div>
-        </section>
+        <!-- ========================================== -->
+        <!-- TAB 1: IMPORT DATA SISWA BARU              -->
+        <!-- ========================================== -->
+        <div id="tab-import" class="tab-content space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 space-y-4">
+                <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2 border-b pb-2">
+                    <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                    <span>Import Siswa Baru via File Excel (.xlsx)</span>
+                </h3>
+                <p class="text-xs text-slate-500">
+                    Pastikan file Excel memiliki header kolom: <code class="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-blue-900">nisn</code>, <code class="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-blue-900">nama</code>, <code class="bg-slate-100 px-1 py-0.5 rounded font-mono font-bold text-blue-900">kelas</code>.
+                </p>
 
-        <!-- TAB 4: IMPORT & KELOLA GURU -->
-        <section id="tab-guru" class="tab-content hidden space-y-6">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- Import Excel Guru -->
-                <div class="bg-white rounded-xl shadow-md p-5 border border-purple-200 space-y-3">
-                    <h3 class="font-bold text-purple-900 text-sm flex items-center space-x-2 border-b pb-2">
-                        <i class="fa-solid fa-file-excel text-purple-600"></i>
-                        <span>Import Akun Guru Massal (.xlsx)</span>
-                    </h3>
-                    <p class="text-xs text-slate-500">Unggah file Excel daftar guru. Format kolom wajib: <code class="font-mono font-bold">username</code>, <code class="font-mono font-bold">nama</code>, <code class="font-mono font-bold">pass</code>, <code class="font-mono font-bold">role</code> (<code class="text-blue-600">piket/bk/admin</code>).</p>
-                    <input type="file" id="excel-guru" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 border rounded-lg p-2"/>
-                    <button onclick="prosesImportGuru()" class="w-full bg-purple-700 hover:bg-purple-800 text-white font-bold py-2 rounded text-xs">
-                        Proses Import Guru
+                <div class="flex flex-wrap items-center gap-3">
+                    <input type="file" id="excel-file-input" accept=".xlsx, .xls" class="text-xs text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    <button onclick="prosesImportExcel()" class="bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5 shadow">
+                        <i class="fa-solid fa-upload"></i>
+                        <span>Proses Import Data</span>
                     </button>
                 </div>
+            </div>
+        </div>
 
-                <!-- Tambah Guru Manual -->
-                <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
-                        <i class="fa-solid fa-user-plus text-blue-600"></i>
-                        <span>Tambah Guru / Petugas Manual</span>
+        <!-- ========================================== -->
+        <!-- TAB 2: PENJURUSAN / NAIK KELAS             -->
+        <!-- ========================================== -->
+        <div id="tab-penjurusan" class="tab-content hidden space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200 space-y-4">
+                <div class="border-b pb-3">
+                    <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-arrow-up-right-dots text-amber-600"></i>
+                        <span>Proses Penjurusan / Kenaikan Kelas</span>
                     </h3>
-                    <div class="space-y-2 text-xs">
-                        <input type="text" id="guru-user" placeholder="NIP / Username..." class="w-full border rounded px-3 py-1.5 outline-none">
-                        <input type="text" id="guru-nama" placeholder="Nama Lengkap & Gelar..." class="w-full border rounded px-3 py-1.5 outline-none">
-                        <input type="password" id="guru-pass" placeholder="Password..." class="w-full border rounded px-3 py-1.5 outline-none">
-                        <select id="guru-role" class="w-full border rounded px-3 py-1.5 outline-none">
-                            <option value="piket">Guru Piket</option>
-                            <option value="bk">Guru BK</option>
-                            <option value="admin">Administrator</option>
+                    <p class="text-xs text-slate-500">Pindahkan seluruh siswa dari kelas lama ke kelas baru (Contoh: X E1 &rarr; XI F1).</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Pilih Kelas Lama</label>
+                        <select id="kelas-asal-select" class="w-full border border-slate-300 rounded-lg p-2 outline-none">
+                            <option value="">-- Pilih Kelas Asal --</option>
                         </select>
                     </div>
-                    <button onclick="tambahGuruManual()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs">
-                        Tambah Guru
-                    </button>
+
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Ketik Nama Kelas Baru</label>
+                        <input type="text" id="kelas-tujuan-input" placeholder="Contoh: XI F1" class="w-full border border-slate-300 rounded-lg p-2 outline-none font-bold">
+                    </div>
+
+                    <div class="flex items-end">
+                        <button onclick="prosesNaikKelas()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition shadow flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-angles-right"></i>
+                            <span>Proses Pindah / Naik Kelas</span>
+                        </button>
+                    </div>
                 </div>
             </div>
-        </section>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- TAB 3: KELULUSAN / SIKLUS SISWA            -->
+        <!-- ========================================== -->
+        <div id="tab-kelulusan" class="tab-content hidden space-y-4">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-red-200 bg-red-50/10 space-y-4">
+                <div class="border-b border-red-200 pb-3">
+                    <h3 class="font-bold text-red-900 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-user-graduate text-red-600"></i>
+                        <span>Proses Kelulusan Siswa Angkatan (Kelas XII)</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Mengubah status siswa kelas XII menjadi <strong class="text-red-600 font-mono">Lulus</strong> agar tidak muncul di daftar presensi aktif.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Pilih Kelas XII Yang Lulus</label>
+                        <select id="kelas-lulus-select" class="w-full border border-slate-300 rounded-lg p-2 outline-none">
+                            <option value="">-- Pilih Kelas XII --</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-end">
+                        <button onclick="prosesKelulusanKelas()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition shadow flex items-center justify-center space-x-1.5">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                            <span>Set Status Lulus</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
     </main>
 
+    <!-- FOOTER -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
         <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
+    <!-- JAVASCRIPT LOGIKA TAB & DATABASE SUPABASE -->
     <script>
-        function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(tabId).classList.remove('hidden');
+        window.onload = function() {
+            muatDaftarKelasOption();
+        };
 
+        // FUNGSI PERPINDAHAN TAB INTERAKTIF
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(btn => {
-                btn.className = "tab-btn px-4 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100";
+                btn.classList.remove('bg-blue-900', 'text-white');
+                btn.classList.add('bg-slate-100', 'text-slate-700');
             });
-            const active = document.getElementById('btn-' + tabId);
-            if (active) active.className = "tab-btn px-4 py-2.5 rounded-lg bg-blue-900 text-white";
+
+            document.getElementById(tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById('btn-' + tabId);
+            activeBtn.classList.remove('bg-slate-100', 'text-slate-700');
+            activeBtn.classList.add('bg-blue-900', 'text-white');
+
+            if (tabId === 'tab-penjurusan' || tabId === 'tab-kelulusan') {
+                muatDaftarKelasOption();
+            }
         }
 
-        async function prosesImportSiswaBaru() {
-            const fileInput = document.getElementById('excel-siswa-baru');
-            if (!fileInput.files.length) { alert("Pilih file Excel!"); return; }
+        // MEMUAT OPSIONAL DAFTAR KELAS DARI DATABASE
+        async function muatDaftarKelasOption() {
+            const { data, error } = await supabaseClient
+                .from('siswa')
+                .select('kelas')
+                .neq('status_siswa', 'Lulus');
+
+            if (error || !data) return;
+
+            const listKelas = [...new Set(data.map(s => s.kelas))].sort();
+
+            const selectAsal = document.getElementById('kelas-asal-select');
+            const selectLulus = document.getElementById('kelas-lulus-select');
+
+            selectAsal.innerHTML = '<option value="">-- Pilih Kelas Asal --</option>';
+            selectLulus.innerHTML = '<option value="">-- Pilih Kelas XII --</option>';
+
+            listKelas.forEach(k => {
+                if (k) {
+                    selectAsal.innerHTML += `<option value="${k}">${k}</option>`;
+                    if (k.toUpperCase().includes('XII')) {
+                        selectLulus.innerHTML += `<option value="${k}">${k}</option>`;
+                    }
+                }
+            });
+        }
+
+        // PROSES PENJURUSAN / NAIK KELAS
+        async function prosesNaikKelas() {
+            const kAsal = document.getElementById('kelas-asal-select').value;
+            const kTujuan = document.getElementById('kelas-tujuan-input').value.trim();
+
+            if (!kAsal || !kTujuan) {
+                alert("Pilih Kelas Asal dan Ketik Nama Kelas Tujuan!");
+                return;
+            }
+
+            if (!confirm(`Apakah Anda yakin ingin memindahkan seluruh siswa dari kelas "${kAsal}" ke kelas "${kTujuan}"?`)) return;
+
+            const { error } = await supabaseClient
+                .from('siswa')
+                .update({ kelas: kTujuan })
+                .eq('kelas', kAsal);
+
+            if (error) alert("Gagal memindahkan kelas: " + error.message);
+            else {
+                alert(`Berhasil! Seluruh siswa kelas ${kAsal} sekarang telah dipindahkan ke ${kTujuan}.`);
+                document.getElementById('kelas-tujuan-input').value = '';
+                muatDaftarKelasOption();
+            }
+        }
+
+        // PROSES KELULUSAN SISWA
+        async function prosesKelulusanKelas() {
+            const kLulus = document.getElementById('kelas-lulus-select').value;
+
+            if (!kLulus) {
+                alert("Pilih Kelas XII yang akan diluluskan!");
+                return;
+            }
+
+            if (!confirm(`Apakah Anda yakin ingin mengubah status seluruh siswa kelas "${kLulus}" menjadi LULUS?`)) return;
+
+            const { error } = await supabaseClient
+                .from('siswa')
+                .update({ status_siswa: 'Lulus' })
+                .eq('kelas', kLulus);
+
+            if (error) alert("Gagal memproses kelulusan: " + error.message);
+            else {
+                alert(`Seluruh siswa kelas ${kLulus} berhasil di-set LULUS!`);
+                muatDaftarKelasOption();
+            }
+        }
+
+        // PROSES IMPORT EXCEL
+        function prosesImportExcel() {
+            const fileInput = document.getElementById('excel-file-input');
+            const file = fileInput.files[0];
+
+            if (!file) return alert("Pilih file Excel terlebih dahulu!");
 
             const reader = new FileReader();
             reader.onload = async function(e) {
                 const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: 'array' });
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
 
-                const formatted = jsonData.map(item => ({
-                    nisn: String(item.nisn || '').trim(),
-                    nama: String(item.nama || '').trim(),
-                    kelas: String(item.kelas || '').trim(),
+                if (jsonData.length === 0) return alert("File Excel kosong!");
+
+                const dataSiswaFormatted = jsonData.map(item => ({
+                    nisn: String(item.nisn || item.NISN).trim(),
+                    nama: String(item.nama || item.NAMA || item.Nama).trim(),
+                    kelas: String(item.kelas || item.KELAS || item.Kelas).trim(),
                     password: 'yhan123'
                 }));
 
-                const { error } = await supabaseClient.from('siswa').upsert(formatted, { onConflict: 'nisn' });
-                if (error) alert("Gagal: " + error.message);
-                else alert(`Berhasil mengimpor ${formatted.length} data siswa!`);
+                const { error } = await supabaseClient
+                    .from('siswa')
+                    .upsert(dataSiswaFormatted, { onConflict: 'nisn' });
+
+                if (error) alert("Gagal mengimpor data: " + error.message);
+                else {
+                    alert(`Berhasil mengimpor ${dataSiswaFormatted.length} data siswa!`);
+                    fileInput.value = '';
+                    muatDaftarKelasOption();
+                }
             };
-            reader.readAsArrayBuffer(fileInput.files[0]);
-        }
-
-        async function prosesImportGuru() {
-            const fileInput = document.getElementById('excel-guru');
-            if (!fileInput.files.length) { alert("Pilih file Excel Guru!"); return; }
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: 'array' });
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
-                const formatted = jsonData.map(item => ({
-                    username: String(item.username || '').trim(),
-                    nama: String(item.nama || '').trim(),
-                    password_hash: String(item.pass || '123456').trim(),
-                    role: String(item.role || 'piket').toLowerCase().trim()
-                }));
-
-                const { error } = await supabaseClient.from('users').upsert(formatted, { onConflict: 'username' });
-                if (error) alert("Gagal import guru: " + error.message);
-                else alert(`Berhasil mengimpor ${formatted.length} data guru/petugas!`);
-            };
-            reader.readAsArrayBuffer(fileInput.files[0]);
-        }
-
-        async function tambahGuruManual() {
-            const username = document.getElementById('guru-user').value.trim();
-            const nama = document.getElementById('guru-nama').value.trim();
-            const pass = document.getElementById('guru-pass').value.trim();
-            const role = document.getElementById('guru-role').value;
-
-            if (!username || !nama || !pass) { alert("Semua kolom wajib diisi!"); return; }
-
-            const { error } = await supabaseClient.from('users').insert([
-                { username: username, nama: nama, password_hash: pass, role: role }
-            ]);
-
-            if (error) alert("Gagal: " + error.message);
-            else alert("Guru baru berhasil ditambahkan!");
+            reader.readAsArrayBuffer(file);
         }
     </script>
 </body>
