@@ -214,12 +214,17 @@
             }
         }
 
-        // LOGIN SISWA
+        // LOGIN SISWA FIX (MENDUKUNG NOL DEPAN & MENCEGAH LOGOUT OTOMATIS)
         async function loginSiswa(e) {
             if (e) e.preventDefault();
-            const nisn = document.getElementById('siswa-nisn').value.trim();
-            const pass = document.getElementById('siswa-password').value.trim();
+            const rawNisn = document.getElementById('siswa-nisn').value.trim();
+            const rawPass = document.getElementById('siswa-password').value.trim();
             const btn = document.getElementById('btn-submit-siswa');
+
+            if (!rawNisn || !rawPass) {
+                alert("NISN dan Password wajib diisi!");
+                return;
+            }
 
             if (!supabaseClient) return alert("Koneksi Database gagal!");
 
@@ -227,24 +232,46 @@
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa...</span>`;
 
             try {
-                const { data, error } = await supabaseClient
+                // Query 1: Cari NISN dengan format persis input (misal: "0093389254")
+                let { data, error } = await supabaseClient
                     .from('siswa')
                     .select('*')
-                    .eq('nisn', String(nisn))
-                    .eq('password', String(pass))
+                    .eq('nisn', String(rawNisn))
+                    .eq('password', String(rawPass))
                     .maybeSingle();
 
-                if (error || !data) {
-                    alert("NISN atau Password Salah!");
-                } else {
-                    localStorage.setItem('smada_siswa', JSON.stringify(data));
-                    setTimeout(() => {
-                        window.location.href = 'siswa.html';
-                    }, 150);
+                // Query 2: Fallback jika nol depan di Supabase terpotong (misal: "93389254")
+                if (!data) {
+                    const cleanNisn = rawNisn.replace(/^0+/, '');
+                    const resFallback = await supabaseClient
+                        .from('siswa')
+                        .select('*')
+                        .eq('nisn', cleanNisn)
+                        .eq('password', String(rawPass))
+                        .maybeSingle();
+                    data = resFallback.data;
                 }
+
+                if (!data) {
+                    alert("NISN atau Password Salah!");
+                    btn.disabled = false;
+                    btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Siswa</span>`;
+                    return;
+                }
+
+                // Bersihkan sesi guru agar tidak bentrok
+                localStorage.removeItem('smada_user');
+
+                // Simpan sesi siswa aktif
+                localStorage.setItem('smada_siswa', JSON.stringify(data));
+
+                // Jeda 300ms memastikan penyimpanan fisik di HP selesai
+                setTimeout(() => {
+                    window.location.replace('siswa.html');
+                }, 300);
+
             } catch (err) {
                 alert("Terjadi kesalahan sistem: " + err.message);
-            } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Siswa</span>`;
             }
@@ -339,6 +366,7 @@
             window.location.href = halaman;
         }
 
+        // TARGET SUPER ADMIN FIX KE super-admin.html
         function bukaModulAdmin() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             if (user && (user.role.includes('superadmin') || user.role.includes('super_admin'))) {
@@ -348,6 +376,7 @@
             }
         }
 
+        // REDIRECT KE DOMAIN JURNAL MENGAJAR TERPISAH (SSO TOKEN)
         function bukaModulJurnal() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             if (!user) return alert("Sesi login berakhir. Silakan login kembali.");
