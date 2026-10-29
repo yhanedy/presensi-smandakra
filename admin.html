@@ -49,200 +49,227 @@
     <!-- MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
 
-        <!-- GRID KONFIGURASI UTAMA ADMIN (4 CARDS) -->
+        <!-- BARIS 1: GRID UTAMA KONFIGURASI ADMIN (4 KOTAK / CARDS) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
             <!-- 1. Tambah Siswa Manual -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
-                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
-                    <i class="fa-solid fa-user-graduate text-indigo-600"></i>
-                    <span>Tambah Siswa Manual</span>
-                </h3>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                    <input type="text" id="admin-siswa-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
+                        <i class="fa-solid fa-user-graduate text-indigo-600"></i>
+                        <span>Tambah Siswa Manual</span>
+                    </h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
+                        <input type="text" id="admin-siswa-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+                        <input type="text" id="admin-siswa-nama" placeholder="Nama Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
+                        <input type="text" id="admin-siswa-kelas" placeholder="Contoh: XII F1" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                        <input type="password" id="admin-siswa-pass" placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-                    <input type="text" id="admin-siswa-nama" placeholder="Nama Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
-                    <input type="text" id="admin-siswa-kelas" placeholder="Contoh: XII F1" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="admin-siswa-pass" placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
-                </div>
-                <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition">
+                <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition mt-2">
                     Tambah Data Siswa
                 </button>
             </div>
 
             <!-- 2. Tambah Petugas / Guru Manual -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
-                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
-                    <i class="fa-solid fa-user-shield text-blue-600"></i>
-                    <span>Tambah Petugas / Guru</span>
-                </h3>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Username / NIP</label>
-                    <input type="text" id="admin-new-username" placeholder="Username..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
+                        <i class="fa-solid fa-user-shield text-blue-600"></i>
+                        <span>Tambah Petugas / Guru</span>
+                    </h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Username / NIP</label>
+                        <input type="text" id="admin-new-username" placeholder="Username..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+                        <input type="text" id="admin-new-nama" placeholder="Nama Guru/Petugas..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                        <input type="password" id="admin-new-password" placeholder="Password..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Peran (Role)</label>
+                        <select id="admin-new-role" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                            <option value="piket">Guru Piket</option>
+                            <option value="bk">Guru BK</option>
+                            <option value="admin">Administrator</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-                    <input type="text" id="admin-new-nama" placeholder="Nama Guru/Petugas..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="admin-new-password" placeholder="Password..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">Peran (Role)</label>
-                    <select id="admin-new-role" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
-                        <option value="piket">Guru Piket</option>
-                        <option value="bk">Guru BK</option>
-                        <option value="admin">Administrator</option>
-                    </select>
-                </div>
-                <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition">
+                <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition mt-2">
                     Tambah User Petugas
                 </button>
             </div>
 
-            <!-- 3. Pengaturan Jadwal Presensi & Mode Pulang Lebih Awal (Kegiatan Khusus) -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-4 bg-amber-50/20">
-                <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-200 pb-2">
-                    <i class="fa-solid fa-clock text-amber-600"></i>
-                    <span>Jadwal Presensi & Dispensasi</span>
-                </h3>
+            <!-- 3. Jadwal Presensi & Override Pulang Khusus per Kelas -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/20 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-200 pb-2">
+                        <i class="fa-solid fa-clock text-amber-600"></i>
+                        <span>Jadwal Presensi & Dispensasi</span>
+                    </h3>
 
-                <!-- JADWAL DEFAULT HARIAN -->
-                <div class="space-y-2 text-xs border-b border-amber-100 pb-3">
-                    <p class="font-bold text-slate-700">1. Jadwal Operasional Default:</p>
-                    <div class="grid grid-cols-3 gap-1">
-                        <div>
-                            <label class="block text-[10px] text-slate-500">Masuk (S-J)</label>
-                            <input type="time" id="jam-masuk" value="07:00" class="w-full border rounded px-1.5 py-1 font-mono text-xs">
+                    <!-- JADWAL DEFAULT HARIAN -->
+                    <div class="space-y-2 text-xs border-b border-amber-100 pb-2">
+                        <p class="font-bold text-slate-700">1. Jadwal Default:</p>
+                        <div class="grid grid-cols-3 gap-1">
+                            <div>
+                                <label class="block text-[10px] text-slate-500">Masuk</label>
+                                <input type="time" id="jam-masuk" value="07:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500">Pulang S-K</label>
+                                <input type="time" id="jam-pulang-senin-kamis" value="15:01" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500">Pulang Jum'at</label>
+                                <input type="time" id="jam-pulang-jumat" value="14:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] text-slate-500">Pulang S-K</label>
-                            <input type="time" id="jam-pulang-senin-kamis" value="15:01" class="w-full border rounded px-1.5 py-1 font-mono text-xs">
+                    </div>
+
+                    <!-- OVERRIDE PULANG LEBIH AWAL -->
+                    <div class="space-y-2 text-xs bg-amber-100/60 p-2.5 rounded-lg border border-amber-300">
+                        <div class="flex items-center justify-between border-b border-amber-200 pb-1.5">
+                            <span class="font-bold text-amber-900 text-[11px] flex items-center space-x-1">
+                                <i class="fa-solid fa-bullhorn text-amber-600"></i>
+                                <span>2. Override Pulang Awal</span>
+                            </span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-override-pulang" class="sr-only peer">
+                                <div class="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-600"></div>
+                            </label>
                         </div>
+
+                        <p class="font-semibold text-slate-700 text-[10px]">Jam Pulang Khusus Hari Ini:</p>
+                        <div class="grid grid-cols-3 gap-1">
+                            <div>
+                                <label class="block text-[9px] text-slate-600 font-bold">Kelas X</label>
+                                <input type="time" id="jam-pulang-khusus-x" value="12:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] text-slate-600 font-bold">Kelas XI</label>
+                                <input type="time" id="jam-pulang-khusus-xi" value="12:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] text-slate-600 font-bold">Kelas XII</label>
+                                <input type="time" id="jam-pulang-khusus-xii" value="12:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                        </div>
+
                         <div>
-                            <label class="block text-[10px] text-slate-500">Pulang Jumat</label>
-                            <input type="time" id="jam-pulang-jumat" value="14:00" class="w-full border rounded px-1.5 py-1 font-mono text-xs">
+                            <input type="text" id="ket-kegiatan-khusus" placeholder="Keterangan kegiatan..." class="w-full border rounded px-2 py-1 text-[11px] outline-none">
                         </div>
                     </div>
                 </div>
 
-                <!-- MODE DISPENSASI / KEGIATAN KHUSUS -->
-                <div class="space-y-2 text-xs bg-amber-100/60 p-3 rounded-lg border border-amber-300">
-                    <div class="flex items-center justify-between">
-                        <span class="font-bold text-amber-900 flex items-center space-x-1">
-                            <i class="fa-solid fa-bullhorn text-amber-600"></i>
-                            <span>2. Override Pulang Lebih Awal</span>
-                        </span>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="toggle-override-pulang" class="sr-only peer">
-                            <div class="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-600"></div>
-                        </label>
-                    </div>
-
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Jam Pulang Khusus Hari Ini</label>
-                        <input type="time" id="jam-pulang-khusus" value="12:00" class="w-full border rounded px-2 py-1 font-mono text-xs">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-semibold text-slate-700 mb-0.5">Keterangan Kegiatan</label>
-                        <input type="text" id="ket-kegiatan-khusus" placeholder="Contoh: Rapat Pleno / Classmeeting" class="w-full border rounded px-2 py-1 text-xs outline-none">
-                    </div>
-                </div>
-
-                <button onclick="simpanSettingJadwalLengkap()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition shadow">
+                <button onclick="simpanSettingJadwalLengkap()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition shadow mt-2">
                     Simpan Pengaturan Jadwal
                 </button>
             </div>
 
             <!-- 4. Pengaturan Lokasi GPS & Radius -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
-                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
-                    <i class="fa-solid fa-location-dot text-purple-600"></i>
-                    <span>Lokasi GPS & Radius</span>
-                </h3>
-                <div class="space-y-2 text-xs">
-                    <div>
-                        <label class="block font-semibold text-slate-600 mb-1">Koordinat GPS Sekolah</label>
-                        <div class="grid grid-cols-2 gap-1 font-mono">
-                            <input type="text" id="gps-lat" value="-7.6005890" class="border px-2 py-1 rounded text-slate-600" title="Lintang">
-                            <input type="text" id="gps-long" value="110.9783970" class="border px-2 py-1 rounded text-slate-600" title="Bujur">
+            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
+                        <i class="fa-solid fa-location-dot text-purple-600"></i>
+                        <span>Lokasi GPS & Radius</span>
+                    </h3>
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Koordinat GPS Sekolah</label>
+                            <div class="grid grid-cols-2 gap-1 font-mono">
+                                <input type="text" id="gps-lat" value="-7.6005890" class="border px-2 py-1.5 rounded text-slate-600" title="Lintang">
+                                <input type="text" id="gps-long" value="110.9783970" class="border px-2 py-1.5 rounded text-slate-600" title="Bujur">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Radius Toleransi Presensi</label>
+                            <select id="gps-radius" class="w-full border px-2 py-1.5 rounded text-xs outline-none">
+                                <option value="50">50 Meter (Area Utama)</option>
+                                <option value="100" selected>100 Meter (Area Sekolah)</option>
+                                <option value="200">200 Meter (Toleransi HP)</option>
+                                <option value="500">500 Meter (Toleransi Luas)</option>
+                            </select>
                         </div>
                     </div>
-                    <div>
-                        <label class="block font-semibold text-slate-600 mb-1">Radius Toleransi Presensi</label>
-                        <select id="gps-radius" class="w-full border px-2 py-1 rounded text-xs outline-none">
-                            <option value="50">50 Meter (Area Utama)</option>
-                            <option value="100" selected>100 Meter (Area Sekolah)</option>
-                            <option value="200">200 Meter (Toleransi HP)</option>
-                            <option value="500">500 Meter (Toleransi Luas)</option>
-                        </select>
-                    </div>
                 </div>
-                <button onclick="simpanSettingLokasi()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs transition">
+                <button onclick="simpanSettingLokasi()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs transition mt-2">
                     Simpan Lokasi GPS
                 </button>
             </div>
 
         </div>
 
-        <!-- BOX KOREKSI: BATALKAN STATUS PULANG SISWA (SALAH KLIK) -->
-        <div class="bg-white p-5 rounded-xl shadow-md border border-red-200 space-y-3 bg-red-50/20">
-            <div class="flex flex-wrap justify-between items-center border-b border-red-200 pb-2">
-                <div>
-                    <h3 class="font-bold text-red-900 text-base flex items-center space-x-2">
+        <!-- BARIS 2: GRID KOTAK KOREKSI SALAH KLIK & LOG HP MULTI-AKUN (MODIFIED SAMA SEPERTI ATASNYA) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- KOTAK 1: KOREKSI SALAH KLIK STATUS PULANG -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-red-200 space-y-3 bg-red-50/20 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-red-900 text-sm flex items-center space-x-2 border-b border-red-200 pb-2">
                         <i class="fa-solid fa-rotate-left text-red-600"></i>
-                        <span>Koreksi Salah Klik Status Pulang Siswa Hari Ini</span>
+                        <span>Koreksi Salah Klik Status Pulang Hari Ini</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Membatalkan status jam pulang & mengembalikan status kehadiran siswa ke <b>Hadir</b>.</p>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Fitur ini digunakan jika siswa tidak sengaja memencet tombol <b>Pulang</b>. Sistem akan membatalkan jam pulang & mengembalikan status ke <b>Hadir</b>.
+                    </p>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">NISN Siswa</label>
+                        <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN siswa terpencet..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500 font-mono">
+                    </div>
                 </div>
-            </div>
-            <div class="flex flex-wrap gap-2 items-center">
-                <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN Siswa terpencet pulang..." class="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none max-w-xs flex-1">
-                <button onclick="batalkanStatusPulangSiswa()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5 shadow">
+                <button onclick="batalkanStatusPulangSiswa()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow mt-2">
                     <i class="fa-solid fa-check"></i>
                     <span>Batalkan Status Pulang Hari Ini</span>
                 </button>
             </div>
-        </div>
 
-        <!-- LOG HP MULTI-AKUN -->
-        <div class="bg-white rounded-xl shadow-md p-6 border border-amber-200 space-y-4 bg-amber-50/10">
-            <div class="flex flex-wrap justify-between items-center pb-3 border-b border-amber-100 gap-2">
-                <div>
-                    <h3 class="font-bold text-amber-900 text-base flex items-center space-x-2">
-                        <i class="fa-solid fa-mobile-screen-button text-amber-600"></i>
-                        <span>Log HP Siswa (Deteksi Perangkat Login > 1 Akun)</span>
-                    </h3>
-                    <p class="text-xs text-slate-500">Mencegah titip presensi antar-siswa dari satu perangkat HP yang sama.</p>
+            <!-- KOTAK 2: LOG HP MULTI-AKUN -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/10 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center border-b border-amber-200 pb-2">
+                        <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2">
+                            <i class="fa-solid fa-mobile-screen-button text-amber-600"></i>
+                            <span>Log HP Siswa (Multi-Akun)</span>
+                        </h3>
+                        <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-[10px] px-2.5 py-1 rounded transition">
+                            <i class="fa-solid fa-rotate"></i> Cek Log
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Memindai perangkat HP yang digunakan untuk login lebih dari 1 NISN (indikasi titip presensi).
+                    </p>
+                    <div class="overflow-x-auto max-h-36 border border-amber-100 rounded-lg bg-white">
+                        <table class="w-full text-[11px] text-left text-slate-600">
+                            <thead class="bg-amber-100/70 text-amber-900 uppercase font-semibold sticky top-0">
+                                <tr>
+                                    <th class="p-2">Perangkat HP</th>
+                                    <th class="p-2 text-center">Akun</th>
+                                    <th class="p-2">NISN Terkait</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-log-hp-body" class="divide-y divide-amber-100">
+                                <tr><td colspan="3" class="p-3 text-center text-slate-400">Klik "Cek Log" untuk memindai.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-                <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                    <i class="fa-solid fa-rotate"></i> Cek Log HP Multi-Akun
-                </button>
             </div>
-            <div class="overflow-x-auto max-h-60">
-                <table class="w-full text-xs text-left text-slate-600">
-                    <thead class="bg-amber-100/70 text-amber-900 uppercase font-semibold sticky top-0">
-                        <tr>
-                            <th class="p-3">Perangkat / Browser</th>
-                            <th class="p-3 text-center">Jumlah Akun NISN</th>
-                            <th class="p-3">Daftar Akun Siswa Terkait</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel-log-hp-body" class="divide-y divide-amber-100">
-                        <tr><td colspan="3" class="p-4 text-center text-slate-400">Klik "Cek Log HP Multi-Akun" untuk memindai penggunaan HP bersama.</td></tr>
-                    </tbody>
-                </table>
-            </div>
+
         </div>
 
         <!-- TABEL KELOLA DATA SISWA & RESET PASSWORD DEFAULT YHAN123 -->
@@ -314,9 +341,11 @@
                     if (data.jam_pulang_senin_kamis) document.getElementById('jam-pulang-senin-kamis').value = data.jam_pulang_senin_kamis;
                     if (data.jam_pulang_jumat) document.getElementById('jam-pulang-jumat').value = data.jam_pulang_jumat;
 
-                    // Mode Override Kegiatan Khusus
+                    // Mode Override Kegiatan Khusus per Kelas
                     document.getElementById('toggle-override-pulang').checked = data.is_override_pulang || false;
-                    if (data.jam_pulang_khusus) document.getElementById('jam-pulang-khusus').value = data.jam_pulang_khusus;
+                    if (data.jam_pulang_khusus_x) document.getElementById('jam-pulang-khusus-x').value = data.jam_pulang_khusus_x;
+                    if (data.jam_pulang_khusus_xi) document.getElementById('jam-pulang-khusus-xi').value = data.jam_pulang_khusus_xi;
+                    if (data.jam_pulang_khusus_xii) document.getElementById('jam-pulang-khusus-xii').value = data.jam_pulang_khusus_xii;
                     if (data.ket_kegiatan_khusus) document.getElementById('ket-kegiatan-khusus').value = data.ket_kegiatan_khusus;
                 }
             } catch (e) {
@@ -343,7 +372,9 @@
             const jamJumat = document.getElementById('jam-pulang-jumat').value;
             
             const isOverride = document.getElementById('toggle-override-pulang').checked;
-            const jamKhusus = document.getElementById('jam-pulang-khusus').value;
+            const jamKhususX = document.getElementById('jam-pulang-khusus-x').value;
+            const jamKhususXI = document.getElementById('jam-pulang-khusus-xi').value;
+            const jamKhususXII = document.getElementById('jam-pulang-khusus-xii').value;
             const ketKhusus = document.getElementById('ket-kegiatan-khusus').value.trim();
 
             const { error } = await supabaseClient.from('setting_sekolah').upsert([
@@ -353,7 +384,9 @@
                     jam_pulang_senin_kamis: jamSeninKamis, 
                     jam_pulang_jumat: jamJumat,
                     is_override_pulang: isOverride,
-                    jam_pulang_khusus: jamKhusus,
+                    jam_pulang_khusus_x: jamKhususX,
+                    jam_pulang_khusus_xi: jamKhususXI,
+                    jam_pulang_khusus_xii: jamKhususXII,
                     ket_kegiatan_khusus: ketKhusus
                 }
             ]);
@@ -362,7 +395,7 @@
                 alert("Gagal menyimpan: " + error.message);
             } else {
                 const infoMode = isOverride 
-                    ? `\n\n⚠️ MODE PULANG LEBIH AWAL AKTIF!\nJam Pulang Hari Ini: ${jamKhusus}\nKegiatan: ${ketKhusus}`
+                    ? `\n\n⚠️ MODE PULANG LEBIH AWAL AKTIF!\n• Kelas X: ${jamKhususX}\n• Kelas XI: ${jamKhususXI}\n• Kelas XII: ${jamKhususXII}\nKegiatan: ${ketKhusus}`
                     : `\n\n✅ Mode Normal (Default) Aktif.`;
 
                 alert("Pengaturan Berhasil Disimpan!" + infoMode);
@@ -373,7 +406,7 @@
             const nisn = document.getElementById('reset-pulang-nisn').value.trim();
             if (!nisn) { alert("Masukkan NISN Siswa!"); return; }
 
-            const tglHariIni = getTanggalWIB();
+            const tglHariIni = new Date().toISOString().split('T')[0];
             const tglStart = `${tglHariIni}T00:00:00+07:00`;
             const tglEnd = `${tglHariIni}T23:59:59+07:00`;
 
@@ -453,7 +486,7 @@
             const logs = JSON.parse(localStorage.getItem('smada_hp_logs') || '[]');
 
             if (logs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="p-4 text-center text-slate-400">Belum ada riwayat HP terdeteksi.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-slate-400">Belum ada riwayat HP terdeteksi.</td></tr>';
                 return;
             }
 
@@ -467,10 +500,10 @@
                 const listNisn = Array.from(deviceMap[dev]);
                 const isMulti = listNisn.length > 1;
                 return `
-                    <tr class="${isMulti ? 'bg-red-50 text-red-900 font-semibold' : ''} border-b border-slate-100">
-                        <td class="p-3 truncate max-w-xs" title="${dev}">${dev.substring(0, 45)}...</td>
-                        <td class="p-3 text-center font-bold">${listNisn.length} NISN ${isMulti ? '<span class="bg-red-200 text-red-800 text-[10px] px-1 rounded ml-1">Multi</span>' : ''}</td>
-                        <td class="p-3 font-mono">${listNisn.join(', ')}</td>
+                    <tr class="${isMulti ? 'bg-red-50 text-red-900 font-semibold' : ''} border-b border-amber-100">
+                        <td class="p-2 truncate max-w-[120px]" title="${dev}">${dev.substring(0, 20)}...</td>
+                        <td class="p-2 text-center font-bold">${listNisn.length} ${isMulti ? '<span class="bg-red-200 text-red-800 text-[9px] px-1 rounded">Multi</span>' : ''}</td>
+                        <td class="p-2 font-mono text-[10px]">${listNisn.join(', ')}</td>
                     </tr>
                 `;
             }).join('');
