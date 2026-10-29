@@ -17,7 +17,16 @@
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
-    <!-- HEADER / NAVBAR INTERNAL ADMIN -->
+    <!-- PROTEKSI HAK AKSES -->
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
+        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin')) {
+            alert('Akses Ditolak! Anda harus login sebagai Admin / Super Admin.');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <!-- HEADER / NAVBAR DENGAN NAVIGASI BACK DINAMIS -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
             <div class="flex items-center space-x-3">
@@ -28,11 +37,11 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-    <button onclick="kembaliKePanelUtama()" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center space-x-1.5 shadow">
-        <i class="fa-solid fa-arrow-left"></i>
-        <span id="label-btn-back">Kembali</span>
-    </button>
-</div>
+                <button onclick="kembaliKePanelUtama()" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center space-x-1.5 shadow">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span id="label-btn-back">Kembali</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -52,34 +61,34 @@
             </div>
         </div>
 
-        <!-- TABS NAVIGASI UTAMA (5 TAB) -->
+        <!-- TABS NAVIGASI UTAMA (5 TAB UTAMA) -->
         <div class="bg-white rounded-xl shadow-md p-2 border border-slate-200 flex flex-wrap gap-2 text-xs font-bold no-print">
-    <button onclick="showTab('tab-penjurusan')" id="btn-tab-penjurusan" class="tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2">
-        <i class="fa-solid fa-diagram-project"></i>
-        <span>1. Penjurusan & Kenaikan Kelas</span>
-    </button>
-    <button onclick="showTab('tab-lulus')" id="btn-tab-lulus" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-        <i class="fa-solid fa-user-graduate"></i>
-        <span>2. Kelulusan (Kelas XII)</span>
-    </button>
-    <button onclick="showTab('tab-siswabaru')" id="btn-tab-siswabaru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-        <i class="fa-solid fa-users-gear text-emerald-600"></i>
-        <span>3. Kelola Data Siswa</span>
-    </button>
-    <button onclick="showTab('tab-guru')" id="btn-tab-guru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-        <i class="fa-solid fa-chalkboard-user text-indigo-600"></i>
-        <span>4. Kelola Data Guru / Petugas</span>
-    </button>
-    <button onclick="showTab('tab-mutasi')" id="btn-tab-mutasi" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-        <i class="fa-solid fa-right-left text-amber-600"></i>
-        <span>5. Kelola Mutasi Siswa</span>
-    </button>
-</div>
+            <button onclick="showTab('tab-penjurusan')" id="btn-tab-penjurusan" class="tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2">
+                <i class="fa-solid fa-diagram-project"></i>
+                <span>1. Penjurusan & Kenaikan Kelas</span>
+            </button>
+            <button onclick="showTab('tab-lulus')" id="btn-tab-lulus" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+                <i class="fa-solid fa-user-graduate"></i>
+                <span>2. Kelulusan (Kelas XII)</span>
+            </button>
+            <button onclick="showTab('tab-siswabaru')" id="btn-tab-siswabaru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+                <i class="fa-solid fa-users-gear text-emerald-600"></i>
+                <span>3. Kelola Data Siswa</span>
+            </button>
+            <button onclick="showTab('tab-guru')" id="btn-tab-guru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+                <i class="fa-solid fa-chalkboard-user text-indigo-600"></i>
+                <span>4. Kelola Data Guru / Petugas</span>
+            </button>
+            <button onclick="showTab('tab-mutasi')" id="btn-tab-mutasi" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+                <i class="fa-solid fa-right-left text-amber-600"></i>
+                <span>5. Kelola Mutasi Siswa</span>
+            </button>
+        </div>
 
         <!-- ========================================== -->
         <!-- TAB 1: PENJURUSAN & KENAIKAN KELAS         -->
         <!-- ========================================== -->
-        <section id="tab-penjurusan" class="tab-content space-y-6">
+        <section id="tab-penjurusan" class="tab-content block space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <!-- A. Upload Plotting Penjurusan -->
                 <div class="bg-white rounded-xl shadow-md p-5 border border-blue-200 space-y-3">
@@ -230,7 +239,7 @@
                         <i class="fa-solid fa-file-excel text-emerald-600"></i>
                         <span>Import Master Siswa Excel (.xlsx)</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Unggah berkas Excel siswa baru/masal. Header wajib: <code class="font-mono font-bold text-emerald-800">nisn</code> | <code class="font-mono font-bold text-emerald-800">nama</code> | <code class="font-mono font-bold text-emerald-800">kelas</code>.</p>
+                    <p class="text-xs text-slate-500">Unggah berkas Excel siswa. Header wajib: <code class="font-mono font-bold text-emerald-800">nisn</code> | <code class="font-mono font-bold text-emerald-800">nama</code> | <code class="font-mono font-bold text-emerald-800">kelas</code>.</p>
                     <input type="file" id="excel-siswa-baru" accept=".xlsx, .xls" class="block w-full text-xs text-slate-500 file:mr-2 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-emerald-100 file:text-emerald-800 hover:file:bg-emerald-200 cursor-pointer border border-slate-200 rounded-lg p-1"/>
                     <button onclick="prosesImportSiswaBaru()" id="btn-import-baru" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-lg text-xs transition shadow">
                         Proses Import File Excel Siswa
@@ -413,80 +422,67 @@
         <p>&copy; 2026 SMAN 2 Karanganyar. Sistem Informasi Presensi & Kedisiplinan Digital.</p>
     </footer>
 
-    <!-- JAVASCRIPT LOGIKA UTAMA DATABASE & TAB -->
+    <!-- JAVASCRIPT LOGIKA LENGKAP -->
     <script>
-        const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
-        
-        const supabaseClient = (window.supabase && window.supabase.createClient) 
-            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
-            : null;
+        window.onload = function() {
+            setTombolBackDinamis();
+            muatOpsiKelasDropdown();
+            muatSiswaTab1();
+            muatSiswaKelasXII();
+            muatSiswaTab3();
+            muatDataGuruTab4();
+            muatSiswaMutasiKeluar();
+        };
 
-       window.onload = function() {
-    setTombolBackDinamis();
-    muatOpsiKelasDropdown();
-    muatSiswaTab1();
-    muatSiswaKelasXII();
-    muatSiswaTab3();
-    muatDataGuruTab4();
-    muatSiswaMutasiKeluar();
-};
+        // NAVIGASI TOMBOL BACK SESUAI LOGIN ROLE
+        function setTombolBackDinamis() {
+            const user = JSON.parse(localStorage.getItem('smada_user'));
+            const labelBtn = document.getElementById('label-btn-back');
+            if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
+                if (labelBtn) labelBtn.textContent = 'Kembali ke Super Admin';
+            } else {
+                if (labelBtn) labelBtn.textContent = 'Kembali ke Admin';
+            }
+        }
 
-// Menyesuaikan tujuan tombol back berdasarkan role user yang login
-function setTombolBackDinamis() {
-    const user = JSON.parse(localStorage.getItem('smada_user'));
-    const labelBtn = document.getElementById('label-btn-back');
-    if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
-        if (labelBtn) labelBtn.textContent = 'Kembali ke Super Admin';
-    } else {
-        if (labelBtn) labelBtn.textContent = 'Kembali ke Admin';
-    }
-}
+        function kembaliKePanelUtama() {
+            const user = JSON.parse(localStorage.getItem('smada_user'));
+            if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
+                window.location.href = 'superadmin.html';
+            } else {
+                window.location.href = 'admin.html';
+            }
+        }
 
-// Fungsi Navigasi Back Dinamis
-function kembaliKePanelUtama() {
-    const user = JSON.parse(localStorage.getItem('smada_user'));
-    if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
-        window.location.href = 'superadmin.html';
-    } else {
-        window.location.href = 'admin.html';
-    }
-}
-
-// Fungsi Perpidahan Tab (Berjalan untuk Tab 1 s/d 5)
-function showTab(tabId) {
-    // Sembunyikan semua konten tab
-    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-    
-    // Tampilkan tab yang dipilih
-    const targetTab = document.getElementById(tabId);
-    if (targetTab) {
-        targetTab.classList.remove('hidden');
-    }
-
-    // Reset gaya tombol tab
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.className = "tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2";
-    });
-
-    // Beri warna aktif pada tombol tab yang dipilih
-    const activeBtn = document.getElementById('btn-' + tabId);
-    if (activeBtn) {
-        activeBtn.className = "tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2";
-    }
-}
-
+        // FUNGSI UTAMA SHOW TAB 1 HINGGA 5
         function showTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(tabId).classList.remove('hidden');
+            // Sembunyikan seluruh section tab
+            const allTabs = document.querySelectorAll('.tab-content');
+            allTabs.forEach(tab => {
+                tab.classList.add('hidden');
+                tab.classList.remove('block');
+            });
 
+            // Tampilkan section tab pilihan
+            const selectedTab = document.getElementById(tabId);
+            if (selectedTab) {
+                selectedTab.classList.remove('hidden');
+                selectedTab.classList.add('block');
+            }
+
+            // Reset gaya tombol tab
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.className = "tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2";
             });
+
+            // Highlight tombol aktif
             const activeBtn = document.getElementById('btn-' + tabId);
-            if (activeBtn) activeBtn.className = "tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2";
+            if (activeBtn) {
+                activeBtn.className = "tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2";
+            }
         }
 
+        // CLEAN SPASI & CONVERT KE CAPITAL NAMA KELAS
         function cleanKelasFormat(str) {
             return String(str || '').trim().toUpperCase();
         }
@@ -498,12 +494,16 @@ function showTab(tabId) {
                 const uniqueKelas = [...new Set(data.map(item => cleanKelasFormat(item.kelas)))].filter(Boolean).sort();
                 
                 const selectTab1 = document.getElementById('filter-kelas-tab1');
-                selectTab1.innerHTML = '<option value="semua">Semua Kelas</option>' + 
-                    uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+                if (selectTab1) {
+                    selectTab1.innerHTML = '<option value="semua">Semua Kelas</option>' + 
+                        uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+                }
 
                 const selectNaikAsal = document.getElementById('naik-kelas-asal');
-                selectNaikAsal.innerHTML = '<option value="">Pilih Kelas Asal...</option>' + 
-                    uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+                if (selectNaikAsal) {
+                    selectNaikAsal.innerHTML = '<option value="">Pilih Kelas Asal...</option>' + 
+                        uniqueKelas.map(k => `<option value="${k}">${k}</option>`).join('');
+                }
             }
         }
 
@@ -518,7 +518,7 @@ function showTab(tabId) {
             const reader = new FileReader();
 
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memproses Data Penjurusan...</span>`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memproses Data...</span>`;
 
             reader.onload = async function(e) {
                 try {
@@ -745,7 +745,7 @@ function showTab(tabId) {
                     else { alert(`Berhasil mengimpor ${formattedData.length} data siswa!`); fileInput.value = ''; muatSiswaTab3(); }
                 } catch (err) { alert("Error Excel: " + err.message); }
             };
-            reader.readAsReadAsArrayBuffer ? reader.readAsArrayBuffer(fileInput.files[0]) : reader.readAsBinaryString(fileInput.files[0]);
+            reader.readAsArrayBuffer(fileInput.files[0]);
         }
 
         async function muatSiswaTab3() {
