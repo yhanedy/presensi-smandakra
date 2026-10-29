@@ -48,22 +48,18 @@
     <!-- MAIN CONTAINER -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
 
-        <!-- PANEL DASHBOARD KONTROL SEJAJAR (FILTER TANGGAL & PENCARIAN SISWA) -->
+        <!-- PANEL DASHBOARD KONTROL SEJAJAR -->
         <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 flex flex-wrap justify-between items-center gap-4 no-print">
-            <div class="flex flex-wrap items-center gap-3">
-                <!-- Navigation Back Button -->
-                <button onclick="kembaliKeRekapUtama()" id="btn-back-rekap" class="hidden bg-slate-800 hover:bg-slate-900 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1.5 shadow">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span>Kembali ke Rekap Kelas</span>
-                </button>
-
-                <!-- Filter Tanggal -->
+            <div class="flex flex-wrap items-center gap-4">
+                
+                <!-- Filter Tanggal (Button diganti 'Cari') -->
                 <div>
                     <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Pilih Tanggal Laporan</label>
                     <div class="flex items-center space-x-1">
-                        <input type="date" id="filter-tanggal" onchange="muatLaporanPublik()" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none">
-                        <button onclick="setTanggalHariIni()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg border border-slate-300 transition">
-                            Hari Ini
+                        <input type="date" id="filter-tanggal" class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none">
+                        <button onclick="muatLaporanPublik()" class="bg-blue-900 hover:bg-blue-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg transition flex items-center space-x-1 shadow">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <span>Cari</span>
                         </button>
                     </div>
                 </div>
@@ -72,13 +68,30 @@
                 <div>
                     <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Cari Data Siswa / BK</label>
                     <div class="flex items-center space-x-1">
-                        <input type="text" id="input-cari-siswa" onkeyup="if(event.key==='Enter') cariDataSiswaBK()" placeholder="Ketik NISN atau Nama Siswa..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none w-48 sm:w-64">
+                        <input type="text" id="input-cari-siswa" onkeyup="if(event.key==='Enter') cariDataSiswaBK()" placeholder="Ketik NISN atau Nama..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs focus:ring-2 focus:ring-blue-500 outline-none w-40 sm:w-52">
                         <button onclick="cariDataSiswaBK()" class="bg-blue-900 hover:bg-blue-800 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center space-x-1 shadow">
-                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <i class="fa-solid fa-user-gear"></i>
                             <span>Cari</span>
                         </button>
                     </div>
                 </div>
+
+                <!-- KOTAK KECIL TOTAL STATISTIK (HADIR, TERLAMBAT, ALPHA) -->
+                <div class="flex items-center space-x-2 pl-2 border-l border-slate-200">
+                    <div class="bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-lg text-center min-w-[70px]">
+                        <span class="block text-[9px] font-bold uppercase text-emerald-700">Hadir</span>
+                        <span id="box-total-hadir" class="text-xs font-mono font-bold text-emerald-800">0</span>
+                    </div>
+                    <div class="bg-amber-50 border border-amber-200 px-3 py-1 rounded-lg text-center min-w-[70px]">
+                        <span class="block text-[9px] font-bold uppercase text-amber-700">Terlambat</span>
+                        <span id="box-total-terlambat" class="text-xs font-mono font-bold text-amber-800">0</span>
+                    </div>
+                    <div class="bg-red-50 border border-red-200 px-3 py-1 rounded-lg text-center min-w-[70px]">
+                        <span class="block text-[9px] font-bold uppercase text-red-700">Alpha</span>
+                        <span id="box-total-alpha" class="text-xs font-mono font-bold text-red-800">0</span>
+                    </div>
+                </div>
+
             </div>
 
             <!-- Tombol Ekspor & Print -->
@@ -111,7 +124,7 @@
                         <span class="text-xs text-blue-300 uppercase tracking-wider font-semibold">Hasil Pencarian Siswa & Rekap BK</span>
                         <h3 id="cari-nama-siswa" class="text-2xl font-black text-white">-</h3>
                     </div>
-                    <div class="flex flex-wrap gap-2 text-xs">
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
                         <div class="bg-blue-950/80 px-3 py-1.5 rounded-lg border border-blue-700/50">
                             <span class="text-blue-300">Kelas: </span>
                             <span id="cari-kelas-siswa" class="font-bold text-white font-mono">-</span>
@@ -120,6 +133,9 @@
                             <span class="text-blue-300">NISN: </span>
                             <span id="cari-nisn-siswa" class="font-bold text-white font-mono">-</span>
                         </div>
+                        <button onclick="kembaliKeRekapUtama()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-3 py-1.5 rounded-lg transition ml-2">
+                            <i class="fa-solid fa-arrow-left"></i> Kembali
+                        </button>
                     </div>
                 </div>
 
@@ -196,7 +212,7 @@
         <div id="section-rekap-utama" class="space-y-6">
             
             <!-- TABEL RINGKASAN REKAP PER KELAS -->
-            <div class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden space-y-3">
+            <div id="container-tabel-rekap" class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden space-y-3">
                 <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
                     <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
                         <i class="fa-solid fa-list-check text-blue-600"></i>
@@ -227,7 +243,7 @@
             </div>
 
             <!-- TABEL DETAIL PRESENSI SISWA PER KELAS TERPILIH -->
-            <div id="section-detail-kelas" class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden space-y-3">
+            <div id="section-detail-kelas" class="hidden bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden space-y-3">
                 <div class="p-4 bg-slate-900 text-white flex flex-wrap justify-between items-center gap-2">
                     <div>
                         <h3 class="font-bold text-base flex items-center space-x-2">
@@ -239,6 +255,11 @@
 
                     <div class="flex items-center space-x-2 no-print">
                         <input type="text" id="search-detail-input" onkeyup="filterTabelDetail()" placeholder="Cari Nama Siswa..." class="px-3 py-1.5 rounded-lg text-xs text-slate-800 outline-none focus:ring-2 focus:ring-blue-400">
+                        <!-- TOMBOL BACK KEMBALI SEJAJAR HEADER -->
+                        <button onclick="kembaliKeRekapUtama()" class="bg-amber-500 hover:bg-amber-600 text-slate-900 font-bold px-3 py-1.5 rounded-lg text-xs transition flex items-center space-x-1 shadow">
+                            <i class="fa-solid fa-arrow-left"></i>
+                            <span>Kembali ke Rekap Kelas</span>
+                        </button>
                     </div>
                 </div>
 
@@ -364,7 +385,6 @@
         let globalPresensiHariIni = [];
         let detailSiswaAktif = [];
 
-        // HELPER ZONA WAKTU WIB (Asia/Jakarta)
         function getTanggalWIB(d = new Date()) {
             return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
         }
@@ -374,23 +394,18 @@
         }
 
         window.onload = function() {
-            setTanggalHariIni();
-        };
-
-        function setTanggalHariIni() {
-            const todayStr = getTanggalWIB();
-            document.getElementById('filter-tanggal').value = todayStr;
+            document.getElementById('filter-tanggal').value = getTanggalWIB();
             muatLaporanPublik();
-        }
+        };
 
         function kembaliKeRekapUtama() {
             document.getElementById('hasil-cari-siswa-container').classList.add('hidden');
+            document.getElementById('section-detail-kelas').classList.add('hidden');
+            document.getElementById('container-tabel-rekap').classList.remove('hidden');
             document.getElementById('section-rekap-utama').classList.remove('hidden');
-            document.getElementById('btn-back-rekap').classList.add('hidden');
             document.getElementById('input-cari-siswa').value = '';
         }
 
-        // 1. FUNGSI UTAMA: FETCH DATA SISWA & PRESENSI HARI INI
         async function muatLaporanPublik() {
             if (!supabaseClient) return alert("Pustaka Supabase gagal dimuat.");
 
@@ -399,7 +414,6 @@
             document.getElementById('label-tanggal-aktif').textContent = new Date(tglPilihan).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             document.getElementById('print-tanggal-label').textContent = tglPilihan;
 
-            // Fetch Master Siswa
             const { data: siswaData, error: errS } = await supabaseClient
                 .from('siswa')
                 .select('nisn, nama, kelas')
@@ -407,7 +421,6 @@
                 .order('kelas', { ascending: true })
                 .order('nama', { ascending: true });
 
-            // Fetch Presensi rentang WIB hari ini
             const startWIB = `${tglPilihan}T00:00:00+07:00`;
             const endWIB = `${tglPilihan}T23:59:59+07:00`;
 
@@ -429,7 +442,6 @@
             renderTabelTigaKolomBawah();
         }
 
-        // 2. RENDER RINGKASAN REKAP PER KELAS
         function renderTabelRekapKelas() {
             const tbody = document.getElementById('tabel-rekap-kelas-body');
             
@@ -447,6 +459,10 @@
 
             const sortedKelas = Object.keys(kelasMap).sort();
             let rowsHtml = '';
+            
+            let grandTotalHadir = 0;
+            let grandTotalTerlambat = 0;
+            let grandTotalAlpha = 0;
 
             sortedKelas.forEach((namaKelas, idx) => {
                 const listSiswaKelas = kelasMap[namaKelas];
@@ -462,6 +478,10 @@
                     else if (res.kategori === 'ALPHA') countAlpha++;
                     else if (res.kategori === 'SI') countSI++;
                 });
+
+                grandTotalHadir += countHadir;
+                grandTotalTerlambat += countTerlambat;
+                grandTotalAlpha += countAlpha;
 
                 rowsHtml += `
                     <tr class="hover:bg-blue-50/50 cursor-pointer transition border-b border-slate-100" onclick="pilihKelasDetail('${namaKelas}')">
@@ -480,10 +500,14 @@
                 `;
             });
 
+            // UPDATE KOTAK INDIKATOR KECIL DI DASHBOARD UTAMA
+            document.getElementById('box-total-hadir').textContent = grandTotalHadir;
+            document.getElementById('box-total-terlambat').textContent = grandTotalTerlambat;
+            document.getElementById('box-total-alpha').textContent = grandTotalAlpha;
+
             tbody.innerHTML = rowsHtml;
         }
 
-        // LOGIKA KATEGORI & STATUS KEHADIRAN SISWA
         function hitungStatusSiswa(pList) {
             const jamSekarangStr = getJamWIB();
             const isLewatBatasAlpha = (jamSekarangStr >= '08:30:00');
@@ -541,12 +565,13 @@
             return { kategori: 'BELUM', statusText: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700', jamMasuk: '-', jamPulang: '-', catatan: '-' };
         }
 
-        // 3. RENDER DETAIL KELAS TERPILIH
         function pilihKelasDetail(namaKelas) {
             document.getElementById('detail-nama-kelas').textContent = namaKelas;
             detailSiswaAktif = globalSiswaList.filter(s => s.kelas === namaKelas);
 
+            document.getElementById('container-tabel-rekap').classList.add('hidden');
             const sectionDetail = document.getElementById('section-detail-kelas');
+            sectionDetail.classList.remove('hidden');
             sectionDetail.scrollIntoView({ behavior: 'smooth' });
 
             renderTabelDetailRows(detailSiswaAktif);
@@ -593,7 +618,6 @@
             cariDataSiswaBK();
         }
 
-        // 4. RENDER 3 KOLOM DIBAWAH SENDIRI (TERLAMBAT, PULANG AWAL/TAP, ALPHA)
         function renderTabelTigaKolomBawah() {
             const listTerlambat = [];
             const listPulangAwal = [];
@@ -612,7 +636,6 @@
                 }
             });
 
-            // Render Kolom 1: Terlambat
             document.getElementById('badge-count-terlambat').textContent = listTerlambat.length;
             const tbodyTerlambat = document.getElementById('tabel-bawah-terlambat-body');
             if (listTerlambat.length === 0) {
@@ -629,7 +652,6 @@
                 `).join('');
             }
 
-            // Render Kolom 2: Pulang Mendahului / TAP
             document.getElementById('badge-count-pulang-awal').textContent = listPulangAwal.length;
             const tbodyPulangAwal = document.getElementById('tabel-bawah-pulang-awal-body');
             if (listPulangAwal.length === 0) {
@@ -647,11 +669,10 @@
                 `).join('');
             }
 
-            // Render Kolom 3: Alpha
             document.getElementById('badge-count-alpha').textContent = listAlpha.length;
             const tbodyAlpha = document.getElementById('tabel-bawah-alpha-body');
             if (listAlpha.length === 0) {
-                tbodyAlpha.innerHTML = '<tr><td colspan="2" class="p-3 text-center text-slate-400">Tidak ada siswa alpa.</td></tr>';
+                tbodyAlpha.innerHTML = '<tr><td colspan="2" class="p-3 text-center text-slate-400">Tidak ada data siswa alpa.</td></tr>';
             } else {
                 tbodyAlpha.innerHTML = listAlpha.map(item => `
                     <tr class="hover:bg-red-50 border-b border-red-100">
@@ -665,21 +686,17 @@
             }
         }
 
-        // 5. PENCARIAN SISWA MANDIRI & INTEGRASI BK
         async function cariDataSiswaBK() {
             const keyword = document.getElementById('input-cari-siswa').value.trim();
             if (!keyword) return alert("Masukkan NISN atau Nama siswa terlebih dahulu.");
 
             document.getElementById('section-rekap-utama').classList.add('hidden');
-            document.getElementById('btn-back-rekap').classList.remove('hidden');
-
             const container = document.getElementById('hasil-cari-siswa-container');
 
-            // Find Siswa
             const { data: siswaMatch, error: errS } = await supabaseClient
                 .from('siswa')
                 .select('*')
-                .or(`nisn.eq.${keyword},nama.ilike.%${keyword}%`)
+                .or(`nisn.ilike.%${keyword}%,nama.ilike.%${keyword}%`)
                 .limit(1);
 
             if (errS || !siswaMatch || siswaMatch.length === 0) {
@@ -693,7 +710,6 @@
             document.getElementById('cari-kelas-siswa').textContent = siswa.kelas;
             document.getElementById('cari-nisn-siswa').textContent = siswa.nisn;
 
-            // Fetch Riwayat Presensi
             const { data: presensiList } = await supabaseClient
                 .from('presensi')
                 .select('*')
@@ -701,14 +717,12 @@
                 .order('created_at', { ascending: false })
                 .limit(30);
 
-            // Fetch Pelanggaran BK
             const { data: pelanggaranList } = await supabaseClient
                 .from('kedisiplinan')
                 .select('*')
                 .eq('nisn', siswa.nisn)
                 .order('created_at', { ascending: false });
 
-            // Stat Counter
             let cntHadir = 0, cntTerlambat = 0, cntSI = 0, cntAlpha = 0;
             (presensiList || []).forEach(p => {
                 if (p.status === 'Hadir') cntHadir++;
@@ -722,7 +736,6 @@
             document.getElementById('stat-total-si').textContent = cntSI;
             document.getElementById('stat-total-alpha').textContent = cntAlpha;
 
-            // Render Presensi
             const tbodyPresensi = document.getElementById('tabel-cari-presensi-body');
             if (!presensiList || presensiList.length === 0) {
                 tbodyPresensi.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
@@ -741,7 +754,6 @@
                 `).join('');
             }
 
-            // Render Pelanggaran BK
             const tbodyBK = document.getElementById('tabel-cari-pelanggaran-body');
             if (!pelanggaranList || pelanggaranList.length === 0) {
                 tbodyBK.innerHTML = '<tr><td colspan="2" class="p-4 text-center text-emerald-600 font-bold">Bersih (Tidak ada catatan pelanggaran BK).</td></tr>';
@@ -758,7 +770,6 @@
             container.scrollIntoView({ behavior: 'smooth' });
         }
 
-        // 6. EKSPOR EXCEL
         function eksporExcelRekap() {
             if (!globalSiswaList.length) return alert("Belum ada data dimuat.");
 
