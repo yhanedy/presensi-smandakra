@@ -20,7 +20,7 @@
     <!-- PROTEKSI HAK AKSES -->
     <script>
         const activeUser = JSON.parse(localStorage.getItem('smada_user'));
-        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin')) {
+        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin' && !activeUser.role.includes('admin'))) {
             alert('Akses Ditolak! Anda harus login sebagai Admin / Super Admin.');
             window.location.href = 'index.html';
         }
@@ -285,34 +285,51 @@
         <!-- ========================================== -->
         <section id="tab-guru" class="tab-content hidden space-y-6">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <!-- A. Input Manual Guru -->
+                <!-- A. Input Manual Guru DENGAN CHECKBOX MULTI-ROLE -->
                 <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3">
                     <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
                         <i class="fa-solid fa-user-tie text-indigo-600"></i>
                         <span>Tambah Manual Guru / Petugas</span>
                     </h3>
-                    <div class="grid grid-cols-2 gap-2 text-xs">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                         <div>
                             <label class="block font-semibold text-slate-600 mb-1">Username / NIP</label>
                             <input type="text" id="manual-guru-user" placeholder="Username/NIP..." class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none font-mono">
                         </div>
                         <div>
-                            <label class="block font-semibold text-slate-600 mb-1">Peran (Role)</label>
-                            <select id="manual-guru-role" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 outline-none font-bold">
-                                <option value="piket">Guru Piket</option>
-                                <option value="bk">Guru BK</option>
-                                <option value="admin">Administrator</option>
-                            </select>
+                            <label class="block font-semibold text-slate-600 mb-1">Password Default</label>
+                            <input type="password" id="manual-guru-pass" placeholder="Password..." value="guru123" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none font-mono">
                         </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap Guru</label>
                         <input type="text" id="manual-guru-nama" placeholder="Nama lengkap & Gelar..." class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none">
                     </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password Default</label>
-                        <input type="password" id="manual-guru-pass" placeholder="Password..." value="guru123" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none font-mono">
+
+                    <!-- KOTAK CHECKBOX PERAN (MULTI-ROLE + MAPEL) -->
+                    <div class="space-y-1">
+                        <label class="block text-xs font-semibold text-slate-600">Peran / Hak Akses (Bisa Pilih > 1)</label>
+                        <div class="grid grid-cols-2 gap-2 text-xs border border-slate-300 rounded-lg p-2.5 bg-slate-50">
+                            <label class="flex items-center space-x-2 cursor-pointer hover:text-emerald-700">
+                                <input type="checkbox" value="mapel" class="cb-manual-guru-role rounded text-emerald-600 focus:ring-emerald-600">
+                                <span class="font-semibold">Guru Mapel</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-700">
+                                <input type="checkbox" value="piket" class="cb-manual-guru-role rounded text-blue-600 focus:ring-blue-600">
+                                <span class="font-semibold">Guru Piket</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer hover:text-purple-700">
+                                <input type="checkbox" value="bk" class="cb-manual-guru-role rounded text-purple-600 focus:ring-purple-600">
+                                <span class="font-semibold">Guru BK</span>
+                            </label>
+                            <label class="flex items-center space-x-2 cursor-pointer hover:text-amber-700">
+                                <input type="checkbox" value="admin" class="cb-manual-guru-role rounded text-amber-600 focus:ring-amber-600">
+                                <span class="font-semibold">Administrator</span>
+                            </label>
+                        </div>
                     </div>
+
                     <button onclick="simpanGuruManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-lg text-xs transition shadow">
                         Simpan Data Guru
                     </button>
@@ -332,12 +349,12 @@
                 </div>
             </div>
 
-            <!-- TABEL DATA GURU & RESET PASSWORD -->
+            <!-- TABEL DATA GURU & RESET PASSWORD + EDIT ROLE -->
             <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
                 <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
                     <div>
                         <h3 class="font-bold text-slate-800 text-base">Daftar Akun Guru & Petugas Terdaftar</h3>
-                        <p class="text-xs text-slate-500">Reset password guru ke default <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600 font-mono font-bold">guru123</code> jika lupa password.</p>
+                        <p class="text-xs text-slate-500">Reset password guru ke default <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600 font-mono font-bold">guru123</code> atau ubah role kapan saja.</p>
                     </div>
                     <button onclick="muatDataGuruTab4()" class="bg-blue-900 hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-lg transition">Refresh</button>
                 </div>
@@ -349,12 +366,13 @@
                                 <th class="p-3">Username / NIP</th>
                                 <th class="p-3">Nama Guru</th>
                                 <th class="p-3 text-center">Peran (Role)</th>
+                                <th class="p-3 text-center">Edit Role</th>
                                 <th class="p-3 text-center">Reset Password</th>
                                 <th class="p-3 text-center">Aksi Hapus</th>
                             </tr>
                         </thead>
                         <tbody id="tabel-tab4-body" class="divide-y divide-slate-100">
-                            <tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat data guru...</td></tr>
+                            <tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data guru...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -417,6 +435,52 @@
 
     </main>
 
+    <!-- MODAL POP-UP EDIT ROLE GURU -->
+    <div id="modal-edit-role-guru" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 space-y-4 border border-slate-200 text-left">
+            <div class="border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-user-gear text-indigo-600"></i>
+                    <span>Edit Role Guru / Petugas</span>
+                </h3>
+                <p id="edit-role-guru-nama" class="text-xs font-bold text-blue-900 mt-1 font-mono">-</p>
+            </div>
+
+            <input type="hidden" id="edit-role-guru-user">
+
+            <div class="space-y-2">
+                <label class="block text-xs font-semibold text-slate-600">Pilih Hak Akses (Multi-Role):</label>
+                <div class="space-y-2 text-xs border border-slate-200 rounded-xl p-3 bg-slate-50">
+                    <label class="flex items-center space-x-2 cursor-pointer hover:text-emerald-700">
+                        <input type="checkbox" value="mapel" class="cb-edit-role-item rounded text-emerald-600 focus:ring-emerald-600">
+                        <span class="font-semibold">Guru Mapel (Jurnal Mengajar)</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer hover:text-blue-700">
+                        <input type="checkbox" value="piket" class="cb-edit-role-item rounded text-blue-600 focus:ring-blue-600">
+                        <span class="font-semibold">Guru Piket</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer hover:text-purple-700">
+                        <input type="checkbox" value="bk" class="cb-edit-role-item rounded text-purple-600 focus:ring-purple-600">
+                        <span class="font-semibold">Guru BK / STP2K</span>
+                    </label>
+                    <label class="flex items-center space-x-2 cursor-pointer hover:text-amber-700">
+                        <input type="checkbox" value="admin" class="cb-edit-role-item rounded text-amber-600 focus:ring-amber-600">
+                        <span class="font-semibold">Administrator</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="flex space-x-2 pt-2">
+                <button onclick="simpanEditRoleGuru()" class="w-1/2 bg-blue-900 hover:bg-blue-950 text-white font-bold py-2 rounded-xl text-xs transition shadow">
+                    Simpan Perubahan
+                </button>
+                <button onclick="tutupModalEditRole()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold py-2 rounded-xl text-xs transition">
+                    Batal
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- FOOTER -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 no-print mt-8">
         <p>&copy; 2026 SMAN 2 Karanganyar. Sistem Informasi Presensi & Kedisiplinan Digital.</p>
@@ -438,7 +502,7 @@
         function setTombolBackDinamis() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             const labelBtn = document.getElementById('label-btn-back');
-            if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
+            if (user && (user.role.includes('superadmin') || user.role.includes('super_admin'))) {
                 if (labelBtn) labelBtn.textContent = 'Kembali ke Super Admin';
             } else {
                 if (labelBtn) labelBtn.textContent = 'Kembali ke Admin';
@@ -447,8 +511,8 @@
 
         function kembaliKePanelUtama() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
-            if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
-                window.location.href = 'superadmin.html';
+            if (user && (user.role.includes('superadmin') || user.role.includes('super_admin'))) {
+                window.location.href = 'super-admin.html';
             } else {
                 window.location.href = 'admin.html';
             }
@@ -456,33 +520,28 @@
 
         // FUNGSI UTAMA SHOW TAB 1 HINGGA 5
         function showTab(tabId) {
-            // Sembunyikan seluruh section tab
             const allTabs = document.querySelectorAll('.tab-content');
             allTabs.forEach(tab => {
                 tab.classList.add('hidden');
                 tab.classList.remove('block');
             });
 
-            // Tampilkan section tab pilihan
             const selectedTab = document.getElementById(tabId);
             if (selectedTab) {
                 selectedTab.classList.remove('hidden');
                 selectedTab.classList.add('block');
             }
 
-            // Reset gaya tombol tab
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.className = "tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2";
             });
 
-            // Highlight tombol aktif
             const activeBtn = document.getElementById('btn-' + tabId);
             if (activeBtn) {
                 activeBtn.className = "tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2";
             }
         }
 
-        // CLEAN SPASI & CONVERT KE CAPITAL NAMA KELAS
         function cleanKelasFormat(str) {
             return String(str || '').trim().toUpperCase();
         }
@@ -798,24 +857,29 @@
             else muatSiswaTab3();
         }
 
-        // TAB 4: KELOLA DATA GURU
+        // TAB 4: KELOLA DATA GURU DENGAN LOGIKA MULTI-ROLE + CHECKBOX & EDIT ROLE
         async function simpanGuruManual() {
             const user = document.getElementById('manual-guru-user').value.trim();
             const nama = document.getElementById('manual-guru-nama').value.trim();
-            const role = document.getElementById('manual-guru-role').value;
             const pass = document.getElementById('manual-guru-pass').value.trim() || 'guru123';
 
+            const roleChecked = Array.from(document.querySelectorAll('.cb-manual-guru-role:checked')).map(cb => cb.value);
+
             if (!user || !nama) { alert("Username/NIP dan Nama Wajib diisi!"); return; }
+            if (roleChecked.length === 0) { alert("Pilih minimal 1 Peran (Role) untuk Guru!"); return; }
+
+            const roleString = roleChecked.join(',');
 
             const { error } = await supabaseClient.from('users').insert([
-                { username: user, nama: nama, password_hash: pass, role: role }
+                { username: user, nama: nama, password_hash: pass, role: roleString }
             ]);
 
             if (error) alert("Gagal menyimpan guru: " + error.message);
             else {
-                alert(`Guru ${nama} berhasil ditambahkan!`);
+                alert(`Guru ${nama} berhasil ditambahkan dengan role: ${roleString}`);
                 document.getElementById('manual-guru-user').value = '';
                 document.getElementById('manual-guru-nama').value = '';
+                document.querySelectorAll('.cb-manual-guru-role').forEach(cb => cb.checked = false);
                 muatDataGuruTab4();
             }
         }
@@ -836,7 +900,7 @@
                         username: String(item.username || item.nip || '').trim(),
                         nama: String(item.nama || '').trim(),
                         password_hash: String(item.password || 'guru123').trim(),
-                        role: String(item.role || 'piket').trim().toLowerCase()
+                        role: String(item.role || 'mapel').trim().toLowerCase()
                     }));
 
                     const { error } = await supabaseClient.from('users').insert(formattedGuru);
@@ -850,32 +914,92 @@
 
         async function muatDataGuruTab4() {
             const tbody = document.getElementById('tabel-tab4-body');
-            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat data guru...</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data guru...</td></tr>';
 
             const { data, error } = await supabaseClient.from('users').select('*').order('created_at', { ascending: false });
 
             if (error || !data || data.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data akun guru.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data akun guru.</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = data.map(g => `
-                <tr class="hover:bg-slate-50 border-b border-slate-100">
-                    <td class="p-3 font-mono font-medium">${g.username}</td>
-                    <td class="p-3 font-bold text-slate-800">${g.nama}</td>
-                    <td class="p-3 text-center uppercase font-mono font-bold text-xs text-indigo-700">${g.role || 'piket'}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="resetPasswordGuru('${g.username}', '${g.nama.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition">
-                            <i class="fa-solid fa-key"></i> Reset Pass
-                        </button>
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="hapusGuru('${g.username}', '${g.nama.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition">
-                            <i class="fa-solid fa-trash"></i> Hapus
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = data.map(g => {
+                const rolesList = (g.role || '').split(',').map(r => r.trim().toLowerCase());
+                
+                // Generasi Badges Role
+                const badgesHtml = rolesList.map(r => {
+                    if (r === 'mapel') return `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-bold">MAPEL</span>`;
+                    if (r === 'piket') return `<span class="bg-blue-100 text-blue-800 border border-blue-300 px-1.5 py-0.5 rounded text-[10px] font-bold">PIKET</span>`;
+                    if (r === 'bk' || r === 'stp2k') return `<span class="bg-purple-100 text-purple-800 border border-purple-300 px-1.5 py-0.5 rounded text-[10px] font-bold">BK</span>`;
+                    if (r === 'admin' || r === 'superadmin' || r === 'super_admin') return `<span class="bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold">ADMIN</span>`;
+                    return `<span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold">${r.toUpperCase()}</span>`;
+                }).join(' ');
+
+                return `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-3 font-mono font-medium">${g.username}</td>
+                        <td class="p-3 font-bold text-slate-800">${g.nama}</td>
+                        <td class="p-3 text-center space-x-1">${badgesHtml || '-'}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="bukaModalEditRole('${g.username}', '${g.nama.replace(/'/g, "\\'")}', '${g.role || ''}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-2.5 py-1 rounded text-xs font-bold border border-indigo-300 transition">
+                                <i class="fa-solid fa-user-pen"></i> Edit Role
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="resetPasswordGuru('${g.username}', '${g.nama.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition">
+                                <i class="fa-solid fa-key"></i> Reset Pass
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="hapusGuru('${g.username}', '${g.nama.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition">
+                                <i class="fa-solid fa-trash"></i> Hapus
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // EDIT ROLE MODAL HANDLERS
+        function bukaModalEditRole(username, nama, currentRoles) {
+            document.getElementById('edit-role-guru-user').value = username;
+            document.getElementById('edit-role-guru-nama').textContent = `${nama} (${username})`;
+
+            const rolesArr = currentRoles.split(',').map(r => r.trim().toLowerCase());
+
+            document.querySelectorAll('.cb-edit-role-item').forEach(cb => {
+                cb.checked = rolesArr.includes(cb.value);
+            });
+
+            document.getElementById('modal-edit-role-guru').classList.remove('hidden');
+        }
+
+        function tutupModalEditRole() {
+            document.getElementById('modal-edit-role-guru').classList.add('hidden');
+        }
+
+        async function simpanEditRoleGuru() {
+            const username = document.getElementById('edit-role-guru-user').value;
+            const checkedRoles = Array.from(document.querySelectorAll('.cb-edit-role-item:checked')).map(cb => cb.value);
+
+            if (checkedRoles.length === 0) {
+                alert("Pilih minimal 1 Peran (Role)!");
+                return;
+            }
+
+            const newRoleString = checkedRoles.join(',');
+
+            const { error } = await supabaseClient
+                .from('users')
+                .update({ role: newRoleString })
+                .eq('username', username);
+
+            if (error) alert("Gagal update role: " + error.message);
+            else {
+                alert("Role guru berhasil diperbarui menjadi: " + newRoleString);
+                tutupModalEditRole();
+                muatDataGuruTab4();
+            }
         }
 
         async function resetPasswordGuru(username, nama) {
