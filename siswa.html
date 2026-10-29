@@ -103,7 +103,6 @@
                 </h3>
             </div>
 
-            <!-- ELEMEN POSISI & RADIUS RATA KIRI -->
             <div class="flex flex-col space-y-2 text-left">
                 <div class="space-y-0.5">
                     <span class="text-[11px] text-slate-400 font-medium block">Posisi Anda Saat Ini</span>
@@ -139,7 +138,7 @@
 
             <!-- MENU FOTO ALTERNATIF -->
             <div class="pt-3 border-t border-slate-800/80">
-                <button id="btn-kamera-alt" onclick="bukaModalKamera()" class="w-full py-3 px-4 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition flex items-center justify-center space-x-2 shadow">
+                <button id="btn-kamera-alt" onclick="bukaModalOpsiKamera()" class="w-full py-3 px-4 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition flex items-center justify-center space-x-2 shadow cursor-pointer">
                     <i class="fa-solid fa-camera"></i>
                     <span id="btn-kamera-label">GPS Bermasalah? Presensi Kamera</span>
                 </button>
@@ -192,7 +191,44 @@
 
     </main>
 
-    <!-- MODAL KAMERA VERIFIKASI WAJAH -->
+    <!-- MODAL 1: POP-UP KONFIRMASI PILIHAN PRESENSI -->
+    <div id="modal-opsi-presensi" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-left shadow-2xl relative">
+            <button onclick="tutupModalOpsiPresensi()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-[#003366] fa-clipboard-question text-blue-600"></i>
+                    <span>Pilih Jenis Presensi</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    Konfirmasikan jenis presensi kamera yang ingin Anda lakukan saat ini.
+                </p>
+            </div>
+
+            <div class="space-y-3 pt-1">
+                <button onclick="pilihModeKamera('Hadir')" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-between shadow transition">
+                    <span class="flex items-center space-x-2">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span>Presensi Masuk</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+
+                <button onclick="pilihModeKamera('Pulang')" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-between shadow transition">
+                    <span class="flex items-center space-x-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Presensi Pulang</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: KAMERA STREAM & TOMBOL FOTO MANUAL -->
     <div id="modal-kamera" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 text-left shadow-2xl relative">
             <button onclick="tutupModalKamera()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
@@ -201,8 +237,8 @@
 
             <div class="border-b pb-3 text-left">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
-                    <i class="fa-solid fa-face-smile text-blue-600"></i>
-                    <span>Verifikasi Wajah Presensi Kamera</span>
+                    <i class="fa-solid fa-camera text-blue-600"></i>
+                    <span id="kamera-modal-title">Verifikasi Wajah Presensi</span>
                 </h3>
                 <p class="text-[11px] font-semibold text-amber-600 mt-1">
                     ⚠️ Pastikan latar belakang Anda adalah bangunan SMAN 2 Karanganyar.
@@ -212,19 +248,31 @@
             <!-- STREAM PREVIEW KAMERA -->
             <div class="relative w-full h-64 bg-black rounded-xl overflow-hidden border-2 border-blue-500 flex items-center justify-center">
                 <video id="video-preview" autoplay playsinline class="w-full h-full object-cover transform -scale-x-100"></video>
-                <div id="scan-frame" class="absolute inset-6 border-4 border-dashed border-blue-400/70 rounded-2xl pointer-events-none animate-pulse"></div>
+                <div id="scan-frame" class="absolute inset-6 border-4 border-dashed border-blue-400/70 rounded-2xl pointer-events-none"></div>
             </div>
 
-            <div class="bg-blue-50 border border-blue-200 p-3 rounded-xl text-left">
-                <span class="text-[10px] uppercase font-bold text-blue-700 block mb-0.5">Petunjuk Konfirmasi:</span>
+            <div class="bg-blue-50 border border-blue-200 p-3 rounded-xl text-left space-y-1">
+                <span class="text-[10px] uppercase font-bold text-blue-700 block">Petunjuk Verifikasi:</span>
                 <p class="text-xs text-slate-700 font-medium">
-                    Tengoklah kepala ke <strong class="text-blue-900 uppercase">Kanan</strong> atau <strong class="text-blue-900 uppercase">Kiri</strong> untuk verifikasi presensi otomatis.
+                    Posisikan wajah & latar belakang sekolah, tengoklah sedikit ke <strong>Kanan/Kiri</strong>, lalu tekan tombol foto di bawah.
                 </p>
             </div>
 
-            <div id="kamera-status-text" class="text-xs font-bold text-blue-800 bg-blue-100 py-2 px-3 rounded-lg text-center">
-                Mendeteksi Posisi Wajah...
+            <!-- PERINGATAN REJECT (RANDOM CHECK 1 DARI 13) -->
+            <div id="box-peringatan-gagal" class="hidden bg-rose-50 border border-rose-300 p-3 rounded-xl text-left space-y-1">
+                <span class="text-xs uppercase font-bold text-rose-700 flex items-center space-x-1">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Verifikasi Ditolak Sistem</span>
+                </span>
+                <p class="text-xs text-rose-800">
+                    Objek bangunan SMAN 2 Karanganyar belum jelas terlihat. Silakan atur ulang posisi kamera dan ambil foto kembali.
+                </p>
             </div>
+
+            <button id="btn-ambil-foto" onclick="prosesAmbilFotoSiswa()" class="w-full py-3 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow cursor-pointer">
+                <i class="fa-solid fa-circle-dot text-amber-400 text-sm"></i>
+                <span>📸 Ambil Foto & Presensi</span>
+            </button>
         </div>
     </div>
 
@@ -233,14 +281,13 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- SCRIPT JAVASCRIPT KONEKSI SUPABASE & LOGIKA APPS -->
+    <!-- SCRIPT JAVASCRIPT LOGIKA PORTAL -->
     <script>
         const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
         
         let supabaseClient = null;
 
-        // Inisialisasi Supabase dengan aman
         function getSupabase() {
             if (!supabaseClient && window.supabase && window.supabase.createClient) {
                 supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -255,8 +302,8 @@
         let maxRadius = 100;
 
         let isSudahPresensiMasuk = false;
+        let modePresensiKameraDipilih = null;
         let videoStream = null;
-        let detectionInterval = null;
 
         function getTanggalWIB(d = new Date()) {
             return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
@@ -272,7 +319,6 @@
             return `${tgl}T${jam}+07:00`;
         }
 
-        // FUNGSI OUT KELUAR PENGGUNA (MEMAKSA LOGOUT)
         function handleLogoutSiswa() {
             localStorage.clear();
             window.location.replace('index.html');
@@ -527,17 +573,43 @@
             muatRiwayatSiswa();
         }
 
-        async function bukaModalKamera() {
+        // =========================================================
+        // ALUR MODAL KONFIRMASI OPSI PRESENSI & KAMERA FOTO MANUAL
+        // =========================================================
+        function bukaModalOpsiKamera() {
+            document.getElementById('modal-opsi-presensi').classList.remove('hidden');
+        }
+
+        function tutupModalOpsiPresensi() {
+            document.getElementById('modal-opsi-presensi').classList.add('hidden');
+        }
+
+        function pilihModeKamera(jenis) {
+            // Validasi Pencegahan Iseng
+            if (jenis === 'Hadir' && isSudahPresensiMasuk) {
+                alert("Anda sudah melakukan presensi masuk hari ini!");
+                return;
+            }
+            if (jenis === 'Pulang' && !isSudahPresensiMasuk) {
+                alert("Anda belum melakukan presensi masuk hari ini!");
+                return;
+            }
+
+            modePresensiKameraDipilih = jenis;
+            tutupModalOpsiPresensi();
+
+            document.getElementById('kamera-modal-title').textContent = `Verifikasi Wajah Presensi ${jenis}`;
+            bukaModalKameraStream();
+        }
+
+        async function bukaModalKameraStream() {
+            document.getElementById('box-peringatan-gagal').classList.add('hidden');
             document.getElementById('modal-kamera').classList.remove('hidden');
             const video = document.getElementById('video-preview');
-            const statusText = document.getElementById('kamera-status-text');
 
             try {
                 videoStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
                 video.srcObject = videoStream;
-                statusText.textContent = "Kamera Aktif. Silakan tengokkan kepala ke KANAN atau KIRI...";
-                
-                mulaiDeteksiHeadTurn();
             } catch (err) {
                 alert("Gagal membuka kamera depan. Pastikan izin kamera telah diberikan.");
                 tutupModalKamera();
@@ -545,7 +617,6 @@
         }
 
         function tutupModalKamera() {
-            if (detectionInterval) clearInterval(detectionInterval);
             if (videoStream) {
                 videoStream.getTracks().forEach(track => track.stop());
                 videoStream = null;
@@ -553,30 +624,34 @@
             document.getElementById('modal-kamera').classList.add('hidden');
         }
 
-       function mulaiDeteksiHeadTurn() {
-    let scanCounter = 0;
-    const statusText = document.getElementById('kamera-status-text');
-    const scanFrame = document.getElementById('scan-frame');
+        // AMBIL FOTO MANUAL DENGAN LOGIKA RANDOM CHECK 1 DARI 13
+        async function prosesAmbilFotoSiswa() {
+            let count = parseInt(localStorage.getItem('smada_camera_click_count') || '0') + 1;
+            localStorage.setItem('smada_camera_click_count', count.toString());
 
-    // Mengubah interval pemeriksaan menjadi 7000ms (7 Detik)
-    detectionInterval = setInterval(() => {
-        scanCounter++;
-        if (scanCounter === 1) {
-            statusText.textContent = "Mendeteksi Pergerakan Kepala...";
-            scanFrame.className = "absolute inset-6 border-4 border-dashed border-amber-400 rounded-2xl pointer-events-none animate-spin";
-        } else if (scanCounter >= 2) {
-            clearInterval(detectionInterval);
-            statusText.textContent = "✓ Gerakan Menengok Berhasil Diverifikasi!";
-            scanFrame.className = "absolute inset-6 border-4 border-solid border-emerald-500 rounded-2xl pointer-events-none";
+            const btnFoto = document.getElementById('btn-ambil-foto');
+            const boxWarning = document.getElementById('box-peringatan-gagal');
 
-            setTimeout(() => {
-                eksekusiPresensiOtomatisKamera();
-            }, 1000);
+            btnFoto.disabled = true;
+            btnFoto.classList.add('opacity-50');
+
+            // Cek kondisi acak kelipatan 13
+            if (count % 13 === 0) {
+                boxWarning.classList.remove('hidden');
+                btnFoto.disabled = false;
+                btnFoto.classList.remove('opacity-50');
+                btnFoto.innerHTML = `<span>🔄 Coba Lagi / Foto Ulang</span>`;
+                return;
+            }
+
+            // Jika lulus verifikasi
+            await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih);
+            btnFoto.disabled = false;
+            btnFoto.classList.remove('opacity-50');
+            btnFoto.innerHTML = `<i class="fa-solid fa-circle-dot text-amber-400 text-sm"></i> <span>📸 Ambil Foto & Presensi</span>`;
         }
-    }, 7000); // <-- UBAH ANGKA INI MENJADI 7000 (7 Detik)
-}
 
-        async function eksekusiPresensiOtomatisKamera() {
+        async function eksekusiPresensiOtomatisKamera(jenisPresensi) {
             const client = getSupabase();
             if (!client) return;
 
@@ -584,15 +659,13 @@
             const nisnVal = currentActiveUser.nisn || currentActiveUser.username;
             const tglWIB = getTanggalWIB();
 
-            const jenisPresensi = isSudahPresensiMasuk ? 'Pulang' : 'Hadir';
-
             if (jenisPresensi === 'Hadir') {
                 const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
                 await client.from('presensi').insert([{
                     nisn: nisnVal,
                     status: statusKategori,
                     jam_masuk: jamWIB,
-                    keterangan: `Presensi Masuk Kamera (Liveness Menengok Valid)`,
+                    keterangan: `Presensi Masuk Kamera (Liveness Valid)`,
                     created_at: getISOTimestampWIB()
                 }]);
             } else {
@@ -602,7 +675,7 @@
                 if (recMasuk) {
                     await client.from('presensi').update({
                         jam_pulang: jamWIB,
-                        keterangan: `Presensi Pulang Kamera (Liveness Menengok Valid)`
+                        keterangan: `Presensi Pulang Kamera (Liveness Valid)`
                     }).eq('id', recMasuk.id);
                 }
             }
