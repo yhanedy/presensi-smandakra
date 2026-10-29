@@ -190,7 +190,7 @@
 
         // LOGIN SISWA
         async function loginSiswa(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             const nisn = document.getElementById('siswa-nisn').value.trim();
             const pass = document.getElementById('siswa-password').value.trim();
             const btn = document.getElementById('btn-submit-siswa');
@@ -200,27 +200,33 @@
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa...</span>`;
 
-            const { data, error } = await supabaseClient
-                .from('siswa')
-                .select('*')
-                .eq('nisn', nisn)
-                .eq('password', pass)
-                .maybeSingle();
+            try {
+                const { data, error } = await supabaseClient
+                    .from('siswa')
+                    .select('*')
+                    .eq('nisn', String(nisn))
+                    .eq('password', String(pass))
+                    .maybeSingle();
 
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Siswa</span>`;
-
-            if (error || !data) {
-                alert("NISN atau Password Salah!");
-            } else {
-                localStorage.setItem('smada_siswa', JSON.stringify(data));
-                window.location.href = 'siswa.html';
+                if (error || !data) {
+                    alert("NISN atau Password Salah!");
+                } else {
+                    localStorage.setItem('smada_siswa', JSON.stringify(data));
+                    setTimeout(() => {
+                        window.location.href = 'siswa.html';
+                    }, 150);
+                }
+            } catch (err) {
+                alert("Terjadi kesalahan sistem: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Siswa</span>`;
             }
         }
 
-        // LOGIN GURU / PETUGAS
+        // LOGIN GURU / PETUGAS (DENGAN RECOVERY ERROR AGAR TIDAK MACET)
         async function loginPetugas(e) {
-            e.preventDefault();
+            if (e) e.preventDefault();
             const user = document.getElementById('petugas-user').value.trim();
             const pass = document.getElementById('petugas-pass').value.trim();
             const btn = document.getElementById('btn-submit-petugas');
@@ -230,20 +236,36 @@
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa...</span>`;
 
-            const { data, error } = await supabaseClient
-                .from('users')
-                .select('*')
-                .eq('username', user)
-                .eq('password_hash', pass)
-                .maybeSingle();
+            try {
+                // Pengecekan fleksibel (mencoba password_hash terlebih dahulu)
+                let { data, error } = await supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('username', String(user))
+                    .eq('password_hash', String(pass))
+                    .maybeSingle();
 
-            btn.disabled = false;
-            btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Guru / Petugas</span>`;
+                // Jika password_hash tidak cocok, coba kolom 'password'
+                if (!data) {
+                    const resSec = await supabaseClient
+                        .from('users')
+                        .select('*')
+                        .eq('username', String(user))
+                        .eq('password', String(pass))
+                        .maybeSingle();
+                    data = resSec.data;
+                }
 
-            if (error || !data) {
-                alert("Username/NIP atau Password Salah!");
-            } else {
-                prosesLoginPetugasSukses(data);
+                if (!data) {
+                    alert("Username/NIP atau Password Salah!");
+                } else {
+                    prosesLoginPetugasSukses(data);
+                }
+            } catch (err) {
+                alert("Gagal melakukan login: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Guru / Petugas</span>`;
             }
         }
 
@@ -295,10 +317,11 @@
             window.location.href = halaman;
         }
 
+        // REDIRECT SUPER ADMIN KE super-admin.html
         function bukaModulAdmin() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             if (user && (user.role.includes('superadmin') || user.role.includes('super_admin'))) {
-                window.location.href = 'superadmin.html';
+                window.location.href = 'super-admin.html';
             } else {
                 window.location.href = 'admin.html';
             }
