@@ -4,14 +4,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Administrator - SMAN 2 Karanganyar</title>
+    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Supabase JS Client Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Inisialisasi Konfigurasi Supabase -->
     <script src="js/supabase-config.js"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
-    <!-- PROTEKSI HALAMAN ADMIN -->
+    <!-- PROTEKSI HAK AKSES ADMIN -->
     <script>
         const activeUser = JSON.parse(localStorage.getItem('smada_user'));
         if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin')) {
@@ -20,11 +24,11 @@
         }
     </script>
 
-    <!-- HEADER ADMIN -->
+    <!-- HEADER / NAVBAR INTERNAL ADMIN -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo">
+                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo SMAN 2 Karanganyar">
                 <div>
                     <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
                     <p class="text-xs text-blue-200">Panel Administrator Konfigurasi & Data Master</p>
@@ -34,16 +38,18 @@
                 <span class="text-xs bg-blue-950 px-3 py-1.5 rounded-lg font-mono text-blue-200">
                     <strong class="text-white" id="display-admin-name">Admin</strong>
                 </span>
-                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
-                    <i class="fa-solid fa-power-off"></i> Logout
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                    <i class="fa-solid fa-power-off"></i>
+                    <span>Logout</span>
                 </button>
             </div>
         </div>
     </header>
 
+    <!-- MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
 
-        <!-- GRID 1: KONFIGURASI KHUSUS ADMIN (4 CARDS) -->
+        <!-- GRID KONFIGURASI UTAMA ADMIN (4 CARDS) -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
             <!-- 1. Tambah Siswa Manual -->
@@ -54,21 +60,23 @@
                 </h3>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                    <input type="text" id="admin-siswa-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                    <input type="text" id="admin-siswa-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-                    <input type="text" id="admin-siswa-nama" placeholder="Nama Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                    <input type="text" id="admin-siswa-nama" placeholder="Nama Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
-                    <input type="text" id="admin-siswa-kelas" placeholder="Contoh: XII F1" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                    <input type="text" id="admin-siswa-kelas" placeholder="Contoh: XII F1" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="admin-siswa-pass" placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                    <input type="password" id="admin-siswa-pass" placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
                 </div>
-                <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition">Tambah Data Siswa</button>
+                <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition">
+                    Tambah Data Siswa
+                </button>
             </div>
 
             <!-- 2. Tambah Petugas / Guru Manual -->
@@ -79,15 +87,15 @@
                 </h3>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Username / NIP</label>
-                    <input type="text" id="admin-new-username" placeholder="Username..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                    <input type="text" id="admin-new-username" placeholder="Username..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
-                    <input type="text" id="admin-new-nama" placeholder="Nama Guru/Petugas..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                    <input type="text" id="admin-new-nama" placeholder="Nama Guru/Petugas..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="admin-new-password" placeholder="Password..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                    <input type="password" id="admin-new-password" placeholder="Password..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Peran (Role)</label>
@@ -97,31 +105,33 @@
                         <option value="admin">Administrator</option>
                     </select>
                 </div>
-                <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition">Tambah User Petugas</button>
+                <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition">
+                    Tambah User Petugas
+                </button>
             </div>
 
-            <!-- 3. Pengaturan Jam Pulang per Kelas (X, XI, XII) -->
+            <!-- 3. Pengaturan Jadwal Jam Kerja (Senin–Kamis & Jumat) -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/20">
                 <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-200 pb-2">
                     <i class="fa-solid fa-clock text-amber-600"></i>
-                    <span>Jam Pulang (X, XI, XII)</span>
+                    <span>Jadwal Presensi Sekolah</span>
                 </h3>
                 <div class="space-y-2 text-xs">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Kelas X</label>
-                        <input type="time" id="jam-pulang-x" value="15:15" class="w-full border rounded px-2 py-1 font-mono">
+                        <label class="block font-bold text-slate-700 mb-1">Jam Masuk (Senin - Jumat)</label>
+                        <input type="time" id="jam-masuk" value="07:00" class="w-full border rounded px-2 py-1.5 font-mono">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Kelas XI</label>
-                        <input type="time" id="jam-pulang-xi" value="15:30" class="w-full border rounded px-2 py-1 font-mono">
+                        <label class="block font-bold text-slate-700 mb-1">Jam Pulang (Senin - Kamis)</label>
+                        <input type="time" id="jam-pulang-senin-kamis" value="15:01" class="w-full border rounded px-2 py-1.5 font-mono">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Kelas XII</label>
-                        <input type="time" id="jam-pulang-xii" value="15:30" class="w-full border rounded px-2 py-1 font-mono">
+                        <label class="block font-bold text-slate-700 mb-1">Jam Pulang (Khusus Jumat)</label>
+                        <input type="time" id="jam-pulang-jumat" value="14:00" class="w-full border rounded px-2 py-1.5 font-mono">
                     </div>
                 </div>
-                <button onclick="simpanSettingJamPulang()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition">
-                    Simpan Jam Pulang
+                <button onclick="simpanSettingJadwalHarian()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition">
+                    Simpan Jadwal Presensi
                 </button>
             </div>
 
@@ -135,17 +145,17 @@
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">Koordinat GPS Sekolah</label>
                         <div class="grid grid-cols-2 gap-1 font-mono">
-                            <input type="text" id="gps-lat" value="-7.6005890" class="border px-2 py-1 rounded text-slate-600">
-                            <input type="text" id="gps-long" value="110.9783970" class="border px-2 py-1 rounded text-slate-600">
+                            <input type="text" id="gps-lat" value="-7.6005890" class="border px-2 py-1 rounded text-slate-600" title="Lintang">
+                            <input type="text" id="gps-long" value="110.9783970" class="border px-2 py-1 rounded text-slate-600" title="Bujur">
                         </div>
                     </div>
                     <div>
-                        <label class="block font-semibold text-slate-600 mb-1">Radius Toleransi</label>
+                        <label class="block font-semibold text-slate-600 mb-1">Radius Toleransi Presensi</label>
                         <select id="gps-radius" class="w-full border px-2 py-1 rounded text-xs outline-none">
-                            <option value="50">50 Meter</option>
-                            <option value="100" selected>100 Meter</option>
-                            <option value="200">200 Meter</option>
-                            <option value="500">500 Meter</option>
+                            <option value="50">50 Meter (Area Utama)</option>
+                            <option value="100" selected>100 Meter (Area Sekolah)</option>
+                            <option value="200">200 Meter (Toleransi HP)</option>
+                            <option value="500">500 Meter (Toleransi Luas)</option>
                         </select>
                     </div>
                 </div>
@@ -156,18 +166,20 @@
 
         </div>
 
-        <!-- BOX KOREKSI: BATALKAN STATUS PULANG SALAH KLIK -->
+        <!-- BOX KOREKSI: BATALKAN STATUS PULANG SISWA (SALAH KLIK) -->
         <div class="bg-white p-5 rounded-xl shadow-md border border-red-200 space-y-3 bg-red-50/20">
             <div class="flex flex-wrap justify-between items-center border-b border-red-200 pb-2">
-                <h3 class="font-bold text-red-900 text-base flex items-center space-x-2">
-                    <i class="fa-solid fa-rotate-left text-red-600"></i>
-                    <span>Koreksi Salah Klik Status Pulang Siswa Hari Ini</span>
-                </h3>
-                <span class="text-xs text-slate-500">Membatalkan status jam pulang & mengembalikan status siswa ke <b>Hadir</b></span>
+                <div>
+                    <h3 class="font-bold text-red-900 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-rotate-left text-red-600"></i>
+                        <span>Koreksi Salah Klik Status Pulang Siswa Hari Ini</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Membatalkan status jam pulang & mengembalikan status kehadiran siswa ke <b>Hadir</b>.</p>
+                </div>
             </div>
             <div class="flex flex-wrap gap-2 items-center">
                 <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN Siswa terpencet pulang..." class="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none max-w-xs flex-1">
-                <button onclick="batalkanStatusPulangSiswa()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5">
+                <button onclick="batalkanStatusPulangSiswa()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5 shadow">
                     <i class="fa-solid fa-check"></i>
                     <span>Batalkan Status Pulang Hari Ini</span>
                 </button>
@@ -185,7 +197,7 @@
                     <p class="text-xs text-slate-500">Mencegah titip presensi antar-siswa dari satu perangkat HP yang sama.</p>
                 </div>
                 <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                    <i class="fa-solid fa-rotate"></i> Cek Log HP
+                    <i class="fa-solid fa-rotate"></i> Cek Log HP Multi-Akun
                 </button>
             </div>
             <div class="overflow-x-auto max-h-60">
@@ -198,37 +210,12 @@
                         </tr>
                     </thead>
                     <tbody id="tabel-log-hp-body" class="divide-y divide-amber-100">
-                        <tr><td colspan="3" class="p-4 text-center text-slate-400">Klik "Cek Log HP" untuk memindai penggunaan HP bersama.</td></tr>
+                        <tr><td colspan="3" class="p-4 text-center text-slate-400">Klik "Cek Log HP Multi-Akun" untuk memindai penggunaan HP bersama.</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
-        <!-- PENGATURAN JADWAL JAM PRESENSI (SENIN-KAMIS & JUMAT) -->
-<div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/20">
-    <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-200 pb-2">
-        <i class="fa-solid fa-clock text-amber-600"></i>
-        <span>Pengaturan Jam Presensi Sekolah</span>
-    </h3>
-    
-    <div class="space-y-2 text-xs">
-        <div>
-            <label class="block font-bold text-slate-700 mb-1">Jam Masuk (Senin - Jumat)</label>
-            <input type="time" id="jam-masuk" value="07:00" class="w-full border rounded px-2 py-1.5 font-mono">
-        </div>
-        <div>
-            <label class="block font-bold text-slate-700 mb-1">Jam Pulang (Senin - Kamis)</label>
-            <input type="time" id="jam-pulang-senin-kamis" value="15:31" class="w-full border rounded px-2 py-1.5 font-mono">
-        </div>
-        <div>
-            <label class="block font-bold text-slate-700 mb-1">Jam Pulang (Khusus Jumat)</label>
-            <input type="time" id="jam-pulang-jumat" value="14:00" class="w-full border rounded px-2 py-1.5 font-mono">
-        </div>
-    </div>
 
-    <button onclick="simpanSettingJadwalHarian()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition">
-        Simpan Jadwal Presensi
-    </button>
-</div>
         <!-- TABEL KELOLA DATA SISWA & RESET PASSWORD DEFAULT YHAN123 -->
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
             <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
@@ -264,10 +251,12 @@
 
     </main>
 
+    <!-- FOOTER INTERNAL -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
         <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
+    <!-- JAVASCRIPT LOGIKA ADMIN -->
     <script>
         window.onload = function() {
             if (activeUser) {
@@ -290,9 +279,9 @@
                     if (data.latitude) document.getElementById('gps-lat').value = data.latitude;
                     if (data.longitude) document.getElementById('gps-long').value = data.longitude;
                     if (data.radius_meter) document.getElementById('gps-radius').value = data.radius_meter;
-                    if (data.jam_pulang_x) document.getElementById('jam-pulang-x').value = data.jam_pulang_x;
-                    if (data.jam_pulang_xi) document.getElementById('jam-pulang-xi').value = data.jam_pulang_xi;
-                    if (data.jam_pulang_xii) document.getElementById('jam-pulang-xii').value = data.jam_pulang_xii;
+                    if (data.jam_masuk) document.getElementById('jam-masuk').value = data.jam_masuk;
+                    if (data.jam_pulang_senin_kamis) document.getElementById('jam-pulang-senin-kamis').value = data.jam_pulang_senin_kamis;
+                    if (data.jam_pulang_jumat) document.getElementById('jam-pulang-jumat').value = data.jam_pulang_jumat;
                 }
             } catch (e) {
                 console.log("Setting sekolah default.");
@@ -312,17 +301,25 @@
             else alert("Pengaturan Lokasi GPS & Radius Berhasil Disimpan!");
         }
 
-        async function simpanSettingJamPulang() {
-            const jamX = document.getElementById('jam-pulang-x').value;
-            const jamXI = document.getElementById('jam-pulang-xi').value;
-            const jamXII = document.getElementById('jam-pulang-xii').value;
+        async function simpanSettingJadwalHarian() {
+            const jamMasuk = document.getElementById('jam-masuk').value;
+            const jamSeninKamis = document.getElementById('jam-pulang-senin-kamis').value;
+            const jamJumat = document.getElementById('jam-pulang-jumat').value;
 
             const { error } = await supabaseClient.from('setting_sekolah').upsert([
-                { id: 1, jam_pulang_x: jamX, jam_pulang_xi: jamXI, jam_pulang_xii: jamXII }
+                { 
+                    id: 1, 
+                    jam_masuk: jamMasuk,
+                    jam_pulang_senin_kamis: jamSeninKamis, 
+                    jam_pulang_jumat: jamJumat 
+                }
             ]);
 
-            if (error) alert("Gagal menyimpan jam pulang: " + error.message);
-            else alert("Pengaturan Jam Pulang per Kelas Berhasil Disimpan!");
+            if (error) {
+                alert("Gagal menyimpan jadwal: " + error.message);
+            } else {
+                alert("Jadwal Presensi Berhasil Disimpan!\n\n• Jam Masuk: " + jamMasuk + "\n• Pulang Senin-Kamis: " + jamSeninKamis + "\n• Pulang Jumat: " + jamJumat);
+            }
         }
 
         async function batalkanStatusPulangSiswa() {
@@ -476,56 +473,7 @@
             if (error) alert("Gagal: " + error.message);
             else alert(`Password untuk "${nama}" berhasil direset ke "yhan123".`);
         }
-        // Memuat data jadwal dari database
-async function muatSettingSekolah() {
-    try {
-        const { data } = await supabaseClient.from('setting_sekolah').select('*').eq('id', 1).single();
-        if (data) {
-            if (data.latitude) document.getElementById('gps-lat').value = data.latitude;
-            if (data.longitude) document.getElementById('gps-long').value = data.longitude;
-            if (data.radius_meter) document.getElementById('gps-radius').value = data.radius_meter;
-            
-            // Set Jam Presensi Default
-            if (data.jam_masuk) document.getElementById('jam-masuk').value = data.jam_masuk;
-            if (data.jam_pulang_senin_kamis) document.getElementById('jam-pulang-senin-kamis').value = data.jam_pulang_senin_kamis;
-            if (data.jam_pulang_jumat) document.getElementById('jam-pulang-jumat').value = data.jam_pulang_jumat;
-        }
-    } catch (e) {
-        console.log("Menggunakan setting default.");
-    }
-}
 
-// Menyimpan jadwal ke database
-async function simpanSettingJadwalHarian() {
-    const jamMasuk = document.getElementById('jam-masuk').value;
-    const jamSeninKamis = document.getElementById('jam-pulang-senin-kamis').value;
-    const jamJumat = document.getElementById('jam-pulang-jumat').value;
-
-    const { error } = await supabaseClient.from('setting_sekolah').upsert([
-        { 
-            id: 1, 
-            jam_masuk: jamMasuk,
-            jam_pulang_senin_kamis: jamSeninKamis, 
-            jam_pulang_jumat: jamJumat 
-        }
-    ]);
-
-    if (error) {
-        alert("Gagal menyimpan jadwal: " + error.message);
-    } else {
-        alert("Jadwal Presensi Berhasil Disimpan!\n\n• Jam Masuk: " + jamMasuk + "\n• Pulang Senin-Kamis: " + jamSeninKamis + "\n• Pulang Jumat: " + jamJumat);
-    }
-}
-
-// HELPER FUNGSI: Cek Jam Pulang Otomatis Berdasarkan Hari Ini (Digunakan di halaman siswa)
-function getJamPulangHariIni(setting) {
-    const hariIni = new Date().getDay(); // 5 = Jumat
-    if (hariIni === 5) {
-        return setting.jam_pulang_jumat || '14:00';
-    } else {
-        return setting.jam_pulang_senin_kamis || '15:31';
-    }
-}
         async function hapusSiswa(nisn, nama) {
             if (!confirm(`Apakah Anda yakin ingin menghapus siswa "${nama}" (NISN: ${nisn})?`)) return;
 
