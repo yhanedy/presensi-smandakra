@@ -62,7 +62,12 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="siswa-password" required placeholder="Password..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-900 font-mono">
+                    <div class="relative">
+                        <input type="password" id="siswa-password" required placeholder="Password..." class="w-full border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-xs outline-none focus:border-blue-900 font-mono">
+                        <button type="button" onclick="togglePasswordVisibility('siswa-password', 'eye-icon-siswa')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                            <i id="eye-icon-siswa" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" id="btn-submit-siswa" class="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold py-2.5 rounded-lg text-xs transition shadow flex items-center justify-center space-x-1.5">
                     <i class="fa-solid fa-right-to-bracket"></i>
@@ -78,7 +83,12 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
-                    <input type="password" id="petugas-pass" required placeholder="Password..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-900 font-mono">
+                    <div class="relative">
+                        <input type="password" id="petugas-pass" required placeholder="Password..." class="w-full border border-slate-300 rounded-lg pl-3 pr-10 py-2.5 text-xs outline-none focus:border-blue-900 font-mono">
+                        <button type="button" onclick="togglePasswordVisibility('petugas-pass', 'eye-icon-petugas')" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600">
+                            <i id="eye-icon-petugas" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
                 <button type="submit" id="btn-submit-petugas" class="w-full bg-indigo-900 hover:bg-indigo-950 text-white font-bold py-2.5 rounded-lg text-xs transition shadow flex items-center justify-center space-x-1.5">
                     <i class="fa-solid fa-right-to-bracket"></i>
@@ -169,6 +179,22 @@
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
             : null;
 
+        // FUNGSI SHOW / HIDE PASSWORD (TOGGLE MATA)
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
         function switchLoginType(type) {
             const btnSiswa = document.getElementById('tab-btn-siswa');
             const btnPetugas = document.getElementById('tab-btn-petugas');
@@ -224,7 +250,7 @@
             }
         }
 
-        // LOGIN GURU / PETUGAS (DENGAN RECOVERY ERROR AGAR TIDAK MACET)
+        // LOGIN GURU / PETUGAS
         async function loginPetugas(e) {
             if (e) e.preventDefault();
             const user = document.getElementById('petugas-user').value.trim();
@@ -237,7 +263,6 @@
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa...</span>`;
 
             try {
-                // Pengecekan fleksibel (mencoba password_hash terlebih dahulu)
                 let { data, error } = await supabaseClient
                     .from('users')
                     .select('*')
@@ -245,7 +270,6 @@
                     .eq('password_hash', String(pass))
                     .maybeSingle();
 
-                // Jika password_hash tidak cocok, coba kolom 'password'
                 if (!data) {
                     const resSec = await supabaseClient
                         .from('users')
@@ -275,7 +299,6 @@
 
             const roles = (user.role || '').split(',').map(r => r.trim().toLowerCase());
 
-            // JIKA PUNYA 1 ROLE, LANGSUNG DIRECT
             if (roles.length === 1) {
                 if (roles[0] === 'mapel' || roles[0] === 'guru') {
                     bukaModulJurnal();
@@ -289,7 +312,6 @@
                 return;
             }
 
-            // JIKA PUNYA MULTI-ROLE, TAMPILKAN POP-UP BOX
             document.getElementById('nama-guru-login').textContent = user.nama || user.username;
 
             document.getElementById('btn-role-mapel').classList.add('hidden');
@@ -317,7 +339,6 @@
             window.location.href = halaman;
         }
 
-        // REDIRECT SUPER ADMIN KE super-admin.html
         function bukaModulAdmin() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             if (user && (user.role.includes('superadmin') || user.role.includes('super_admin'))) {
@@ -327,7 +348,6 @@
             }
         }
 
-        // REDIRECT KE APLIKASI JURNAL MENGAJAR TERPISAH (SSO TOKEN)
         function bukaModulJurnal() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             if (!user) return alert("Sesi login berakhir. Silakan login kembali.");
