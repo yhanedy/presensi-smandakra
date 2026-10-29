@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu BK & STP2K - SMAN 2 Karanganyar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/supabase-config.js"></script>
+</head>
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
+
+    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo">
+                <div>
+                    <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
+                    <p class="text-xs text-blue-200">Portal Bimbingan Konseling & STP2K</p>
+                </div>
+            </div>
+            <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold">
+                <i class="fa-solid fa-power-off"></i> Logout
+            </button>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
+        
+        <!-- INPUT PELANGGARAN & SAKIT/IZIN -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-white rounded-xl shadow-md p-5 border border-red-200 space-y-3">
+                <h2 class="text-base font-bold text-red-700 flex items-center space-x-2 border-b pb-2">
+                    <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
+                    <span>Input Catatan Kedisiplinan / Pelanggaran</span>
+                </h2>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
+                    <input type="text" id="pelanggaran-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Pelanggaran</label>
+                    <textarea id="pelanggaran-catatan" rows="3" placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none"></textarea>
+                </div>
+                <button onclick="simpanPelanggaranBK()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs">Simpan Catatan Kedisiplinan</button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3">
+                <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2 border-b pb-2">
+                    <i class="fa-solid fa-notes-medical text-blue-600"></i>
+                    <span>Input Status Sakit / Izin / Alpa</span>
+                </h2>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
+                    <input type="text" id="bk-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Status Kehadiran</label>
+                    <select id="bk-status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        <option value="Sakit">Sakit</option>
+                        <option value="Izin">Izin</option>
+                        <option value="Alpa">Alpa</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
+                    <input type="text" id="bk-keterangan" placeholder="Contoh: Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                </div>
+                <button onclick="simpanPresensiBK()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs">Simpan Status Ketidakhadiran</button>
+            </div>
+        </div>
+
+        <!-- TABEL KEDISIPLINAN (15 DATA + LOAD MORE & EXPORT) -->
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
+            <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-shield-cat text-red-600"></i>
+                        <span>Daftar Catatan Kedisiplinan & Pelanggaran Siswa</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Menampilkan 15 data terbaru secara berurutan.</p>
+                </div>
+                <button onclick="eksporExcelPelanggaranBK()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded-lg font-bold flex items-center space-x-1.5 shadow">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>Ekspor Excel Pelanggaran</span>
+                </button>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs text-left text-slate-600">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
+                        <tr>
+                            <th class="p-3">Waktu WJB</th>
+                            <th class="p-3">NISN</th>
+                            <th class="p-3">Nama Siswa</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3">Catatan Pelanggaran</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-pelanggaran-body" class="divide-y divide-slate-100">
+                        <tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="text-center pt-2">
+                <button id="btn-load-more" onclick="muatPelanggaranBK(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-2 rounded-lg font-bold transition hidden">
+                    Lihat Selengkapnya...
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
+        <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let currentOffset = 0;
+        const LIMIT = 15;
+
+        window.onload = function() {
+            muatPelanggaranBK(false);
+        };
+
+        function logout() {
+            localStorage.removeItem('smada_user');
+            window.location.href = 'index.html';
+        }
+
+        async function simpanPelanggaranBK() {
+            const nisn = document.getElementById('pelanggaran-nisn').value.trim();
+            const catatan = document.getElementById('pelanggaran-catatan').value.trim();
+
+            if (!nisn || !catatan) { alert("NISN dan Catatan Wajib diisi!"); return; }
+
+            const { error } = await supabaseClient.from('kedisiplinan').insert([
+                { nisn: nisn, catatan_pelanggaran: catatan, created_at: getISOTimestampWIB() }
+            ]);
+
+            if (error) { alert("Gagal menyimpan: " + error.message); }
+            else {
+                alert("Catatan kedisiplinan berhasil disimpan!");
+                document.getElementById('pelanggaran-nisn').value = '';
+                document.getElementById('pelanggaran-catatan').value = '';
+                currentOffset = 0;
+                muatPelanggaranBK(false);
+            }
+        }
+
+        async function simpanPresensiBK() {
+            const nisn = document.getElementById('bk-nisn').value.trim();
+            const status = document.getElementById('bk-status').value;
+            const ket = document.getElementById('bk-keterangan').value.trim();
+
+            if (!nisn) { alert("NISN wajib diisi!"); return; }
+
+            const { error } = await supabaseClient.from('presensi').insert([
+                { nisn: nisn, status: status, keterangan: ket, created_at: getISOTimestampWIB() }
+            ]);
+
+            if (error) alert("Gagal: " + error.message);
+            else {
+                alert("Status berhasil dicatat!");
+                document.getElementById('bk-nisn').value = '';
+                document.getElementById('bk-keterangan').value = '';
+            }
+        }
+
+        async function muatPelanggaranBK(isLoadMore = false) {
+            const tbody = document.getElementById('tabel-pelanggaran-body');
+            const btnMore = document.getElementById('btn-load-more');
+
+            if (!isLoadMore) {
+                currentOffset = 0;
+                tbody.innerHTML = '';
+            }
+
+            const { data, error } = await supabaseClient
+                .from('kedisiplinan')
+                .select('*, siswa(nama, kelas)')
+                .order('created_at', { ascending: false })
+                .range(currentOffset, currentOffset + LIMIT - 1);
+
+            if (error || !data || data.length === 0) {
+                if (!isLoadMore) tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan.</td></tr>';
+                btnMore.classList.add('hidden');
+                return;
+            }
+
+            const rowsHtml = data.map(p => `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="p-3 font-mono text-slate-500">${new Date(p.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' })}</td>
+                    <td class="p-3 font-mono font-bold">${p.nisn}</td>
+                    <td class="p-3 font-semibold text-slate-800">${p.siswa ? p.siswa.nama : '-'}</td>
+                    <td class="p-3 font-mono">${p.siswa ? p.siswa.kelas : '-'}</td>
+                    <td class="p-3 text-red-700 font-medium">${p.catatan_pelanggaran}</td>
+                </tr>
+            `).join('');
+
+            tbody.insertAdjacentHTML('beforeend', rowsHtml);
+
+            if (data.length === LIMIT) {
+                btnMore.classList.remove('hidden');
+                currentOffset += LIMIT;
+            } else {
+                btnMore.classList.add('hidden');
+            }
+        }
+
+        async function eksporExcelPelanggaranBK() {
+            const { data } = await supabaseClient
+                .from('kedisiplinan')
+                .select('*, siswa(nama, kelas)')
+                .order('created_at', { ascending: false });
+
+            if (!data || data.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+
+            const listData = data.map((d, idx) => ({
+                "No": idx + 1,
+                "Tanggal Waktu": new Date(d.created_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta' }),
+                "NISN": d.nisn,
+                "Nama Siswa": d.siswa ? d.siswa.nama : '-',
+                "Kelas": d.siswa ? d.siswa.kelas : '-',
+                "Catatan Pelanggaran": d.catatan_pelanggaran
+            }));
+
+            const worksheet = XLSX.utils.json_to_sheet(listData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Catatan Pelanggaran");
+            XLSX.writeFile(workbook, `Laporan_Pelanggaran_BK_${getTanggalWIB()}.xlsx`);
+        }
+    </script>
+</body>
+</html>
