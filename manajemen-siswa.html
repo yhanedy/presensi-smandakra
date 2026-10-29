@@ -28,11 +28,11 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <a href="admin.html" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center space-x-1.5">
-                    <i class="fa-solid fa-arrow-left"></i>
-                    <span>Kembali ke Admin</span>
-                </a>
-            </div>
+    <button onclick="kembaliKePanelUtama()" class="bg-blue-800 hover:bg-blue-700 text-white text-xs px-3 py-2 rounded-lg font-semibold transition flex items-center space-x-1.5 shadow">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span id="label-btn-back">Kembali</span>
+    </button>
+</div>
         </div>
     </header>
 
@@ -54,27 +54,27 @@
 
         <!-- TABS NAVIGASI UTAMA (5 TAB) -->
         <div class="bg-white rounded-xl shadow-md p-2 border border-slate-200 flex flex-wrap gap-2 text-xs font-bold no-print">
-            <button onclick="showTab('tab-penjurusan')" id="btn-tab-penjurusan" class="tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2">
-                <i class="fa-solid fa-diagram-project"></i>
-                <span>1. Penjurusan & Kenaikan Kelas</span>
-            </button>
-            <button onclick="showTab('tab-lulus')" id="btn-tab-lulus" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-                <i class="fa-solid fa-user-graduate"></i>
-                <span>2. Kelulusan (Kelas XII)</span>
-            </button>
-            <button onclick="showTab('tab-siswabaru')" id="btn-tab-siswabaru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-                <i class="fa-solid fa-users-gear text-emerald-600"></i>
-                <span>3. Kelola Data Siswa</span>
-            </button>
-            <button onclick="showTab('tab-guru')" id="btn-tab-guru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-                <i class="fa-solid fa-chalkboard-user text-indigo-600"></i>
-                <span>4. Kelola Data Guru / Petugas</span>
-            </button>
-            <button onclick="showTab('tab-mutasi')" id="btn-tab-mutasi" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
-                <i class="fa-solid fa-right-left text-amber-600"></i>
-                <span>5. Kelola Mutasi Siswa</span>
-            </button>
-        </div>
+    <button onclick="showTab('tab-penjurusan')" id="btn-tab-penjurusan" class="tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2">
+        <i class="fa-solid fa-diagram-project"></i>
+        <span>1. Penjurusan & Kenaikan Kelas</span>
+    </button>
+    <button onclick="showTab('tab-lulus')" id="btn-tab-lulus" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+        <i class="fa-solid fa-user-graduate"></i>
+        <span>2. Kelulusan (Kelas XII)</span>
+    </button>
+    <button onclick="showTab('tab-siswabaru')" id="btn-tab-siswabaru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+        <i class="fa-solid fa-users-gear text-emerald-600"></i>
+        <span>3. Kelola Data Siswa</span>
+    </button>
+    <button onclick="showTab('tab-guru')" id="btn-tab-guru" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+        <i class="fa-solid fa-chalkboard-user text-indigo-600"></i>
+        <span>4. Kelola Data Guru / Petugas</span>
+    </button>
+    <button onclick="showTab('tab-mutasi')" id="btn-tab-mutasi" class="tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2">
+        <i class="fa-solid fa-right-left text-amber-600"></i>
+        <span>5. Kelola Mutasi Siswa</span>
+    </button>
+</div>
 
         <!-- ========================================== -->
         <!-- TAB 1: PENJURUSAN & KENAIKAN KELAS         -->
@@ -422,14 +422,59 @@
             ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
             : null;
 
-        window.onload = function() {
-            muatOpsiKelasDropdown();
-            muatSiswaTab1();
-            muatSiswaKelasXII();
-            muatSiswaTab3();
-            muatDataGuruTab4();
-            muatSiswaMutasiKeluar();
-        };
+       window.onload = function() {
+    setTombolBackDinamis();
+    muatOpsiKelasDropdown();
+    muatSiswaTab1();
+    muatSiswaKelasXII();
+    muatSiswaTab3();
+    muatDataGuruTab4();
+    muatSiswaMutasiKeluar();
+};
+
+// Menyesuaikan tujuan tombol back berdasarkan role user yang login
+function setTombolBackDinamis() {
+    const user = JSON.parse(localStorage.getItem('smada_user'));
+    const labelBtn = document.getElementById('label-btn-back');
+    if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
+        if (labelBtn) labelBtn.textContent = 'Kembali ke Super Admin';
+    } else {
+        if (labelBtn) labelBtn.textContent = 'Kembali ke Admin';
+    }
+}
+
+// Fungsi Navigasi Back Dinamis
+function kembaliKePanelUtama() {
+    const user = JSON.parse(localStorage.getItem('smada_user'));
+    if (user && (user.role === 'superadmin' || user.role === 'super_admin')) {
+        window.location.href = 'superadmin.html';
+    } else {
+        window.location.href = 'admin.html';
+    }
+}
+
+// Fungsi Perpidahan Tab (Berjalan untuk Tab 1 s/d 5)
+function showTab(tabId) {
+    // Sembunyikan semua konten tab
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    
+    // Tampilkan tab yang dipilih
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) {
+        targetTab.classList.remove('hidden');
+    }
+
+    // Reset gaya tombol tab
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.className = "tab-btn px-3.5 py-2.5 rounded-lg text-slate-600 hover:bg-slate-100 transition flex items-center space-x-2";
+    });
+
+    // Beri warna aktif pada tombol tab yang dipilih
+    const activeBtn = document.getElementById('btn-' + tabId);
+    if (activeBtn) {
+        activeBtn.className = "tab-btn px-3.5 py-2.5 rounded-lg bg-blue-900 text-white transition flex items-center space-x-2";
+    }
+}
 
         function showTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
