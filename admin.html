@@ -11,117 +11,227 @@
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
+    <!-- PROTEKSI HALAMAN ADMIN -->
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
+        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin')) {
+            alert('Akses Ditolak! Anda harus login sebagai Administrator.');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <!-- HEADER ADMIN -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo">
+                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo">
                 <div>
                     <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-xs text-blue-200">Panel Administrator Konfigurasi Sistem</p>
+                    <p class="text-xs text-blue-200">Panel Administrator Konfigurasi & Data Master</p>
                 </div>
             </div>
-            <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold">
-                <i class="fa-solid fa-power-off"></i> Logout
-            </button>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs bg-blue-950 px-3 py-1.5 rounded-lg font-mono text-blue-200">
+                    <strong class="text-white" id="display-admin-name">Admin</strong>
+                </span>
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
+                    <i class="fa-solid fa-power-off"></i> Logout
+                </button>
+            </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
-        
-        <!-- GRID UTAMA ADMINISTRASI -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            <!-- 1. BOX KHUSUS: PENGATURAN JAM PULANG BERDASARKAN KELAS (X, XI, XII) -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/20">
-                <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-100 pb-2">
-                    <i class="fa-solid fa-clock text-amber-600"></i>
-                    <span>Pengaturan Jam Pulang per Tingkat Kelas</span>
+        <!-- GRID 1: KONFIGURASI KHUSUS ADMIN (4 CARDS) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+            <!-- 1. Tambah Siswa Manual -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
+                    <i class="fa-solid fa-user-graduate text-indigo-600"></i>
+                    <span>Tambah Siswa Manual</span>
                 </h3>
-                <p class="text-[11px] text-slate-500">Atur jam pulang resmi untuk pembatasan presensi pulang.</p>
-                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
+                    <input type="text" id="admin-siswa-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+                    <input type="text" id="admin-siswa-nama" placeholder="Nama Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
+                    <input type="text" id="admin-siswa-kelas" placeholder="Contoh: XII F1" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                    <input type="password" id="admin-siswa-pass" placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                </div>
+                <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition">Tambah Data Siswa</button>
+            </div>
+
+            <!-- 2. Tambah Petugas / Guru Manual -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
+                    <i class="fa-solid fa-user-shield text-blue-600"></i>
+                    <span>Tambah Petugas / Guru</span>
+                </h3>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Username / NIP</label>
+                    <input type="text" id="admin-new-username" placeholder="Username..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Nama Lengkap</label>
+                    <input type="text" id="admin-new-nama" placeholder="Nama Guru/Petugas..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                    <input type="password" id="admin-new-password" placeholder="Password..." class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Peran (Role)</label>
+                    <select id="admin-new-role" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none">
+                        <option value="piket">Guru Piket</option>
+                        <option value="bk">Guru BK</option>
+                        <option value="admin">Administrator</option>
+                    </select>
+                </div>
+                <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition">Tambah User Petugas</button>
+            </div>
+
+            <!-- 3. Pengaturan Jam Pulang per Kelas (X, XI, XII) -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/20">
+                <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-200 pb-2">
+                    <i class="fa-solid fa-clock text-amber-600"></i>
+                    <span>Jam Pulang (X, XI, XII)</span>
+                </h3>
                 <div class="space-y-2 text-xs">
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Kelas X (Mulai Jam Pulang)</label>
-                        <input type="time" id="jam-pulang-x" value="15:15" class="w-full border rounded px-2 py-1.5 font-mono">
+                        <label class="block font-bold text-slate-700 mb-1">Kelas X</label>
+                        <input type="time" id="jam-pulang-x" value="15:15" class="w-full border rounded px-2 py-1 font-mono">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Kelas XI (Mulai Jam Pulang)</label>
-                        <input type="time" id="jam-pulang-xi" value="15:30" class="w-full border rounded px-2 py-1.5 font-mono">
+                        <label class="block font-bold text-slate-700 mb-1">Kelas XI</label>
+                        <input type="time" id="jam-pulang-xi" value="15:30" class="w-full border rounded px-2 py-1 font-mono">
                     </div>
                     <div>
-                        <label class="block font-bold text-slate-700 mb-1">Kelas XII (Mulai Jam Pulang)</label>
-                        <input type="time" id="jam-pulang-xii" value="15:30" class="w-full border rounded px-2 py-1.5 font-mono">
+                        <label class="block font-bold text-slate-700 mb-1">Kelas XII</label>
+                        <input type="time" id="jam-pulang-xii" value="15:30" class="w-full border rounded px-2 py-1 font-mono">
                     </div>
                 </div>
-                <button onclick="simpanSettingJamPulang()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs">
+                <button onclick="simpanSettingJamPulang()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition">
                     Simpan Jam Pulang
                 </button>
             </div>
 
-            <!-- 2. BOX KHUSUS: BATALKAN STATUS PULANG / SALAH KLIK SISWA -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-red-200 space-y-3 bg-red-50/20">
-                <h3 class="font-bold text-red-900 text-sm flex items-center space-x-2 border-b border-red-100 pb-2">
-                    <i class="fa-solid fa-arrow-rotate-left text-red-600"></i>
-                    <span>Koreksi Salah Klik Status Pulang Hari Ini</span>
-                </h3>
-                <p class="text-[11px] text-slate-500">Gunakan jika ada siswa yang terlanjur salah klik tombol Pulang padahal belum waktunya.</p>
-
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                    <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
-                </div>
-                <button onclick="batalkanStatusPulangSiswa()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded text-xs">
-                    Batalkan Status Pulang Hari Ini
-                </button>
-            </div>
-
-            <!-- 3. PENGATURAN GPS & RADIUS -->
+            <!-- 4. Pengaturan Lokasi GPS & Radius -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3">
                 <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
                     <i class="fa-solid fa-location-dot text-purple-600"></i>
-                    <span>Lokasi Sekolah & Radius Presensi</span>
+                    <span>Lokasi GPS & Radius</span>
                 </h3>
                 <div class="space-y-2 text-xs">
                     <div>
-                        <label class="block font-semibold text-slate-600 mb-1">Koordinat Lintang & Bujur</label>
+                        <label class="block font-semibold text-slate-600 mb-1">Koordinat GPS Sekolah</label>
                         <div class="grid grid-cols-2 gap-1 font-mono">
-                            <input type="text" id="gps-lat" value="-7.6005890" class="border px-2 py-1 rounded">
-                            <input type="text" id="gps-long" value="110.9783970" class="border px-2 py-1 rounded">
+                            <input type="text" id="gps-lat" value="-7.6005890" class="border px-2 py-1 rounded text-slate-600">
+                            <input type="text" id="gps-long" value="110.9783970" class="border px-2 py-1 rounded text-slate-600">
                         </div>
                     </div>
                     <div>
                         <label class="block font-semibold text-slate-600 mb-1">Radius Toleransi</label>
-                        <select id="gps-radius" class="w-full border px-2 py-1.5 rounded outline-none">
+                        <select id="gps-radius" class="w-full border px-2 py-1 rounded text-xs outline-none">
                             <option value="50">50 Meter</option>
                             <option value="100" selected>100 Meter</option>
                             <option value="200">200 Meter</option>
+                            <option value="500">500 Meter</option>
                         </select>
                     </div>
                 </div>
-                <button onclick="simpanSettingLokasi()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs">
-                    Simpan Pengaturan GPS
+                <button onclick="simpanSettingLokasi()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs transition">
+                    Simpan Lokasi GPS
                 </button>
             </div>
 
         </div>
 
+        <!-- BOX KOREKSI: BATALKAN STATUS PULANG SALAH KLIK -->
+        <div class="bg-white p-5 rounded-xl shadow-md border border-red-200 space-y-3 bg-red-50/20">
+            <div class="flex flex-wrap justify-between items-center border-b border-red-200 pb-2">
+                <h3 class="font-bold text-red-900 text-base flex items-center space-x-2">
+                    <i class="fa-solid fa-rotate-left text-red-600"></i>
+                    <span>Koreksi Salah Klik Status Pulang Siswa Hari Ini</span>
+                </h3>
+                <span class="text-xs text-slate-500">Membatalkan status jam pulang & mengembalikan status siswa ke <b>Hadir</b></span>
+            </div>
+            <div class="flex flex-wrap gap-2 items-center">
+                <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN Siswa terpencet pulang..." class="border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none max-w-xs flex-1">
+                <button onclick="batalkanStatusPulangSiswa()" class="bg-red-600 hover:bg-red-700 text-white font-bold px-4 py-2 rounded-lg text-xs transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Batalkan Status Pulang Hari Ini</span>
+                </button>
+            </div>
+        </div>
+
         <!-- LOG HP MULTI-AKUN -->
-        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3">
-                <h3 class="font-bold text-slate-800 text-base">Deteksi Multi-Akun Perangkat HP</h3>
-                <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg">Cek Log HP</button>
+        <div class="bg-white rounded-xl shadow-md p-6 border border-amber-200 space-y-4 bg-amber-50/10">
+            <div class="flex flex-wrap justify-between items-center pb-3 border-b border-amber-100 gap-2">
+                <div>
+                    <h3 class="font-bold text-amber-900 text-base flex items-center space-x-2">
+                        <i class="fa-solid fa-mobile-screen-button text-amber-600"></i>
+                        <span>Log HP Siswa (Deteksi Perangkat Login > 1 Akun)</span>
+                    </h3>
+                    <p class="text-xs text-slate-500">Mencegah titip presensi antar-siswa dari satu perangkat HP yang sama.</p>
+                </div>
+                <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                    <i class="fa-solid fa-rotate"></i> Cek Log HP
+                </button>
             </div>
             <div class="overflow-x-auto max-h-60">
                 <table class="w-full text-xs text-left text-slate-600">
-                    <thead class="bg-slate-100 uppercase">
+                    <thead class="bg-amber-100/70 text-amber-900 uppercase font-semibold sticky top-0">
                         <tr>
-                            <th class="p-3">Info Perangkat</th>
-                            <th class="p-3 text-center">Jumlah Akun</th>
-                            <th class="p-3">Daftar NISN Siswa</th>
+                            <th class="p-3">Perangkat / Browser</th>
+                            <th class="p-3 text-center">Jumlah Akun NISN</th>
+                            <th class="p-3">Daftar Akun Siswa Terkait</th>
                         </tr>
                     </thead>
-                    <tbody id="tabel-log-hp-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="3" class="p-4 text-center text-slate-400">Klik Cek Log HP untuk menampilkan data.</td></tr>
+                    <tbody id="tabel-log-hp-body" class="divide-y divide-amber-100">
+                        <tr><td colspan="3" class="p-4 text-center text-slate-400">Klik "Cek Log HP" untuk memindai penggunaan HP bersama.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- TABEL KELOLA DATA SISWA & RESET PASSWORD DEFAULT YHAN123 -->
+        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
+            <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
+                <div>
+                    <h3 class="font-bold text-slate-800 text-base">Kelola Data Siswa</h3>
+                    <p class="text-xs text-slate-500">Daftar siswa tersimpan di database. Admin dapat mereset password ke default <code class="bg-slate-100 px-1 py-0.5 rounded text-red-600 font-mono font-bold">yhan123</code>.</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <input type="text" id="search-siswa-input" onkeyup="muatDaftarSiswa()" placeholder="Cari NISN atau Nama..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    <button onclick="muatDaftarSiswa()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-rotate"></i> Refresh Data
+                    </button>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto max-h-96">
+                <table class="w-full text-xs text-left text-slate-600">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
+                        <tr>
+                            <th class="p-3">NISN</th>
+                            <th class="p-3">Nama Siswa</th>
+                            <th class="p-3">Kelas</th>
+                            <th class="p-3 text-center">Reset Password</th>
+                            <th class="p-3 text-center">Aksi Hapus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-siswa-body" class="divide-y divide-slate-100">
+                        <tr><td colspan="5" class="p-4 text-center text-slate-400">Klik "Refresh Data" atau ketik pencarian untuk memuat daftar siswa.</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -134,9 +244,47 @@
     </footer>
 
     <script>
+        window.onload = function() {
+            if (activeUser) {
+                document.getElementById('display-admin-name').textContent = activeUser.nama || activeUser.username;
+            }
+            muatSettingSekolah();
+            muatDaftarSiswa();
+            muatLogPerangkatHP();
+        };
+
         function logout() {
             localStorage.removeItem('smada_user');
             window.location.href = 'index.html';
+        }
+
+        async function muatSettingSekolah() {
+            try {
+                const { data } = await supabaseClient.from('setting_sekolah').select('*').eq('id', 1).single();
+                if (data) {
+                    if (data.latitude) document.getElementById('gps-lat').value = data.latitude;
+                    if (data.longitude) document.getElementById('gps-long').value = data.longitude;
+                    if (data.radius_meter) document.getElementById('gps-radius').value = data.radius_meter;
+                    if (data.jam_pulang_x) document.getElementById('jam-pulang-x').value = data.jam_pulang_x;
+                    if (data.jam_pulang_xi) document.getElementById('jam-pulang-xi').value = data.jam_pulang_xi;
+                    if (data.jam_pulang_xii) document.getElementById('jam-pulang-xii').value = data.jam_pulang_xii;
+                }
+            } catch (e) {
+                console.log("Setting sekolah default.");
+            }
+        }
+
+        async function simpanSettingLokasi() {
+            const lat = parseFloat(document.getElementById('gps-lat').value);
+            const long = parseFloat(document.getElementById('gps-long').value);
+            const radius = parseInt(document.getElementById('gps-radius').value);
+
+            const { error } = await supabaseClient.from('setting_sekolah').upsert([
+                { id: 1, latitude: lat, longitude: long, radius_meter: radius }
+            ]);
+
+            if (error) alert("Gagal menyimpan lokasi: " + error.message);
+            else alert("Pengaturan Lokasi GPS & Radius Berhasil Disimpan!");
         }
 
         async function simpanSettingJamPulang() {
@@ -149,7 +297,7 @@
             ]);
 
             if (error) alert("Gagal menyimpan jam pulang: " + error.message);
-            else alert("Jam Pulang per Tingkat Kelas Berhasil Disimpan!");
+            else alert("Pengaturan Jam Pulang per Kelas Berhasil Disimpan!");
         }
 
         async function batalkanStatusPulangSiswa() {
@@ -160,7 +308,6 @@
             const tglStart = `${tglHariIni}T00:00:00+07:00`;
             const tglEnd = `${tglHariIni}T23:59:59+07:00`;
 
-            // Cari record presensi pulang hari ini
             const { data } = await supabaseClient
                 .from('presensi')
                 .select('*')
@@ -188,17 +335,48 @@
             }
         }
 
-        async function simpanSettingLokasi() {
-            const lat = parseFloat(document.getElementById('gps-lat').value);
-            const long = parseFloat(document.getElementById('gps-long').value);
-            const radius = parseInt(document.getElementById('gps-radius').value);
+        async function tambahSiswaManual() {
+            const nisn = document.getElementById('admin-siswa-nisn').value.trim();
+            const nama = document.getElementById('admin-siswa-nama').value.trim();
+            const kelas = document.getElementById('admin-siswa-kelas').value.trim();
+            const pass = document.getElementById('admin-siswa-pass').value.trim() || 'yhan123';
 
-            const { error } = await supabaseClient.from('setting_sekolah').upsert([
-                { id: 1, latitude: lat, longitude: long, radius_meter: radius }
+            if (!nisn || !nama || !kelas) { alert("NISN, Nama, dan Kelas wajib diisi!"); return; }
+
+            const { error } = await supabaseClient.from('siswa').upsert([
+                { nisn: nisn, nama: nama, kelas: kelas, password: pass }
+            ], { onConflict: 'nisn' });
+
+            if (error) alert("Gagal menambahkan siswa: " + error.message);
+            else {
+                alert(`Siswa ${nama} (NISN: ${nisn}) berhasil ditambahkan!`);
+                document.getElementById('admin-siswa-nisn').value = '';
+                document.getElementById('admin-siswa-nama').value = '';
+                document.getElementById('admin-siswa-kelas').value = '';
+                document.getElementById('admin-siswa-pass').value = '';
+                muatDaftarSiswa();
+            }
+        }
+
+        async function tambahUserBaru() {
+            const username = document.getElementById('admin-new-username').value.trim();
+            const nama = document.getElementById('admin-new-nama').value.trim();
+            const pass = document.getElementById('admin-new-password').value.trim();
+            const role = document.getElementById('admin-new-role').value;
+
+            if (!username || !nama || !pass) { alert("Semua kolom wajib diisi!"); return; }
+
+            const { error } = await supabaseClient.from('users').insert([
+                { username: username, nama: nama, password_hash: pass, role: role }
             ]);
 
-            if (error) alert("Gagal menyimpan lokasi: " + error.message);
-            else alert("Pengaturan Lokasi GPS & Radius Berhasil Disimpan!");
+            if (error) alert("Gagal menambah user: " + error.message);
+            else {
+                alert("User baru berhasil ditambahkan!");
+                document.getElementById('admin-new-username').value = '';
+                document.getElementById('admin-new-nama').value = '';
+                document.getElementById('admin-new-password').value = '';
+            }
         }
 
         function muatLogPerangkatHP() {
@@ -220,13 +398,69 @@
                 const listNisn = Array.from(deviceMap[dev]);
                 const isMulti = listNisn.length > 1;
                 return `
-                    <tr class="${isMulti ? 'bg-red-50 text-red-900 font-semibold' : ''} border-b">
-                        <td class="p-3 truncate max-w-xs" title="${dev}">${dev.substring(0, 40)}...</td>
-                        <td class="p-3 text-center font-bold">${listNisn.length} NISN</td>
+                    <tr class="${isMulti ? 'bg-red-50 text-red-900 font-semibold' : ''} border-b border-slate-100">
+                        <td class="p-3 truncate max-w-xs" title="${dev}">${dev.substring(0, 45)}...</td>
+                        <td class="p-3 text-center font-bold">${listNisn.length} NISN ${isMulti ? '<span class="bg-red-200 text-red-800 text-[10px] px-1 rounded ml-1">Multi</span>' : ''}</td>
                         <td class="p-3 font-mono">${listNisn.join(', ')}</td>
                     </tr>
                 `;
             }).join('');
+        }
+
+        async function muatDaftarSiswa() {
+            const tbody = document.getElementById('tabel-siswa-body');
+            const keyword = document.getElementById('search-siswa-input').value.trim();
+
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat data siswa...</td></tr>';
+
+            let query = supabaseClient.from('siswa').select('*').limit(100);
+            if (keyword) {
+                query = query.or(`nisn.ilike.%${keyword}%,nama.ilike.%${keyword}%`);
+            }
+
+            const { data, error } = await query;
+
+            if (error || !data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data siswa ditemukan.</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = data.map(s => `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="p-3 font-mono font-medium text-slate-700">${s.nisn}</td>
+                    <td class="p-3 font-bold text-slate-800">${s.nama}</td>
+                    <td class="p-3 font-mono text-slate-600">${s.kelas}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="resetPasswordSiswaDefault('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition">
+                            <i class="fa-solid fa-key"></i> Reset Pass
+                        </button>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="hapusSiswa('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition">
+                            <i class="fa-solid fa-trash"></i> Hapus
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function resetPasswordSiswaDefault(nisn, nama) {
+            if (!confirm(`Reset password "${nama}" (NISN: ${nisn}) kembali ke default "yhan123"?`)) return;
+
+            const { error } = await supabaseClient.from('siswa').update({ password: 'yhan123' }).eq('nisn', nisn);
+            if (error) alert("Gagal: " + error.message);
+            else alert(`Password untuk "${nama}" berhasil direset ke "yhan123".`);
+        }
+
+        async function hapusSiswa(nisn, nama) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus siswa "${nama}" (NISN: ${nisn})?`)) return;
+
+            const { error } = await supabaseClient.from('siswa').delete().eq('nisn', nisn);
+            if (error) alert("Gagal menghapus: " + error.message);
+            else {
+                alert(`Siswa "${nama}" berhasil dihapus.`);
+                muatDaftarSiswa();
+            }
         }
     </script>
 </body>
