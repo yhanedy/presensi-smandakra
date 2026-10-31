@@ -3,88 +3,222 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Admin Switcher - SMAN 2 Karanganyar</title>
+    <title>Control Panel Super Admin - SMAN 2 Karanganyar</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Konfigurasi Turso Engine Direct API -->
+    <script src="js/config.js?v=superadmin_turso_final"></script>
 </head>
-<body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between">
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
-    <!-- PROTEKSI SESI -->
+    <!-- PROTEKSI SESI KHUSUS SUPER ADMIN -->
     <script>
-        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
-        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin')) {
-            alert('Akses Ditolak! Anda harus login sebagai Super Admin.');
-            window.location.replace('index.html');
-        }
+        (function verifikasiSuperAdmin() {
+            const rawUser = localStorage.getItem('smada_user');
+            
+            if (!rawUser || rawUser === "null" || rawUser === "undefined") {
+                alert('Akses Ditolak! Anda harus login sebagai Super Admin.');
+                window.location.replace('index.html');
+                return;
+            }
+
+            try {
+                const activeUser = JSON.parse(rawUser);
+                const roleStr = String(activeUser.role || '').toLowerCase();
+
+                // Verifikasi apakah role memiliki otoritas superadmin/super_admin
+                if (!roleStr.includes('superadmin') && !roleStr.includes('super_admin')) {
+                    alert('Akses Ditolak! Anda tidak memiliki otoritas Super Admin.');
+                    localStorage.removeItem('smada_user');
+                    window.location.replace('index.html');
+                }
+            } catch (e) {
+                localStorage.removeItem('smada_user');
+                window.location.replace('index.html');
+            }
+        })();
     </script>
 
-    <header class="bg-slate-900 text-white p-4 shadow-lg">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <h1 class="font-bold text-lg flex items-center space-x-2">
-                <i class="fa-solid fa-user-gear text-amber-400"></i>
-                <span>Control Panel Super Admin (Neon DB)</span>
-            </h1>
-            <button onclick="handleLogout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">Logout</button>
+    <!-- HEADER / NAVBAR SUPER ADMIN -->
+    <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3.5 flex flex-wrap justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" 
+                     onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" 
+                     class="w-10 h-10 object-contain drop-shadow" 
+                     alt="Logo SMAN 2 Karanganyar">
+                <div>
+                    <h1 class="font-black text-base sm:text-lg tracking-wide leading-tight flex items-center space-x-2">
+                        <span>CONTROL PANEL SUPER ADMIN</span>
+                        <span class="bg-amber-500/20 text-amber-400 border border-amber-500/40 text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider">Root Access</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">SMAN 2 Karanganyar - Integrated System (Turso DB Engine)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3 mt-2 sm:mt-0">
+                <div class="text-right hidden sm:block">
+                    <span class="block text-xs font-bold text-white" id="sa-profile-nama">Super Admin</span>
+                    <span class="block text-[10px] text-amber-400 font-mono">System Administrator</span>
+                </div>
+                <button onclick="handleLogoutSuperAdmin()" class="bg-rose-600 hover:bg-rose-700 text-white text-xs px-3.5 py-2 rounded-xl font-bold transition shadow flex items-center space-x-1.5 cursor-pointer">
+                    <i class="fa-solid fa-power-off"></i>
+                    <span>Keluar</span>
+                </button>
+            </div>
         </div>
     </header>
 
+    <!-- KONTEN UTAMA DASHBOARD -->
     <main class="max-w-7xl mx-auto px-4 py-8 w-full flex-grow space-y-6">
-        <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
-            <h2 class="text-xl font-bold text-slate-800 mb-2">Akses Cepat Semua Modul Aplikasi</h2>
-            <p class="text-xs text-slate-500 mb-6">Pilih modul yang ingin Anda kontrol atau uji secara langsung.</p>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <a href="piket.html" class="p-5 border border-blue-200 bg-blue-50/50 hover:bg-blue-100 rounded-xl transition flex flex-col justify-between space-y-4 shadow-sm">
-                    <div class="space-y-1">
-                        <i class="fa-solid fa-clipboard-user text-2xl text-blue-600"></i>
-                        <h3 class="font-bold text-blue-900 text-base">Menu Guru Piket</h3>
-                        <p class="text-xs text-slate-600">Presensi manual, Izin Pulang Mendahului, Sakit/Izin/Alpa.</p>
-                    </div>
-                    <span class="text-xs font-bold text-blue-700">Buka Modul &rarr;</span>
-                </a>
-
-                <a href="bk.html" class="p-5 border border-red-200 bg-red-50/50 hover:bg-red-100 rounded-xl transition flex flex-col justify-between space-y-4 shadow-sm">
-                    <div class="space-y-1">
-                        <i class="fa-solid fa-triangle-exclamation text-2xl text-red-600"></i>
-                        <h3 class="font-bold text-red-900 text-base">Menu BK & STP2K</h3>
-                        <p class="text-xs text-slate-600">Catatan Pelanggaran Kedisiplinan & Ekspor Excel.</p>
-                    </div>
-                    <span class="text-xs font-bold text-red-700">Buka Modul &rarr;</span>
-                </a>
-
-                <a href="admin.html" class="p-5 border border-purple-200 bg-purple-50/50 hover:bg-purple-100 rounded-xl transition flex flex-col justify-between space-y-4 shadow-sm">
-                    <div class="space-y-1">
-                        <i class="fa-solid fa-sliders text-2xl text-purple-600"></i>
-                        <h3 class="font-bold text-purple-900 text-base">Panel Admin System</h3>
-                        <p class="text-xs text-slate-600">GPS, Jam Pulang X/XI/XII, & Cancel Status Pulang.</p>
-                    </div>
-                    <span class="text-xs font-bold text-purple-700">Buka Modul &rarr;</span>
-                </a>
-
-                <a href="manajemen-siswa.html" class="p-5 border border-emerald-200 bg-emerald-50/50 hover:bg-emerald-100 rounded-xl transition flex flex-col justify-between space-y-4 shadow-sm">
-                    <div class="space-y-1">
-                        <i class="fa-solid fa-users-gear text-2xl text-emerald-600"></i>
-                        <h3 class="font-bold text-emerald-900 text-base">Manajemen Siswa & Guru</h3>
-                        <p class="text-xs text-slate-600">Siklus Kenaikan, Kelulusan, Mutasi, & Import Excel.</p>
-                    </div>
-                    <span class="text-xs font-bold text-emerald-700">Buka Modul &rarr;</span>
-                </a>
+        <!-- BANNER SELAMAT DATANG -->
+        <div class="bg-gradient-to-r from-slate-900 via-indigo-950 to-blue-950 text-white p-6 rounded-2xl shadow-xl border border-slate-800 flex flex-wrap justify-between items-center gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-shield-halved text-amber-400 text-xl"></i>
+                    <h2 class="text-xl sm:text-2xl font-black text-white">Selamat Datang, Super Admin!</h2>
+                </div>
+                <p class="text-xs text-slate-300">Pilih modul navigasi cepat di bawah untuk mengelola data presensi, kedisiplinan, sistem admin, maupun portal siswa.</p>
+            </div>
+            <div class="bg-white/10 backdrop-blur-md px-4 py-2.5 rounded-xl border border-white/10 text-right font-mono text-xs">
+                <span class="block text-[10px] text-amber-300 font-sans font-bold uppercase">Status Database</span>
+                <span class="text-emerald-400 font-bold flex items-center justify-end space-x-1">
+                    <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <span>Turso DB Connected</span>
+                </span>
             </div>
         </div>
+
+        <!-- GRID KOTAK MENU LINK NAVIGASI -->
+        <div class="bg-white rounded-2xl shadow-md p-6 border border-slate-200 space-y-4">
+            <div class="border-b border-slate-100 pb-3">
+                <h3 class="text-lg font-bold text-slate-800 flex items-center space-x-2">
+                    <i class="fa-solid fa-cubes text-blue-600"></i>
+                    <span>Navigasi Modul & Akses Cepat</span>
+                </h3>
+                <p class="text-xs text-slate-500">Klik salah satu kotak di bawah untuk membuka halaman modul terkait secara langsung.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 pt-2">
+                
+                <!-- 1. KOTAK LINK KE PORTAL SISWA -->
+                <a href="siswa.html" class="group bg-gradient-to-br from-teal-50 to-emerald-50 hover:from-teal-100 hover:to-emerald-100 border border-teal-200/80 p-5 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="w-12 h-12 bg-teal-600 text-white rounded-xl flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-user-graduate"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-teal-950 text-base group-hover:text-teal-700 transition">Portal Siswa</h4>
+                            <p class="text-[11px] text-slate-600 leading-relaxed mt-1">Presensi mandiri GPS, scan kamera wajah, & riwayat presensi harian siswa.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-bold text-teal-700 pt-2 border-t border-teal-200/50">
+                        <span>Buka Modul</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- 2. KOTAK LINK KE MENU BK -->
+                <a href="bk.html" class="group bg-gradient-to-br from-rose-50 to-red-50 hover:from-rose-100 hover:to-red-100 border border-rose-200/80 p-5 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="w-12 h-12 bg-rose-600 text-white rounded-xl flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-rose-950 text-base group-hover:text-rose-700 transition">Menu BK & STP2K</h4>
+                            <p class="text-[11px] text-slate-600 leading-relaxed mt-1">Input catatan pelanggaran kedisiplinan, poin siswa, & ekspor rekap Excel.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-bold text-rose-700 pt-2 border-t border-rose-200/50">
+                        <span>Buka Modul</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- 3. KOTAK LINK KE MENU PIKET -->
+                <a href="piket.html" class="group bg-gradient-to-br from-blue-50 to-indigo-50 hover:from-blue-100 hover:to-indigo-100 border border-blue-200/80 p-5 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="w-12 h-12 bg-blue-600 text-white rounded-xl flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-clipboard-user"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-blue-950 text-base group-hover:text-blue-700 transition">Menu Guru Piket</h4>
+                            <p class="text-[11px] text-slate-600 leading-relaxed mt-1">Presensi manual piket, surat izin pulang mendahului, & status Sakit/Izin/Alpha.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-bold text-blue-700 pt-2 border-t border-blue-200/50">
+                        <span>Buka Modul</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- 4. KOTAK LINK KE PANEL ADMIN -->
+                <a href="admin.html" class="group bg-gradient-to-br from-purple-50 to-fuchsia-50 hover:from-purple-100 hover:to-fuchsia-100 border border-purple-200/80 p-5 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="w-12 h-12 bg-purple-600 text-white rounded-xl flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-sliders"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-purple-950 text-base group-hover:text-purple-700 transition">Panel Admin System</h4>
+                            <p class="text-[11px] text-slate-600 leading-relaxed mt-1">Pengaturan titik koordinat GPS, jam pulang per-tingkat, & pembatalan presensi.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-bold text-purple-700 pt-2 border-t border-purple-200/50">
+                        <span>Buka Modul</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- 5. KOTAK LINK KE MANAJEMEN SISWA & GURU -->
+                <a href="manajemen-siswa.html" class="group bg-gradient-to-br from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-100 border border-amber-200/80 p-5 rounded-2xl transition-all duration-200 shadow-sm hover:shadow-md flex flex-col justify-between space-y-4">
+                    <div class="space-y-2">
+                        <div class="w-12 h-12 bg-amber-600 text-white rounded-xl flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-users-gear"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-amber-950 text-base group-hover:text-amber-700 transition">Manajemen Siswa & Guru</h4>
+                            <p class="text-[11px] text-slate-600 leading-relaxed mt-1">Plotting kenaikan kelas, kelulusan alumni, mutasi, akun guru, & import Excel.</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs font-bold text-amber-700 pt-2 border-t border-amber-200/50">
+                        <span>Buka Modul</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+
     </main>
 
-    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
-        <p>&copy; 2026 SMAN 2 Karanganyar. Super Admin Panel.</p>
+    <!-- FOOTER -->
+    <footer class="bg-slate-900 text-slate-400 text-xs text-center py-4 border-t border-slate-800">
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
+    <!-- LOGIKA JAVASCRIPT LOGOUT & PROFIL -->
     <script>
-        function handleLogout() {
-            localStorage.removeItem('smada_user');
-            window.location.replace('index.html');
+        window.onload = function() {
+            const rawUser = localStorage.getItem('smada_user');
+            if (rawUser) {
+                try {
+                    const u = JSON.parse(rawUser);
+                    if (u.nama) {
+                        document.getElementById('sa-profile-nama').textContent = u.nama;
+                    }
+                } catch (e) {}
+            }
+        };
+
+        function handleLogoutSuperAdmin() {
+            if (confirm("Apakah Anda yakin ingin keluar dari Panel Super Admin?")) {
+                localStorage.removeItem('smada_user');
+                window.location.replace('index.html');
+            }
         }
     </script>
-
 </body>
 </html>
