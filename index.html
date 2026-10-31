@@ -1,47 +1,19 @@
-<script src="js/config.js?v=2"></script>
-<script>
-// 1. URL Fallback Backend Worker
-const BACKEND_URL = (typeof API_URL !== 'undefined') 
-  ? API_URL 
-  : 'https://smada-backend-api.yhanedy.workers.dev';
-
-// 2. Fitur Toggle Password (Mata)
-function togglePassword(inputId, iconId) {
-  const passwordInput = document.getElementById(inputId);
-  const eyeIcon = document.getElementById(iconId);
-  if (!passwordInput) return;
-
-  if (passwordInput.type === 'password') {
-    passwordInput.type = 'text';
-    if (eyeIcon) eyeIcon.classList.replace('bi-eye-slash', 'bi-eye');
-  } else {
-    passwordInput.type = 'password';
-    if (eyeIcon) eyeIcon.classList.replace('bi-eye', 'bi-eye-slash');
-  }
-}
-
-// 3. Logika Login Siswa
+// Logika Login Siswa
 async function loginSiswa(event) {
-  if (event) event.preventDefault();
+  if (event) event.preventDefault(); // Mencegah reload halaman ke /?
 
-  const nisnInput = document.getElementById('siswa-nisn') || document.querySelector('#form-siswa input[type="text"]');
+  const nisnInput = document.getElementById('siswa-nisn') || document.querySelector('input[placeholder*="NISN"]');
   const passInput = document.getElementById('siswa-password') || document.querySelector('#form-siswa input[type="password"]');
-  const btnSubmit = document.getElementById('btn-login-siswa');
 
-  if (!nisnInput || !passInput) return alert('Form Siswa tidak ditemukan!');
+  if (!nisnInput || !passInput) return alert('Input NISN / Password tidak ditemukan!');
 
   const nisn = nisnInput.value.trim();
   const password = passInput.value.trim();
 
   if (!nisn || !password) return alert('Silakan isi NISN dan Password!');
 
-  if (btnSubmit) {
-    btnSubmit.disabled = true;
-    btnSubmit.innerText = 'Memeriksa...';
-  }
-
   try {
-    const response = await fetch(`${BACKEND_URL}/api/login`, {
+    const response = await fetch(`${API_URL}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username: nisn, password: password })
@@ -51,79 +23,14 @@ async function loginSiswa(event) {
 
     if (result.success && result.type === 'siswa') {
       localStorage.setItem('smada_user', JSON.stringify(result.user));
-      localStorage.setItem('smada_role', 'siswa');
       alert(`Selamat datang, ${result.user.nama}!`);
+      // Pindah ke halaman siswa
       window.location.href = 'siswa.html';
     } else {
       alert(result.message || 'NISN atau Password Salah!');
     }
   } catch (err) {
-    console.error('Error Login Siswa:', err);
-    alert('Gagal terhubung ke server backend.');
-  } finally {
-    if (btnSubmit) {
-      btnSubmit.disabled = false;
-      btnSubmit.innerText = 'Masuk Akun Siswa';
-    }
+    console.error('Error Login:', err);
+    alert('Gagal terhubung ke server.');
   }
 }
-
-// 4. Logika Login Guru / Petugas / Admin
-async function loginGuru(event) {
-  if (event) event.preventDefault();
-
-  const usernameInput = document.getElementById('guru-username') || document.querySelector('#form-guru input[type="text"]');
-  const passInput = document.getElementById('guru-password') || document.querySelector('#form-guru input[type="password"]');
-  const btnSubmit = document.getElementById('btn-login-guru');
-
-  if (!usernameInput || !passInput) return alert('Form Guru tidak ditemukan!');
-
-  const username = usernameInput.value.trim();
-  const password = passInput.value.trim();
-
-  if (!username || !password) return alert('Silakan isi Username/NIP dan Password!');
-
-  if (btnSubmit) {
-    btnSubmit.disabled = true;
-    btnSubmit.innerText = 'Memeriksa...';
-  }
-
-  try {
-    const response = await fetch(`${BACKEND_URL}/api/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: username, password: password })
-    });
-
-    const result = await response.json();
-
-    if (result.success && result.type === 'guru') {
-      const user = result.user;
-      localStorage.setItem('smada_user', JSON.stringify(user));
-      localStorage.setItem('smada_role', user.role);
-      alert(`Selamat datang, ${user.nama}!`);
-
-      // Arahkan ke halaman sesuai Role
-      if (user.role.includes('admin') || user.role.includes('superadmin')) {
-        window.location.href = 'admin.html';
-      } else if (user.role.includes('piket')) {
-        window.location.href = 'piket.html';
-      } else if (user.role.includes('bk')) {
-        window.location.href = 'bk.html';
-      } else {
-        window.location.href = 'piket.html'; // default guru
-      }
-    } else {
-      alert(result.message || 'Username/NIP atau Password Salah!');
-    }
-  } catch (err) {
-    console.error('Error Login Guru:', err);
-    alert('Gagal terhubung ke server backend.');
-  } finally {
-    if (btnSubmit) {
-      btnSubmit.disabled = false;
-      btnSubmit.innerText = 'Masuk Akun Guru / Petugas';
-    }
-  }
-}
-</script>
