@@ -1,234 +1,129 @@
-<!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal SSO Presensi & Kedisiplinan - SMAN 2 Karanganyar</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome CDN -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-slate-900 font-sans min-h-screen flex flex-col justify-between text-slate-800">
+<script src="js/config.js?v=2"></script>
+<script>
+// 1. URL Fallback Backend Worker
+const BACKEND_URL = (typeof API_URL !== 'undefined') 
+  ? API_URL 
+  : 'https://smada-backend-api.yhanedy.workers.dev';
 
-    <!-- HEADER / NAVBAR UTAMA -->
-    <header class="bg-blue-950/80 backdrop-blur-md border-b border-blue-900/50 text-white sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo SMAN 2 Karanganyar">
-                <div class="text-left">
-                    <h1 class="font-bold text-base sm:text-lg leading-tight tracking-wide">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-xs text-blue-300">Portal SSO Presensi & Kedisiplinan Digital</p>
-                </div>
-            </div>
-            
-            <a href="laporan-publik.html" class="bg-blue-900/80 hover:bg-blue-800 text-blue-200 hover:text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition border border-blue-700/50 flex items-center space-x-1.5">
-                <i class="fa-solid fa-chart-column"></i>
-                <span>Laporan Publik</span>
-            </a>
-        </div>
-    </header>
+// 2. Fitur Toggle Password (Mata)
+function togglePassword(inputId, iconId) {
+  const passwordInput = document.getElementById(inputId);
+  const eyeIcon = document.getElementById(iconId);
+  if (!passwordInput) return;
 
-    <!-- KONTEN UTAMA FORM LOGIN -->
-    <main class="max-w-md mx-auto px-4 py-12 w-full flex-grow flex flex-col justify-center">
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    if (eyeIcon) eyeIcon.classList.replace('bi-eye-slash', 'bi-eye');
+  } else {
+    passwordInput.type = 'password';
+    if (eyeIcon) eyeIcon.classList.replace('bi-eye', 'bi-eye-slash');
+  }
+}
 
-        <div class="bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            
-            <div class="p-6 text-center space-y-2 border-b border-slate-100">
-                <h2 class="text-2xl font-black text-slate-800">Selamat Datang</h2>
-                <p class="text-xs text-slate-500">Silakan pilih jenis akun dan login ke dalam sistem</p>
-            </div>
+// 3. Logika Login Siswa
+async function loginSiswa(event) {
+  if (event) event.preventDefault();
 
-            <!-- TAB SWITCHER ROLE LOGIN -->
-            <div class="p-2 bg-slate-100/80 mx-6 mt-6 rounded-xl flex space-x-1">
-                <button type="button" id="tab-siswa" onclick="switchRole('siswa')" class="flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 bg-blue-900 text-white shadow">
-                    <i class="fa-solid fa-user-graduate mr-1.5"></i> Siswa
-                </button>
-                <button type="button" id="tab-guru" onclick="switchRole('guru')" class="flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 text-slate-600 hover:text-slate-900">
-                    <i class="fa-solid fa-user-tie mr-1.5"></i> Guru / Petugas
-                </button>
-            </div>
+  const nisnInput = document.getElementById('siswa-nisn') || document.querySelector('#form-siswa input[type="text"]');
+  const passInput = document.getElementById('siswa-password') || document.querySelector('#form-siswa input[type="password"]');
+  const btnSubmit = document.getElementById('btn-login-siswa');
 
-            <div class="p-6">
-                <!-- FORM LOGIN SISWA -->
-                <form id="form-login-siswa" onsubmit="handleLoginSiswa(event)" class="space-y-4">
-                    <div class="text-left space-y-1">
-                        <label class="block text-xs font-bold text-slate-700 uppercase">NISN Siswa</label>
-                        <input type="text" id="siswa-nisn" required placeholder="Masukkan NISN..." class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-900 font-mono">
-                    </div>
+  if (!nisnInput || !passInput) return alert('Form Siswa tidak ditemukan!');
 
-                    <div class="text-left space-y-1">
-                        <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
-                        <div class="relative">
-                            <input type="password" id="siswa-pass" required placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-900">
-                            <button type="button" onclick="toggleShowPassword('siswa-pass', 'eye-siswa')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs">
-                                <i id="eye-siswa" class="fa-solid fa-eye-slash"></i>
-                            </button>
-                        </div>
-                    </div>
+  const nisn = nisnInput.value.trim();
+  const password = passInput.value.trim();
 
-                    <button type="submit" id="btn-login-siswa" class="w-full py-3 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs shadow-lg transition flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-right-to-bracket"></i>
-                        <span>Masuk Akun Siswa</span>
-                    </button>
-                </form>
+  if (!nisn || !password) return alert('Silakan isi NISN dan Password!');
 
-                <!-- FORM LOGIN GURU / PETUGAS -->
-                <form id="form-login-guru" onsubmit="handleLoginGuru(event)" class="space-y-4 hidden">
-                    <div class="text-left space-y-1">
-                        <label class="block text-xs font-bold text-slate-700 uppercase">Username / NIP</label>
-                        <input type="text" id="guru-username" required placeholder="Contoh: superadmin" class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-900 font-mono">
-                    </div>
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = 'Memeriksa...';
+  }
 
-                    <div class="text-left space-y-1">
-                        <label class="block text-xs font-bold text-slate-700 uppercase">Password</label>
-                        <div class="relative">
-                            <input type="password" id="guru-pass" required placeholder="Masukkan password..." class="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-xs outline-none focus:ring-2 focus:ring-blue-900">
-                            <button type="button" onclick="toggleShowPassword('guru-pass', 'eye-guru')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 text-xs">
-                                <i id="eye-guru" class="fa-solid fa-eye-slash"></i>
-                            </button>
-                        </div>
-                    </div>
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: nisn, password: password })
+    });
 
-                    <button type="submit" id="btn-login-guru" class="w-full py-3 bg-indigo-900 hover:bg-indigo-950 text-white font-bold rounded-xl text-xs shadow-lg transition flex items-center justify-center space-x-2">
-                        <i class="fa-solid fa-right-to-bracket"></i>
-                        <span>Masuk Akun Guru / Petugas</span>
-                    </button>
-                </form>
-            </div>
+    const result = await response.json();
 
-        </div>
+    if (result.success && result.type === 'siswa') {
+      localStorage.setItem('smada_user', JSON.stringify(result.user));
+      localStorage.setItem('smada_role', 'siswa');
+      alert(`Selamat datang, ${result.user.nama}!`);
+      window.location.href = 'siswa.html';
+    } else {
+      alert(result.message || 'NISN atau Password Salah!');
+    }
+  } catch (err) {
+    console.error('Error Login Siswa:', err);
+    alert('Gagal terhubung ke server backend.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerText = 'Masuk Akun Siswa';
+    }
+  }
+}
 
-    </main>
+// 4. Logika Login Guru / Petugas / Admin
+async function loginGuru(event) {
+  if (event) event.preventDefault();
 
-    <!-- FOOTER -->
-    <footer class="bg-slate-950 text-slate-500 text-xs text-center py-4 border-t border-slate-900">
-        <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
-    </footer>
+  const usernameInput = document.getElementById('guru-username') || document.querySelector('#form-guru input[type="text"]');
+  const passInput = document.getElementById('guru-password') || document.querySelector('#form-guru input[type="password"]');
+  const btnSubmit = document.getElementById('btn-login-guru');
 
-    <!-- LOGIKA LOGIN MENGGUNAKAN CLOUDFLARE WORKER API -->
-   <script src="js/config.js"></script>
-    <script>
-        const API_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
+  if (!usernameInput || !passInput) return alert('Form Guru tidak ditemukan!');
 
-        // TAMPILKAN HIDDEN PASSWORD
-        function toggleShowPassword(inputId, eyeId) {
-            const input = document.getElementById(inputId);
-            const eye = document.getElementById(eyeId);
-            if (input.type === "password") {
-                input.type = "text";
-                eye.classList.remove('fa-eye-slash');
-                eye.classList.add('fa-eye');
-            } else {
-                input.type = "password";
-                eye.classList.remove('fa-eye');
-                eye.classList.add('fa-eye-slash');
-            }
-        }
+  const username = usernameInput.value.trim();
+  const password = passInput.value.trim();
 
-        // SWITCH TAB SISWA / GURU
-        function switchRole(role) {
-            const tabSiswa = document.getElementById('tab-siswa');
-            const tabGuru = document.getElementById('tab-guru');
-            const formSiswa = document.getElementById('form-login-siswa');
-            const formGuru = document.getElementById('form-login-guru');
+  if (!username || !password) return alert('Silakan isi Username/NIP dan Password!');
 
-            if (role === 'siswa') {
-                tabSiswa.className = "flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 bg-blue-900 text-white shadow";
-                tabGuru.className = "flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 text-slate-600 hover:text-slate-900";
-                formSiswa.classList.remove('hidden');
-                formGuru.classList.add('hidden');
-            } else {
-                tabGuru.className = "flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 bg-indigo-900 text-white shadow";
-                tabSiswa.className = "flex-1 py-2 rounded-lg text-xs font-bold transition duration-200 text-slate-600 hover:text-slate-900";
-                formGuru.classList.remove('hidden');
-                formSiswa.classList.add('hidden');
-            }
-        }
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerText = 'Memeriksa...';
+  }
 
-        // LOGIN SISWA
-        async function handleLoginSiswa(event) {
-            event.preventDefault();
-            const btn = document.getElementById('btn-login-siswa');
-            const nisn = document.getElementById('siswa-nisn').value.trim();
-            const pass = document.getElementById('siswa-pass').value.trim();
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: username, password: password })
+    });
 
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Memeriksa...</span>`;
+    const result = await response.json();
 
-            try {
-                const response = await fetch(`${API_URL}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: nisn,
-                        password: pass,
-                        type: 'siswa'
-                    })
-                });
+    if (result.success && result.type === 'guru') {
+      const user = result.user;
+      localStorage.setItem('smada_user', JSON.stringify(user));
+      localStorage.setItem('smada_role', user.role);
+      alert(`Selamat datang, ${user.nama}!`);
 
-                const result = await response.json();
-
-                if (result.success && result.user) {
-                    localStorage.setItem('smada_siswa', JSON.stringify(result.user));
-                    window.location.replace('siswa.html');
-                } else {
-                    alert("Login Gagal: NISN atau Password Salah");
-                }
-            } catch (err) {
-                alert("Kesalahan koneksi ke server Cloudflare Worker API.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Akun Siswa</span>`;
-            }
-        }
-
-        // LOGIN GURU / PETUGAS / SUPERADMIN
-        async function handleLoginGuru(event) {
-            event.preventDefault();
-            const btn = document.getElementById('btn-login-guru');
-            const username = document.getElementById('guru-username').value.trim();
-            const pass = document.getElementById('guru-pass').value.trim();
-
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> <span>Memeriksa...</span>`;
-
-            try {
-                const response = await fetch(`${API_URL}/api/login`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: username,
-                        password: pass,
-                        type: 'guru'
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success && result.user) {
-                    localStorage.setItem('smada_user', JSON.stringify(result.user));
-                    
-                    const role = String(result.user.role || '').toLowerCase();
-                    if (role === 'superadmin' || role === 'super_admin') {
-                        window.location.replace('super-admin.html');
-                    } else if (role === 'admin') {
-                        window.location.replace('admin.html');
-                    } else if (role === 'bk') {
-                        window.location.replace('bk.html');
-                    } else {
-                        window.location.replace('piket.html');
-                    }
-                } else {
-                    alert("Login Gagal: Username/NIP atau Password Salah");
-                }
-            } catch (err) {
-                alert("Kesalahan koneksi ke server Cloudflare Worker API.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Akun Guru / Petugas</span>`;
-            }
-        }
-    </script>
-</body>
-</html>
+      // Arahkan ke halaman sesuai Role
+      if (user.role.includes('admin') || user.role.includes('superadmin')) {
+        window.location.href = 'admin.html';
+      } else if (user.role.includes('piket')) {
+        window.location.href = 'piket.html';
+      } else if (user.role.includes('bk')) {
+        window.location.href = 'bk.html';
+      } else {
+        window.location.href = 'piket.html'; // default guru
+      }
+    } else {
+      alert(result.message || 'Username/NIP atau Password Salah!');
+    }
+  } catch (err) {
+    console.error('Error Login Guru:', err);
+    alert('Gagal terhubung ke server backend.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerText = 'Masuk Akun Guru / Petugas';
+    }
+  }
+}
+</script>
