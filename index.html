@@ -43,10 +43,10 @@
       <!-- TAB NAVIGATION -->
       <div class="p-6">
         <div class="flex rounded-xl bg-slate-100 p-1 mb-6">
-          <button id="tab-siswa-btn" onclick="switchTab('siswa')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-blue-900 shadow transition flex items-center justify-center">
+          <button id="tab-siswa-btn" type="button" onclick="switchTab('siswa')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-white bg-blue-900 shadow transition flex items-center justify-center">
             <i class="bi bi-mortarboard-fill mr-2"></i> Siswa
           </button>
-          <button id="tab-guru-btn" onclick="switchTab('guru')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center">
+          <button id="tab-guru-btn" type="button" onclick="switchTab('guru')" class="flex-1 py-2.5 text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition flex items-center justify-center">
             <i class="bi bi-person-badge-fill mr-2"></i> Guru / Petugas
           </button>
         </div>
@@ -63,7 +63,7 @@
           <div>
             <label for="siswa-password" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">PASSWORD</label>
             <div class="relative">
-              <input type="password" id="siswa-password" required placeholder="Default: yhan123" class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 text-sm transition" />
+              <input type="password" id="siswa-password" required placeholder="Masukkan Password..." class="w-full pl-4 pr-10 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-600 text-slate-800 text-sm transition" />
               <button type="button" onclick="togglePassword('siswa-password', 'eye-siswa')" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 focus:outline-none">
                 <i id="eye-siswa" class="bi bi-eye-slash text-lg"></i>
               </button>
@@ -111,46 +111,15 @@
   </footer>
 
   <!-- CONFIG & SCRIPTS -->
+  <script src="js/config.js?v=99"></script>
   <script>
-  (function checkSiswaAuth() {
-    // 1. Ambil data session dari localStorage (kompatibel dengan smada_user maupun smada_siswa)
-    const userRaw = localStorage.getItem('smada_user') || localStorage.getItem('smada_siswa');
-    const roleRaw = localStorage.getItem('smada_role');
-
-    if (!userRaw) {
-      alert('Akses Ditolak! Anda harus login terlebih dahulu.');
-      window.location.href = 'index.html';
-      return;
+    // Ambil API URL Backend
+    function getApiUrl() {
+      if (typeof API_URL !== 'undefined' && API_URL) {
+        return API_URL;
+      }
+      return 'https://smada-backend-api.yhanedy.workers.dev';
     }
-
-    const user = JSON.parse(userRaw);
-
-    // 2. Tampilkan data siswa di elemen dashboard saat DOM siap
-    document.addEventListener('DOMContentLoaded', () => {
-      const namaEl = document.getElementById('siswa-nama') || document.getElementById('user-nama');
-      const nisnEl = document.getElementById('siswa-nisn-display');
-      const kelasEl = document.getElementById('siswa-kelas');
-
-      if (namaEl && user.nama) namaEl.innerText = user.nama;
-      if (nisnEl && user.nisn) nisnEl.innerText = user.nisn;
-      if (kelasEl && user.kelas) kelasEl.innerText = user.kelas;
-    });
-  })();
-
-  // Fungsi Logout
-  function logout() {
-    localStorage.removeItem('smada_user');
-    localStorage.removeItem('smada_siswa');
-    localStorage.removeItem('smada_role');
-    window.location.href = 'index.html';
-  }
-</script>
-  <script src="js/config.js?v=3"></script>
-  <script>
-    // URL Backend API
-    const GET_API_URL = () => (typeof API_URL !== 'undefined') 
-      ? API_URL 
-      : 'https://smada-backend-api.yhanedy.workers.dev';
 
     // Switch Tab Siswa vs Guru
     function switchTab(type) {
@@ -172,7 +141,7 @@
       }
     }
 
-    // Toggle Visibility Password
+    // Toggle Password Visibility
     function togglePassword(inputId, iconId) {
       const input = document.getElementById(inputId);
       const icon = document.getElementById(iconId);
@@ -201,7 +170,7 @@
       const password = document.getElementById('siswa-password').value.trim();
       const btn = document.getElementById('btn-login-siswa');
 
-      if (!nisn || !password) return alert('Silakan isi NISN dan Password terlebih dahulu!');
+      if (!nisn || !password) return alert('Silakan isi NISN dan Password!');
 
       if (btn) {
         btn.disabled = true;
@@ -209,17 +178,20 @@
       }
 
       try {
-        const res = await fetch(`${GET_API_URL()}/api/login`, {
+        const response = await fetch(`${getApiUrl()}/api/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: nisn, password: password })
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
         if (data.success && data.type === 'siswa') {
+          // Simpan dengan semua kemungkinan key
           localStorage.setItem('smada_user', JSON.stringify(data.user));
+          localStorage.setItem('smada_siswa', JSON.stringify(data.user));
           localStorage.setItem('smada_role', 'siswa');
+          
           alert(`Selamat datang, ${data.user.nama}!`);
           window.location.href = 'siswa.html';
         } else {
@@ -236,7 +208,7 @@
       }
     }
 
-    // Process Login Guru
+    // Process Login Guru / Petugas
     async function loginGuru(e) {
       if (e) e.preventDefault();
 
@@ -244,7 +216,7 @@
       const password = document.getElementById('guru-password').value.trim();
       const btn = document.getElementById('btn-login-guru');
 
-      if (!username || !password) return alert('Silakan isi Username/NIP dan Password terlebih dahulu!');
+      if (!username || !password) return alert('Silakan isi Username/NIP dan Password!');
 
       if (btn) {
         btn.disabled = true;
@@ -252,26 +224,27 @@
       }
 
       try {
-        const res = await fetch(`${GET_API_URL()}/api/login`, {
+        const response = await fetch(`${getApiUrl()}/api/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ username: username, password: password })
         });
 
-        const data = await res.json();
+        const data = await response.json();
 
         if (data.success && data.type === 'guru') {
           const user = data.user;
+          // Simpan dengan semua kemungkinan key
           localStorage.setItem('smada_user', JSON.stringify(user));
-          localStorage.setItem('smada_role', user.role);
+          localStorage.setItem('smada_admin', JSON.stringify(user));
+          localStorage.setItem('smada_role', user.role || 'guru');
+
           alert(`Selamat datang, ${user.nama}!`);
 
-          // Directing sesuai Role
-          if (user.role.includes('admin') || user.role.includes('superadmin')) {
+          const role = (user.role || '').toLowerCase();
+          if (role.includes('admin') || role.includes('superadmin')) {
             window.location.href = 'admin.html';
-          } else if (user.role.includes('piket')) {
-            window.location.href = 'piket.html';
-          } else if (user.role.includes('bk')) {
+          } else if (role.includes('bk')) {
             window.location.href = 'bk.html';
           } else {
             window.location.href = 'piket.html';
