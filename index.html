@@ -8,8 +8,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Supabase JS Client Library -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
@@ -55,7 +53,7 @@
             </div>
 
             <!-- FORM LOGIN SISWA -->
-            <form id="form-login-siswa" onsubmit="loginSiswa(event)" class="space-y-4">
+            <form id="form-login-siswa" onsubmit="eksekusiLogin(event, 'siswa')" class="space-y-4">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
                     <input type="text" id="siswa-nisn" required placeholder="Masukkan NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-900 font-mono">
@@ -76,7 +74,7 @@
             </form>
 
             <!-- FORM LOGIN GURU / PETUGAS -->
-            <form id="form-login-petugas" onsubmit="loginPetugas(event)" class="space-y-4 hidden">
+            <form id="form-login-petugas" onsubmit="eksekusiLogin(event, 'petugas')" class="space-y-4 hidden">
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Username / NIP</label>
                     <input type="text" id="petugas-user" required placeholder="Masukkan NIP atau Username..." class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-xs outline-none focus:border-blue-900 font-mono">
@@ -170,31 +168,12 @@
         </div>
     </div>
 
-    <!-- JAVASCRIPT LOGIKA LOGIN SUPABASE & SSO -->
+    <!-- JAVASCRIPT LOGIKA LOGIN NEON VIA WORKER -->
     <script>
-        const SUPABASE_URL = 'https://fmhdrcpnaydvvaiwexni.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZtaGRyY3BuYXlkdnZhaXdleG5pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI1NTYzMzIsImV4cCI6MjEwODEzMjMzMn0.0F23xR3NfKHkXMGkx4F1bdFXXuroRHD8-rQ7YMHc-lU';
-        
-        const supabaseClient = (window.supabase && window.supabase.createClient) 
-            ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) 
-            : null;
+        // URL Backend Cloudflare Worker Anda
+        const API_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
 
-        // FUNGSI SHOW / HIDE PASSWORD (TOGGLE MATA)
-        function togglePasswordVisibility(inputId, iconId) {
-            const input = document.getElementById(inputId);
-            const icon = document.getElementById(iconId);
-            
-            if (input.type === 'password') {
-                input.type = 'text';
-                icon.classList.remove('fa-eye');
-                icon.classList.add('fa-eye-slash');
-            } else {
-                input.type = 'password';
-                icon.classList.remove('fa-eye-slash');
-                icon.classList.add('fa-eye');
-            }
-        }
-
+        // SWAP TAB GURU / SISWA
         function switchLoginType(type) {
             const btnSiswa = document.getElementById('tab-btn-siswa');
             const btnPetugas = document.getElementById('tab-btn-petugas');
@@ -214,109 +193,76 @@
             }
         }
 
-        // LOGIN SISWA FIX (MENDUKUNG NOL DEPAN & MENCEGAH LOGOUT OTOMATIS)
-        async function loginSiswa(e) {
-            if (e) e.preventDefault();
-            const rawNisn = document.getElementById('siswa-nisn').value.trim();
-            const rawPass = document.getElementById('siswa-password').value.trim();
-            const btn = document.getElementById('btn-submit-siswa');
-
-            if (!rawNisn || !rawPass) {
-                alert("NISN dan Password wajib diisi!");
-                return;
-            }
-
-            if (!supabaseClient) return alert("Koneksi Database gagal!");
-
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa...</span>`;
-
-            try {
-                // Query 1: Cari NISN dengan format persis input (misal: "0093389254")
-                let { data, error } = await supabaseClient
-                    .from('siswa')
-                    .select('*')
-                    .eq('nisn', String(rawNisn))
-                    .eq('password', String(rawPass))
-                    .maybeSingle();
-
-                // Query 2: Fallback jika nol depan di Supabase terpotong (misal: "93389254")
-                if (!data) {
-                    const cleanNisn = rawNisn.replace(/^0+/, '');
-                    const resFallback = await supabaseClient
-                        .from('siswa')
-                        .select('*')
-                        .eq('nisn', cleanNisn)
-                        .eq('password', String(rawPass))
-                        .maybeSingle();
-                    data = resFallback.data;
+        // TOGGLE MATA PASSWORD
+        function togglePasswordVisibility(inputId, iconId) {
+            const input = document.getElementById(inputId);
+            const icon = document.getElementById(iconId);
+            if (input && icon) {
+                if (input.type === 'password') {
+                    input.type = 'text';
+                    icon.classList.remove('fa-eye');
+                    icon.classList.add('fa-eye-slash');
+                } else {
+                    input.type = 'password';
+                    icon.classList.remove('fa-eye-slash');
+                    icon.classList.add('fa-eye');
                 }
-
-                if (!data) {
-                    alert("NISN atau Password Salah!");
-                    btn.disabled = false;
-                    btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Siswa</span>`;
-                    return;
-                }
-
-                // Bersihkan sesi guru agar tidak bentrok
-                localStorage.removeItem('smada_user');
-
-                // Simpan sesi siswa aktif
-                localStorage.setItem('smada_siswa', JSON.stringify(data));
-
-                // Jeda 300ms memastikan penyimpanan fisik di HP selesai
-                setTimeout(() => {
-                    window.location.replace('siswa.html');
-                }, 300);
-
-            } catch (err) {
-                alert("Terjadi kesalahan sistem: " + err.message);
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Siswa</span>`;
             }
         }
 
-        // LOGIN GURU / PETUGAS
-        async function loginPetugas(e) {
-            if (e) e.preventDefault();
-            const user = document.getElementById('petugas-user').value.trim();
-            const pass = document.getElementById('petugas-pass').value.trim();
-            const btn = document.getElementById('btn-submit-petugas');
+        // FUNGSI UTAMA EKSEKUSI LOGIN (SISWA & GURU)
+        async function eksekusiLogin(event, jenisUser) {
+            event.preventDefault();
+            
+            let username = '';
+            let password = '';
+            let btnSubmit = null;
 
-            if (!supabaseClient) return alert("Koneksi Database gagal!");
+            if (jenisUser === 'siswa') {
+                username = document.getElementById('siswa-nisn').value.trim();
+                password = document.getElementById('siswa-password').value.trim();
+                btnSubmit = document.getElementById('btn-submit-siswa');
+            } else {
+                username = document.getElementById('petugas-user').value.trim();
+                password = document.getElementById('petugas-pass').value.trim();
+                btnSubmit = document.getElementById('btn-submit-petugas');
+            }
 
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa...</span>`;
+            if (!username || !password) {
+                alert('Silakan isi NIP/NISN dan Password terlebih dahulu!');
+                return;
+            }
+
+            btnSubmit.disabled = true;
+            const originalText = btnSubmit.innerHTML;
+            btnSubmit.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i><span>Memeriksa...</span>`;
 
             try {
-                let { data, error } = await supabaseClient
-                    .from('users')
-                    .select('*')
-                    .eq('username', String(user))
-                    .eq('password_hash', String(pass))
-                    .maybeSingle();
+                const response = await fetch(`${API_URL}/api/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
 
-                if (!data) {
-                    const resSec = await supabaseClient
-                        .from('users')
-                        .select('*')
-                        .eq('username', String(user))
-                        .eq('password', String(pass))
-                        .maybeSingle();
-                    data = resSec.data;
-                }
+                const result = await response.json();
 
-                if (!data) {
-                    alert("Username/NIP atau Password Salah!");
+                if (result.success) {
+                    if (result.type === 'guru') {
+                        prosesLoginPetugasSukses(result.user);
+                    } else {
+                        // Bersihkan sesi guru & simpan sesi siswa
+                        localStorage.removeItem('smada_user');
+                        localStorage.setItem('smada_siswa', JSON.stringify(result.user));
+                        setTimeout(() => { window.location.replace('siswa.html'); }, 300);
+                    }
                 } else {
-                    prosesLoginPetugasSukses(data);
+                    alert("Login Gagal: " + result.message);
                 }
             } catch (err) {
-                alert("Gagal melakukan login: " + err.message);
+                alert("Terjadi kesalahan koneksi ke server: " + err.message);
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i><span>Masuk Akun Guru / Petugas</span>`;
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalText;
             }
         }
 
@@ -335,10 +281,13 @@
                     window.location.href = 'bk.html';
                 } else if (roles[0] === 'admin' || roles[0] === 'superadmin' || roles[0] === 'super_admin') {
                     bukaModulAdmin();
+                } else {
+                    bukaModulAdmin();
                 }
                 return;
             }
 
+            // Tampilkan Modal Multi-Role jika Guru punya lebih dari 1 role
             document.getElementById('nama-guru-login').textContent = user.nama || user.username;
 
             document.getElementById('btn-role-mapel').classList.add('hidden');
@@ -366,17 +315,15 @@
             window.location.href = halaman;
         }
 
-        // TARGET SUPER ADMIN FIX KE super-admin.html
         function bukaModulAdmin() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             if (user && (user.role.includes('superadmin') || user.role.includes('super_admin'))) {
-                window.location.href = 'super-admin.html';
+                window.location.href = 'manajemen-siswa.html';
             } else {
-                window.location.href = 'admin.html';
+                window.location.href = 'manajemen-siswa.html';
             }
         }
 
-        // REDIRECT KE DOMAIN JURNAL MENGAJAR TERPISAH (SSO TOKEN)
         function bukaModulJurnal() {
             const user = JSON.parse(localStorage.getItem('smada_user'));
             if (!user) return alert("Sesi login berakhir. Silakan login kembali.");
