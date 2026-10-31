@@ -111,6 +111,40 @@
   </footer>
 
   <!-- CONFIG & SCRIPTS -->
+  <script>
+  (function checkSiswaAuth() {
+    // 1. Ambil data session dari localStorage (kompatibel dengan smada_user maupun smada_siswa)
+    const userRaw = localStorage.getItem('smada_user') || localStorage.getItem('smada_siswa');
+    const roleRaw = localStorage.getItem('smada_role');
+
+    if (!userRaw) {
+      alert('Akses Ditolak! Anda harus login terlebih dahulu.');
+      window.location.href = 'index.html';
+      return;
+    }
+
+    const user = JSON.parse(userRaw);
+
+    // 2. Tampilkan data siswa di elemen dashboard saat DOM siap
+    document.addEventListener('DOMContentLoaded', () => {
+      const namaEl = document.getElementById('siswa-nama') || document.getElementById('user-nama');
+      const nisnEl = document.getElementById('siswa-nisn-display');
+      const kelasEl = document.getElementById('siswa-kelas');
+
+      if (namaEl && user.nama) namaEl.innerText = user.nama;
+      if (nisnEl && user.nisn) nisnEl.innerText = user.nisn;
+      if (kelasEl && user.kelas) kelasEl.innerText = user.kelas;
+    });
+  })();
+
+  // Fungsi Logout
+  function logout() {
+    localStorage.removeItem('smada_user');
+    localStorage.removeItem('smada_siswa');
+    localStorage.removeItem('smada_role');
+    window.location.href = 'index.html';
+  }
+</script>
   <script src="js/config.js?v=3"></script>
   <script>
     // URL Backend API
