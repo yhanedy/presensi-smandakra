@@ -208,60 +208,53 @@
       }
     }
 
-    // Process Login Guru / Petugas
-    async function loginGuru(e) {
-      if (e) e.preventDefault();
+  // LOGIN GURU / PETUGAS (Direct Turso Query)
+async function loginGuru(e) {
+  e.preventDefault();
+  const username = document.getElementById('guru-username').value.trim();
+  const pass = document.getElementById('guru-password').value.trim();
+  const btn = document.getElementById('btn-guru');
 
-      const username = document.getElementById('guru-username').value.trim();
-      const password = document.getElementById('guru-password').value.trim();
-      const btn = document.getElementById('btn-login-guru');
+  btn.disabled = true;
+  btn.innerText = 'Memeriksa ke Turso DB...';
 
-      if (!username || !password) return alert('Silakan isi Username/NIP dan Password!');
+  try {
+    // Ambil kolom role dari Turso
+    const rows = await queryTurso(
+      'SELECT id, username, nama, role FROM users WHERE username = ? AND password = ?', 
+      [username, pass]
+    );
 
-      if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="bi bi-arrow-repeat animate-spin"></i><span>Memeriksa...</span>';
+    if (rows.length > 0) {
+      const user = rows[0];
+
+      // Simpan session ke localStorage
+      localStorage.setItem('smada_user', JSON.stringify(user));
+      localStorage.setItem('smada_admin', JSON.stringify(user));
+      localStorage.setItem('smada_role', user.role);
+
+      alert(`Selamat datang, ${user.nama}!`);
+
+      // Routing sesuai role di database
+      const role = String(user.role || '').toLowerCase();
+      if (role.includes('admin')) {
+        window.location.href = 'admin.html';
+      } else if (role.includes('bk')) {
+        window.location.href = 'bk.html';
+      } else {
+        window.location.href = 'piket.html';
       }
-
-      try {
-        const response = await fetch(`${getApiUrl()}/api/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: username, password: password })
-        });
-
-        const data = await response.json();
-
-        if (data.success && data.type === 'guru') {
-          const user = data.user;
-          // Simpan dengan semua kemungkinan key
-          localStorage.setItem('smada_user', JSON.stringify(user));
-          localStorage.setItem('smada_admin', JSON.stringify(user));
-          localStorage.setItem('smada_role', user.role || 'guru');
-
-          alert(`Selamat datang, ${user.nama}!`);
-
-          const role = (user.role || '').toLowerCase();
-          if (role.includes('admin') || role.includes('superadmin')) {
-            window.location.href = 'admin.html';
-          } else if (role.includes('bk')) {
-            window.location.href = 'bk.html';
-          } else {
-            window.location.href = 'piket.html';
-          }
-        } else {
-          alert(data.message || 'Username/NIP atau Password Salah!');
-        }
-      } catch (err) {
-        console.error('Error Login Guru:', err);
-        alert('Gagal terhubung ke server backend API.');
-      } finally {
-        if (btn) {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-box-arrow-in-right"></i><span>Masuk Akun Guru / Petugas</span>';
-        }
-      }
+    } else {
+      alert('Username/NIP atau Password Salah!');
     }
+  } catch (err) {
+    console.error(err);
+    alert('Gagal terhubung ke Turso Database: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = 'Masuk Akun Guru / Petugas';
+  }
+}      
   </script>
 </body>
 </html>
