@@ -4,27 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Menu BK & STP2K - SMAN 2 Karanganyar</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS CDN -->
+    <!-- SheetJS CDN untuk Ekspor Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Konfigurasi Turso Engine Direct API -->
+    <script src="js/config.js?v=bk_turso_final"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
+    <!-- PROTEKSI HAK AKSES GURU BK / STP2K / ADMIN -->
+    <script>
+        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
+        const activeRole = localStorage.getItem('smada_role');
+        if (!activeUser || !activeRole || (!activeRole.includes('bk') && !activeRole.includes('admin'))) {
+            alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <!-- HEADER -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo">
                 <div>
                     <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-xs text-blue-200">Portal Bimbingan Konseling & STP2K (Neon API)</p>
+                    <p class="text-xs text-blue-200">Portal Bimbingan Konseling & STP2K (Turso Engine)</p>
                 </div>
             </div>
-            <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition">
-                <i class="fa-solid fa-power-off"></i> Logout
-            </button>
+            <div class="flex items-center space-x-2">
+                <span class="text-xs bg-blue-950 px-3 py-1.5 rounded-lg font-mono text-blue-200">
+                    <strong class="text-white" id="display-user-name">Guru BK</strong>
+                </span>
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                    <i class="fa-solid fa-power-off"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
         </div>
     </header>
 
@@ -32,6 +49,7 @@
         
         <!-- INPUT PELANGGARAN & SAKIT/IZIN -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- 1. Input Catatan Kedisiplinan -->
             <div class="bg-white rounded-xl shadow-md p-5 border border-red-200 space-y-3">
                 <h2 class="text-base font-bold text-red-700 flex items-center space-x-2 border-b pb-2">
                     <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
@@ -39,15 +57,16 @@
                 </h2>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                    <input type="text" id="pelanggaran-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500">
+                    <input type="text" id="pelanggaran-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none font-mono">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Pelanggaran</label>
-                    <textarea id="pelanggaran-catatan" rows="3" placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500"></textarea>
+                    <textarea id="pelanggaran-catatan" rows="3" placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none"></textarea>
                 </div>
                 <button onclick="simpanPelanggaranBK()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition">Simpan Catatan Kedisiplinan</button>
             </div>
 
+            <!-- 2. Input Sakit / Izin / Alpa -->
             <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3">
                 <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2 border-b pb-2">
                     <i class="fa-solid fa-notes-medical text-blue-600"></i>
@@ -55,7 +74,7 @@
                 </h2>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                    <input type="text" id="bk-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="bk-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none font-mono">
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Status Kehadiran</label>
@@ -67,13 +86,13 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
-                    <input type="text" id="bk-keterangan" placeholder="Contoh: Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    <input type="text" id="bk-keterangan" placeholder="Contoh: Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
                 </div>
                 <button onclick="simpanPresensiBK()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition">Simpan Status Ketidakhadiran</button>
             </div>
         </div>
 
-        <!-- TABEL KEDISIPLINAN -->
+        <!-- TABEL KEDISIPLINAN (15 DATA + LOAD MORE & EXPORT) -->
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
             <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
                 <div>
@@ -81,7 +100,7 @@
                         <i class="fa-solid fa-shield-cat text-red-600"></i>
                         <span>Daftar Catatan Kedisiplinan & Pelanggaran Siswa</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Menampilkan data catatan pelanggaran tersimpan.</p>
+                    <p class="text-xs text-slate-500">Menampilkan catatan kedisiplinan tersimpan di Turso DB.</p>
                 </div>
                 <button onclick="eksporExcelPelanggaranBK()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded-lg font-bold flex items-center space-x-1.5 shadow transition">
                     <i class="fa-solid fa-file-excel"></i>
@@ -93,17 +112,24 @@
                 <table class="w-full text-xs text-left text-slate-600">
                     <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
                         <tr>
-                            <th class="p-3">Waktu WIB</th>
+                            <th class="p-3">Waktu Input</th>
                             <th class="p-3">NISN</th>
                             <th class="p-3">Nama Siswa</th>
                             <th class="p-3">Kelas</th>
                             <th class="p-3">Catatan Pelanggaran</th>
+                            <th class="p-3 text-center">Diinput Oleh</th>
                         </tr>
                     </thead>
                     <tbody id="tabel-pelanggaran-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>
+                        <tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>
                     </tbody>
                 </table>
+            </div>
+
+            <div class="text-center pt-2">
+                <button id="btn-load-more" onclick="muatPelanggaranBK(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-2 rounded-lg font-bold transition hidden">
+                    Lihat Selengkapnya...
+                </button>
             </div>
         </div>
 
@@ -113,18 +139,22 @@
         <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- LOGIKA BK VIA WORKER -->
+    <!-- JAVASCRIPT LOGIKA BK (TURSO DRIVEN) -->
     <script>
-        const API_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
-        let globalPelanggaranData = [];
+        let currentOffset = 0;
+        const LIMIT = 15;
 
         window.onload = function() {
-            muatPelanggaranBK();
+            if (activeUser) {
+                document.getElementById('display-user-name').textContent = activeUser.nama || activeUser.username;
+            }
+            muatPelanggaranBK(false);
         };
 
         function logout() {
             localStorage.removeItem('smada_user');
-            window.location.replace('index.html');
+            localStorage.removeItem('smada_role');
+            window.location.href = 'index.html';
         }
 
         async function simpanPelanggaranBK() {
@@ -134,23 +164,27 @@
             if (!nisn || !catatan) { alert("NISN dan Catatan Wajib diisi!"); return; }
 
             try {
-                const response = await fetch(`${API_URL}/api/kedisiplinan`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nisn, catatan_pelanggaran: catatan })
-                });
-
-                const res = await response.json();
-                if (res.success) {
-                    alert("Catatan kedisiplinan berhasil disimpan!");
-                    document.getElementById('pelanggaran-nisn').value = '';
-                    document.getElementById('pelanggaran-catatan').value = '';
-                    muatPelanggaranBK();
-                } else {
-                    alert("Gagal menyimpan: " + res.error);
+                const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
+                if (!sCheck || sCheck.length === 0) {
+                    alert(`NISN ${nisn} tidak ditemukan di master data siswa!`);
+                    return;
                 }
+
+                const diinputOleh = activeUser ? activeUser.nama : 'Guru BK';
+
+                await queryTurso(
+                    'INSERT INTO kedisiplinan (nisn, catatan_pelanggaran, diinput_oleh) VALUES (?, ?, ?)',
+                    [nisn, catatan, diinputOleh]
+                );
+
+                alert(`Catatan kedisiplinan untuk SISWA (${sCheck[0].nama}) berhasil disimpan!`);
+                document.getElementById('pelanggaran-nisn').value = '';
+                document.getElementById('pelanggaran-catatan').value = '';
+                currentOffset = 0;
+                muatPelanggaranBK(false);
+
             } catch (err) {
-                alert("Kesalahan koneksi: " + err.message);
+                alert("Gagal menyimpan catatan pelanggaran: " + err.message);
             }
         }
 
@@ -161,69 +195,112 @@
 
             if (!nisn) { alert("NISN wajib diisi!"); return; }
 
-            try {
-                const response = await fetch(`${API_URL}/api/presensi`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nisn, status, keterangan: ket })
-                });
+            const today = new Date().toISOString().split('T')[0];
 
-                const res = await response.json();
-                if (res.success) {
-                    alert("Status ketidakhadiran berhasil dicatat!");
-                    document.getElementById('bk-nisn').value = '';
-                    document.getElementById('bk-keterangan').value = '';
-                } else {
-                    alert("Gagal: " + res.error);
+            try {
+                const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
+                if (!sCheck || sCheck.length === 0) {
+                    alert(`NISN ${nisn} tidak ditemukan di master data siswa!`);
+                    return;
                 }
+
+                await queryTurso(
+                    'INSERT OR REPLACE INTO presensi (nisn, tanggal, status, keterangan) VALUES (?, ?, ?, ?)',
+                    [nisn, today, status, ket || '-']
+                );
+
+                alert(`Status ketidakhadiran (${status}) untuk SISWA (${sCheck[0].nama}) berhasil dicatat!`);
+                document.getElementById('bk-nisn').value = '';
+                document.getElementById('bk-keterangan').value = '';
+
             } catch (err) {
-                alert("Kesalahan koneksi: " + err.message);
+                alert("Gagal mencatat status ketidakhadiran: " + err.message);
             }
         }
 
-        async function muatPelanggaranBK() {
+        async function muatPelanggaranBK(isLoadMore = false) {
             const tbody = document.getElementById('tabel-pelanggaran-body');
-            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>';
+            const btnMore = document.getElementById('btn-load-more');
+
+            if (!isLoadMore) {
+                currentOffset = 0;
+                tbody.innerHTML = '';
+            }
 
             try {
-                const response = await fetch(`${API_URL}/api/kedisiplinan`);
-                const res = await response.json();
+                const sql = `
+                    SELECT k.id, k.created_at, k.nisn, k.catatan_pelanggaran, k.diinput_oleh, s.nama, s.kelas 
+                    FROM kedisiplinan k 
+                    LEFT JOIN siswa s ON k.nisn = s.nisn 
+                    ORDER BY k.id DESC 
+                    LIMIT ${LIMIT} OFFSET ${currentOffset}
+                `;
 
-                if (res.success && res.data && res.data.length > 0) {
-                    globalPelanggaranData = res.data;
-                    tbody.innerHTML = res.data.map(p => `
-                        <tr class="hover:bg-slate-50 border-b border-slate-100">
-                            <td class="p-3 font-mono text-slate-500">${p.created_at || '-'}</td>
-                            <td class="p-3 font-mono font-bold">${p.nisn}</td>
-                            <td class="p-3 font-semibold text-slate-800">${p.nama || '-'}</td>
-                            <td class="p-3 font-mono">${p.kelas || '-'}</td>
-                            <td class="p-3 text-red-700 font-medium">${p.catatan_pelanggaran}</td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan.</td></tr>';
+                const data = await queryTurso(sql);
+
+                if (!data || data.length === 0) {
+                    if (!isLoadMore) tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>';
+                    btnMore.classList.add('hidden');
+                    return;
                 }
+
+                const rowsHtml = data.map(p => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-3 font-mono text-slate-500">${p.created_at || '-'}</td>
+                        <td class="p-3 font-mono font-bold text-slate-700">${p.nisn}</td>
+                        <td class="p-3 font-semibold text-slate-800">${p.nama || '-'}</td>
+                        <td class="p-3 font-mono text-slate-600">${p.kelas || '-'}</td>
+                        <td class="p-3 text-red-700 font-medium">${p.catatan_pelanggaran}</td>
+                        <td class="p-3 text-center font-semibold text-slate-600">${p.diinput_oleh || 'BK'}</td>
+                    </tr>
+                `).join('');
+
+                tbody.insertAdjacentHTML('beforeend', rowsHtml);
+
+                if (data.length === LIMIT) {
+                    btnMore.classList.remove('hidden');
+                    currentOffset += LIMIT;
+                } else {
+                    btnMore.classList.add('hidden');
+                }
+
             } catch (err) {
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-rose-500">Gagal terhubung ke server API.</td></tr>';
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500 font-bold">Gagal memuat catatan: ${err.message}</td></tr>`;
             }
         }
 
-        function eksporExcelPelanggaranBK() {
-            if (!globalPelanggaranData || globalPelanggaranData.length === 0) { alert("Tidak ada data untuk diekspor!"); return; }
+        async function eksporExcelPelanggaranBK() {
+            try {
+                const sql = `
+                    SELECT k.created_at, k.nisn, k.catatan_pelanggaran, k.diinput_oleh, s.nama, s.kelas 
+                    FROM kedisiplinan k 
+                    LEFT JOIN siswa s ON k.nisn = s.nisn 
+                    ORDER BY k.id DESC
+                `;
 
-            const listData = globalPelanggaranData.map((d, idx) => ({
-                "No": idx + 1,
-                "Tanggal Waktu": d.created_at,
-                "NISN": d.nisn,
-                "Nama Siswa": d.nama || '-',
-                "Kelas": d.kelas || '-',
-                "Catatan Pelanggaran": d.catatan_pelanggaran
-            }));
+                const data = await queryTurso(sql);
 
-            const worksheet = XLSX.utils.json_to_sheet(listData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Catatan Pelanggaran");
-            XLSX.writeFile(workbook, `Laporan_Pelanggaran_BK.xlsx`);
+                if (!data || data.length === 0) { alert("Tidak ada data kedisiplinan untuk diekspor!"); return; }
+
+                const listData = data.map((d, idx) => ({
+                    "No": idx + 1,
+                    "Tanggal / Waktu": d.created_at || '-',
+                    "NISN": d.nisn,
+                    "Nama Siswa": d.nama || '-',
+                    "Kelas": d.kelas || '-',
+                    "Catatan Pelanggaran": d.catatan_pelanggaran,
+                    "Diinput Oleh": d.diinput_oleh || '-'
+                }));
+
+                const today = new Date().toISOString().split('T')[0];
+                const worksheet = XLSX.utils.json_to_sheet(listData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Catatan Pelanggaran");
+                XLSX.writeFile(workbook, `Laporan_Pelanggaran_BK_${today}.xlsx`);
+
+            } catch (err) {
+                alert("Gagal ekspor Excel: " + err.message);
+            }
         }
     </script>
 </body>
