@@ -1,1 +1,1 @@
-const API_URL = 'https://presensi-smandakra.yhanedy.workers.dev';
+const API_URL = 'https://smada-backend-api.yhanedy.workers.dev';
