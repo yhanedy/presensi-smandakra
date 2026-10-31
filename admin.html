@@ -8,15 +8,18 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Configuration & Turso DB Engine -->
+    <script src="js/config.js?v=admin_turso_final"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- PROTEKSI HAK AKSES ADMIN -->
     <script>
         const activeUser = JSON.parse(localStorage.getItem('smada_user'));
-        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin')) {
+        const activeRole = localStorage.getItem('smada_role');
+        if (!activeUser || !activeRole || (!activeRole.includes('admin') && !activeRole.includes('superadmin'))) {
             alert('Akses Ditolak! Anda harus login sebagai Administrator.');
-            window.location.replace('index.html');
+            window.location.href = 'index.html';
         }
     </script>
 
@@ -27,7 +30,7 @@
                 <img src="https://lh3.googleusercontent.com/d/1LdR1ARwYVgOGhwtxeZRu73oD5uGHKhKA" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover" alt="Logo SMAN 2 Karanganyar">
                 <div>
                     <h1 class="font-bold text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-xs text-blue-200">Panel Administrator Konfigurasi (Neon API)</p>
+                    <p class="text-xs text-blue-200">Panel Administrator Konfigurasi & Data Master (Turso Engine)</p>
                 </div>
             </div>
             <div class="flex items-center space-x-2">
@@ -45,7 +48,8 @@
     <!-- MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
 
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <!-- BARIS 1: GRID UTAMA KONFIGURASI ADMIN (4 KOTAK / CARDS) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
             <!-- 1. Tambah Siswa Manual -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3 flex flex-col justify-between">
@@ -65,6 +69,10 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Kelas</label>
                         <input type="text" id="admin-siswa-kelas" placeholder="Contoh: XII F1" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Password</label>
+                        <input type="password" id="admin-siswa-pass" placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
                 <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition mt-2">
@@ -105,19 +113,122 @@
                 </button>
             </div>
 
-            <!-- 3. Koreksi Salah Klik Status Pulang -->
+            <!-- 3. Jadwal Presensi & Override Pulang Khusus per Kelas -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/20 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-200 pb-2">
+                        <i class="fa-solid fa-clock text-amber-600"></i>
+                        <span>Jadwal Presensi & Dispensasi</span>
+                    </h3>
+
+                    <!-- JADWAL DEFAULT HARIAN -->
+                    <div class="space-y-2 text-xs border-b border-amber-100 pb-2">
+                        <p class="font-bold text-slate-700">1. Jadwal Default:</p>
+                        <div class="grid grid-cols-3 gap-1">
+                            <div>
+                                <label class="block text-[10px] text-slate-500">Masuk</label>
+                                <input type="time" id="jam-masuk" value="07:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500">Pulang S-K</label>
+                                <input type="time" id="jam-pulang-senin-kamis" value="15:01" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[10px] text-slate-500">Pulang Jum'at</label>
+                                <input type="time" id="jam-pulang-jumat" value="14:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- OVERRIDE PULANG LEBIH AWAL -->
+                    <div class="space-y-2 text-xs bg-amber-100/60 p-2.5 rounded-lg border border-amber-300">
+                        <div class="flex items-center justify-between border-b border-amber-200 pb-1.5">
+                            <span class="font-bold text-amber-900 text-[11px] flex items-center space-x-1">
+                                <i class="fa-solid fa-bullhorn text-amber-600"></i>
+                                <span>2. Override Pulang Awal</span>
+                            </span>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="toggle-override-pulang" class="sr-only peer">
+                                <div class="w-8 h-4 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-amber-600"></div>
+                            </label>
+                        </div>
+
+                        <p class="font-semibold text-slate-700 text-[10px]">Jam Pulang Khusus Hari Ini:</p>
+                        <div class="grid grid-cols-3 gap-1">
+                            <div>
+                                <label class="block text-[9px] text-slate-600 font-bold">Kelas X</label>
+                                <input type="time" id="jam-pulang-khusus-x" value="12:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] text-slate-600 font-bold">Kelas XI</label>
+                                <input type="time" id="jam-pulang-khusus-xi" value="12:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                            <div>
+                                <label class="block text-[9px] text-slate-600 font-bold">Kelas XII</label>
+                                <input type="time" id="jam-pulang-khusus-xii" value="12:00" class="w-full border rounded px-1 py-1 font-mono text-xs">
+                            </div>
+                        </div>
+
+                        <div>
+                            <input type="text" id="ket-kegiatan-khusus" placeholder="Keterangan kegiatan..." class="w-full border rounded px-2 py-1 text-[11px] outline-none">
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="simpanSettingJadwalLengkap()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition shadow mt-2">
+                    Simpan Pengaturan Jadwal
+                </button>
+            </div>
+
+            <!-- 4. Pengaturan Lokasi GPS & Radius -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
+                        <i class="fa-solid fa-location-dot text-purple-600"></i>
+                        <span>Lokasi GPS & Radius</span>
+                    </h3>
+                    <div class="space-y-2 text-xs">
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Koordinat GPS Sekolah</label>
+                            <div class="grid grid-cols-2 gap-1 font-mono">
+                                <input type="text" id="gps-lat" value="-7.5971000" class="border px-2 py-1.5 rounded text-slate-600" title="Lintang">
+                                <input type="text" id="gps-long" value="110.9507000" class="border px-2 py-1.5 rounded text-slate-600" title="Bujur">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block font-semibold text-slate-600 mb-1">Radius Toleransi Presensi</label>
+                            <select id="gps-radius" class="w-full border px-2 py-1.5 rounded text-xs outline-none">
+                                <option value="50">50 Meter (Area Utama)</option>
+                                <option value="100" selected>100 Meter (Area Sekolah)</option>
+                                <option value="200">200 Meter (Toleransi HP)</option>
+                                <option value="500">500 Meter (Toleransi Luas)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="simpanSettingLokasi()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs transition mt-2">
+                    Simpan Lokasi GPS
+                </button>
+            </div>
+
+        </div>
+
+        <!-- BARIS 2: GRID KOTAK KOREKSI SALAH KLIK & LOG HP MULTI-AKUN -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            <!-- KOTAK 1: KOREKSI SALAH KLIK STATUS PULANG -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-red-200 space-y-3 bg-red-50/20 flex flex-col justify-between">
                 <div class="space-y-3">
                     <h3 class="font-bold text-red-900 text-sm flex items-center space-x-2 border-b border-red-200 pb-2">
                         <i class="fa-solid fa-rotate-left text-red-600"></i>
-                        <span>Koreksi Salah Klik Status Pulang</span>
+                        <span>Koreksi Salah Klik Status Pulang Hari Ini</span>
                     </h3>
                     <p class="text-xs text-slate-500 leading-relaxed">
-                        Membatalkan jam pulang siswa dan mengembalikan status ke <b>Hadir</b>.
+                        Fitur ini digunakan jika siswa tidak sengaja memencet tombol <b>Pulang</b>. Sistem akan membatalkan jam pulang & mengembalikan status ke <b>Hadir</b>.
                     </p>
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">NISN Siswa</label>
-                        <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500 font-mono">
+                        <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN siswa terpencet..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500 font-mono">
                     </div>
                 </div>
                 <button onclick="batalkanStatusPulangSiswa()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow mt-2">
@@ -126,81 +237,224 @@
                 </button>
             </div>
 
+            <!-- KOTAK 2: LOG HP MULTI-AKUN -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/10 flex flex-col justify-between">
+                <div class="space-y-3">
+                    <div class="flex justify-between items-center border-b border-amber-200 pb-2">
+                        <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2">
+                            <i class="fa-solid fa-mobile-screen-button text-amber-600"></i>
+                            <span>Log HP Siswa (Multi-Akun)</span>
+                        </h3>
+                        <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-[10px] px-2.5 py-1 rounded transition">
+                            <i class="fa-solid fa-rotate"></i> Cek Log
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-500 leading-relaxed">
+                        Memindai perangkat HP yang digunakan untuk login lebih dari 1 NISN (indikasi titip presensi).
+                    </p>
+                    <div class="overflow-x-auto max-h-36 border border-amber-100 rounded-lg bg-white">
+                        <table class="w-full text-[11px] text-left text-slate-600">
+                            <thead class="bg-amber-100/70 text-amber-900 uppercase font-semibold sticky top-0">
+                                <tr>
+                                    <th class="p-2">Perangkat HP</th>
+                                    <th class="p-2 text-center">Akun</th>
+                                    <th class="p-2">NISN Terkait</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tabel-log-hp-body" class="divide-y divide-amber-100">
+                                <tr><td colspan="3" class="p-3 text-center text-slate-400">Klik "Cek Log" untuk memindai.</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
 
-        <!-- TABEL KELOLA SISWA -->
+        <!-- TABEL KELOLA DATA MASTER (SISWA & GURU/PETUGAS WITH TAB SWITCHING) -->
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
             <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
                 <div>
-                    <h3 class="font-bold text-slate-800 text-base">Master Data Siswa Terdaftar</h3>
-                    <p class="text-xs text-slate-500">Daftar siswa tersimpan di Database Neon PostgreSQL.</p>
+                    <h3 class="font-bold text-slate-800 text-base">Master Data Pengguna</h3>
+                    <p class="text-xs text-slate-500">Daftar pengguna tersimpan di Turso DB. Admin dapat mereset password maupun menghapus akun.</p>
                 </div>
-                <button onclick="muatDaftarSiswa()" class="bg-blue-900 hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-lg transition">
-                    <i class="fa-solid fa-rotate"></i> Refresh Data
-                </button>
+
+                <div class="flex items-center space-x-3">
+                    <!-- NAV TAB SWITCHER -->
+                    <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
+                        <button id="btn-tab-siswa" onclick="switchMasterTab('siswa')" class="px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition">
+                            <i class="fa-solid fa-user-graduate mr-1"></i> Data Siswa
+                        </button>
+                        <button id="btn-tab-guru" onclick="switchMasterTab('guru')" class="px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition">
+                            <i class="fa-solid fa-user-shield mr-1"></i> Data Guru / Petugas
+                        </button>
+                    </div>
+
+                    <input type="text" id="search-input" onkeyup="filterMasterTable()" placeholder="Cari data..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    
+                    <button onclick="muatSemuaDataMaster()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                        <i class="fa-solid fa-rotate"></i> Refresh Data
+                    </button>
+                </div>
             </div>
 
-            <div class="overflow-x-auto max-h-96">
+            <!-- TAB 1: KELOLA SISWA -->
+            <div id="wrapper-tabel-siswa" class="overflow-x-auto max-h-96">
                 <table class="w-full text-xs text-left text-slate-600">
                     <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
                         <tr>
                             <th class="p-3">NISN</th>
                             <th class="p-3">Nama Siswa</th>
                             <th class="p-3">Kelas</th>
-                            <th class="p-3 text-center">Status</th>
+                            <th class="p-3 text-center">Reset Password (yhan123)</th>
+                            <th class="p-3 text-center">Aksi Hapus</th>
                         </tr>
                     </thead>
                     <tbody id="tabel-siswa-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat master data...</td></tr>
+                        <tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat data siswa dari Turso DB...</td></tr>
                     </tbody>
                 </table>
             </div>
+
+            <!-- TAB 2: KELOLA GURU / PETUGAS -->
+            <div id="wrapper-tabel-guru" class="overflow-x-auto max-h-96 hidden">
+                <table class="w-full text-xs text-left text-slate-600">
+                    <thead class="bg-slate-100 text-slate-700 uppercase font-semibold sticky top-0">
+                        <tr>
+                            <th class="p-3">ID</th>
+                            <th class="p-3">Username / NIP</th>
+                            <th class="p-3">Nama Lengkap</th>
+                            <th class="p-3">Peran (Role)</th>
+                            <th class="p-3 text-center">Reset Password (smada123)</th>
+                            <th class="p-3 text-center">Aksi Hapus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-guru-body" class="divide-y divide-slate-100">
+                        <tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data guru/petugas dari Turso DB...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
         </div>
 
     </main>
 
+    <!-- FOOTER INTERNAL -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
         <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- LOGIKA WORKER API -->
+    <!-- JAVASCRIPT LOGIKA ADMIN (TURSO DRIVEN) -->
     <script>
-        const API_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
-
         window.onload = function() {
             if (activeUser) {
                 document.getElementById('display-admin-name').textContent = activeUser.nama || activeUser.username;
             }
-            muatDaftarSiswa();
+            muatSettingSekolah();
+            muatSemuaDataMaster();
+            muatLogPerangkatHP();
         };
 
         function logout() {
             localStorage.removeItem('smada_user');
-            window.location.replace('index.html');
+            localStorage.removeItem('smada_role');
+            window.location.href = 'index.html';
         }
 
-        async function muatDaftarSiswa() {
-            const tbody = document.getElementById('tabel-siswa-body');
-            tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Memuat data siswa dari Neon...</td></tr>';
+        // Tab Switching Data Siswa vs Data Guru
+        function switchMasterTab(type) {
+            const wrapSiswa = document.getElementById('wrapper-tabel-siswa');
+            const wrapGuru = document.getElementById('wrapper-tabel-guru');
+            const btnSiswa = document.getElementById('btn-tab-siswa');
+            const btnGuru = document.getElementById('btn-tab-guru');
+
+            if (type === 'siswa') {
+                wrapSiswa.classList.remove('hidden');
+                wrapGuru.classList.add('hidden');
+                btnSiswa.className = 'px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition';
+                btnGuru.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition';
+            } else {
+                wrapGuru.classList.remove('hidden');
+                wrapSiswa.classList.add('hidden');
+                btnGuru.className = 'px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition';
+                btnSiswa.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition';
+            }
+        }
+
+        // Search Filter
+        function filterMasterTable() {
+            const input = document.getElementById('search-input').value.toLowerCase();
+            const isSiswaActive = !document.getElementById('wrapper-tabel-siswa').classList.contains('hidden');
+            const tbodyId = isSiswaActive ? 'tabel-siswa-body' : 'tabel-guru-body';
+            const rows = document.querySelectorAll(`#${tbodyId} tr`);
+
+            rows.forEach(row => {
+                const text = row.innerText.toLowerCase();
+                row.style.display = text.includes(input) ? '' : 'none';
+            });
+        }
+
+        async function muatSettingSekolah() {
+            try {
+                const rows = await queryTurso('SELECT * FROM setting_sekolah WHERE id = 1');
+                if (rows && rows.length > 0) {
+                    const data = rows[0];
+                    if (data.latitude) document.getElementById('gps-lat').value = data.latitude;
+                    if (data.longitude) document.getElementById('gps-long').value = data.longitude;
+                    if (data.radius_meter) document.getElementById('gps-radius').value = data.radius_meter;
+                }
+            } catch (e) {
+                console.log("Setting lokasi default digunakan.");
+            }
+        }
+
+        async function simpanSettingLokasi() {
+            const lat = parseFloat(document.getElementById('gps-lat').value);
+            const long = parseFloat(document.getElementById('gps-long').value);
+            const radius = parseInt(document.getElementById('gps-radius').value);
 
             try {
-                const res = await fetch(`${API_URL}/api/siswa`);
-                const result = await res.json();
-
-                if (result.success && result.data) {
-                    tbody.innerHTML = result.data.map(s => `
-                        <tr class="hover:bg-slate-50 border-b border-slate-100">
-                            <td class="p-3 font-mono font-medium text-slate-700">${s.nisn}</td>
-                            <td class="p-3 font-bold text-slate-800">${s.nama}</td>
-                            <td class="p-3 font-mono text-slate-600">${s.kelas}</td>
-                            <td class="p-3 text-center"><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-xs font-bold">${s.status_siswa || 'Aktif'}</span></td>
-                        </tr>
-                    `).join('');
-                } else {
-                    tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Data siswa kosong.</td></tr>';
-                }
+                await queryTurso('INSERT OR REPLACE INTO setting_sekolah (id, latitude, longitude, radius_meter) VALUES (1, ?, ?, ?)', [lat, long, radius]);
+                alert("Pengaturan Lokasi GPS & Radius Berhasil Disimpan di Turso DB!");
             } catch (err) {
-                tbody.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-rose-500">Gagal terhubung ke server API.</td></tr>';
+                alert("Gagal menyimpan lokasi: " + err.message);
+            }
+        }
+
+        async function simpanSettingJadwalLengkap() {
+            const isOverride = document.getElementById('toggle-override-pulang').checked;
+            const jamKhususX = document.getElementById('jam-pulang-khusus-x').value;
+            const jamKhususXI = document.getElementById('jam-pulang-khusus-xi').value;
+            const jamKhususXII = document.getElementById('jam-pulang-khusus-xii').value;
+            const ketKhusus = document.getElementById('ket-kegiatan-khusus').value.trim();
+
+            const infoMode = isOverride 
+                ? `\n\n⚠️ MODE PULANG LEBIH AWAL AKTIF!\n• Kelas X: ${jamKhususX}\n• Kelas XI: ${jamKhususXI}\n• Kelas XII: ${jamKhususXII}\nKegiatan: ${ketKhusus}`
+                : `\n\n✅ Mode Normal (Default) Aktif.`;
+
+            alert("Pengaturan Jadwal Berhasil Disimpan!" + infoMode);
+        }
+
+        async function batalkanStatusPulangSiswa() {
+            const nisn = document.getElementById('reset-pulang-nisn').value.trim();
+            if (!nisn) { alert("Masukkan NISN Siswa!"); return; }
+
+            const today = new Date().toISOString().split('T')[0];
+
+            try {
+                const rows = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ?', [nisn, today]);
+                if (!rows || rows.length === 0) {
+                    alert(`Tidak ditemukan presensi hari ini untuk NISN: ${nisn}`);
+                    return;
+                }
+
+                if (!confirm(`Batalkan status pulang NISN: ${nisn} untuk hari ini (${today})?`)) return;
+
+                await queryTurso('UPDATE presensi SET jam_pulang = NULL, status = ? WHERE nisn = ? AND tanggal = ?', ['Hadir', nisn, today]);
+                alert(`Status pulang NISN ${nisn} berhasil dibatalkan. Siswa kembali berstatus Hadir.`);
+                document.getElementById('reset-pulang-nisn').value = '';
+            } catch (err) {
+                alert("Gagal membatalkan status pulang: " + err.message);
             }
         }
 
@@ -208,62 +462,189 @@
             const nisn = document.getElementById('admin-siswa-nisn').value.trim();
             const nama = document.getElementById('admin-siswa-nama').value.trim();
             const kelas = document.getElementById('admin-siswa-kelas').value.trim();
+            const pass = document.getElementById('admin-siswa-pass').value.trim() || 'yhan123';
 
             if (!nisn || !nama || !kelas) { alert("NISN, Nama, dan Kelas wajib diisi!"); return; }
 
             try {
-                const res = await fetch(`${API_URL}/api/siswa`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nisn, nama, kelas, status_siswa: 'Aktif' })
-                });
-
-                const result = await res.json();
-                if (result.success) {
-                    alert(`Siswa ${nama} berhasil ditambahkan!`);
-                    document.getElementById('admin-siswa-nisn').value = '';
-                    document.getElementById('admin-siswa-nama').value = '';
-                    document.getElementById('admin-siswa-kelas').value = '';
-                    muatDaftarSiswa();
-                } else {
-                    alert("Gagal menambahkan siswa: " + result.error);
-                }
+                await queryTurso('INSERT OR REPLACE INTO siswa (nisn, nama, kelas, password) VALUES (?, ?, ?, ?)', [nisn, nama, kelas, pass]);
+                alert(`Siswa ${nama} (NISN: ${nisn}) berhasil ditambahkan ke Turso DB!`);
+                document.getElementById('admin-siswa-nisn').value = '';
+                document.getElementById('admin-siswa-nama').value = '';
+                document.getElementById('admin-siswa-kelas').value = '';
+                document.getElementById('admin-siswa-pass').value = '';
+                muatDaftarSiswa();
             } catch (err) {
-                alert("Kesalahan koneksi API: " + err.message);
+                alert("Gagal menambahkan siswa: " + err.message);
             }
         }
 
         async function tambahUserBaru() {
             const username = document.getElementById('admin-new-username').value.trim();
             const nama = document.getElementById('admin-new-nama').value.trim();
-            const password = document.getElementById('admin-new-password').value.trim();
+            const pass = document.getElementById('admin-new-password').value.trim();
             const role = document.getElementById('admin-new-role').value;
 
-            if (!username || !nama || !password) { alert("Semua kolom wajib diisi!"); return; }
+            if (!username || !nama || !pass) { alert("Semua kolom wajib diisi!"); return; }
 
             try {
-                const res = await fetch(`${API_URL}/api/users`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, nama, password, role })
-                });
-
-                const result = await res.json();
-                if (result.success) {
-                    alert("User/Petugas baru berhasil ditambahkan!");
-                    document.getElementById('admin-new-username').value = '';
-                    document.getElementById('admin-new-nama').value = '';
-                    document.getElementById('admin-new-password').value = '';
-                } else {
-                    alert("Gagal menambahkan user: " + result.message);
-                }
+                await queryTurso('INSERT INTO users (username, nama, password, role) VALUES (?, ?, ?, ?)', [username, nama, pass, role]);
+                alert("User petugas baru berhasil ditambahkan!");
+                document.getElementById('admin-new-username').value = '';
+                document.getElementById('admin-new-nama').value = '';
+                document.getElementById('admin-new-password').value = '';
+                muatDaftarGuru();
             } catch (err) {
-                alert("Kesalahan koneksi API: " + err.message);
+                alert("Gagal menambah user petugas: " + err.message);
             }
         }
 
-        function batalkanStatusPulangSiswa() {
-            alert("Operasi koreksi status dihubungkan ke Neon API!");
+        function muatLogPerangkatHP() {
+            const tbody = document.getElementById('tabel-log-hp-body');
+            const logs = JSON.parse(localStorage.getItem('smada_hp_logs') || '[]');
+
+            if (logs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="p-3 text-center text-slate-400">Belum ada riwayat HP terdeteksi.</td></tr>';
+                return;
+            }
+
+            const deviceMap = {};
+            logs.forEach(log => {
+                if (!deviceMap[log.device]) deviceMap[log.device] = new Set();
+                deviceMap[log.device].add(log.nisn);
+            });
+
+            tbody.innerHTML = Object.keys(deviceMap).map(dev => {
+                const listNisn = Array.from(deviceMap[dev]);
+                const isMulti = listNisn.length > 1;
+                return `
+                    <tr class="${isMulti ? 'bg-red-50 text-red-900 font-semibold' : ''} border-b border-amber-100">
+                        <td class="p-2 truncate max-w-[120px]" title="${dev}">${dev.substring(0, 20)}...</td>
+                        <td class="p-2 text-center font-bold">${listNisn.length} ${isMulti ? '<span class="bg-red-200 text-red-800 text-[9px] px-1 rounded">Multi</span>' : ''}</td>
+                        <td class="p-2 font-mono text-[10px]">${listNisn.join(', ')}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function muatSemuaDataMaster() {
+            muatDaftarSiswa();
+            muatDaftarGuru();
+        }
+
+        async function muatDaftarSiswa() {
+            const tbody = document.getElementById('tabel-siswa-body');
+            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat data siswa dari Turso DB...</td></tr>';
+
+            try {
+                const data = await queryTurso('SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC');
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data siswa ditemukan.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(s => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-3 font-mono font-medium text-slate-700">${s.nisn}</td>
+                        <td class="p-3 font-bold text-slate-800">${s.nama}</td>
+                        <td class="p-3 font-mono text-slate-600">${s.kelas}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="resetPasswordSiswaDefault('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition">
+                                <i class="fa-solid fa-key"></i> Reset Pass
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="hapusSiswa('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition">
+                                <i class="fa-solid fa-trash"></i> Hapus
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="5" class="p-4 text-center text-red-500 font-bold">Gagal memuat: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function muatDaftarGuru() {
+            const tbody = document.getElementById('tabel-guru-body');
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data guru/petugas dari Turso DB...</td></tr>';
+
+            try {
+                const data = await queryTurso('SELECT id, username, nama, role FROM users ORDER BY id ASC');
+
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data petugas ditemukan.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(g => `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-3 text-slate-400 font-mono">${g.id}</td>
+                        <td class="p-3 font-mono font-bold text-slate-700">${g.username}</td>
+                        <td class="p-3 font-semibold text-slate-800">${g.nama}</td>
+                        <td class="p-3">
+                            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${g.role === 'admin' ? 'bg-purple-100 text-purple-800' : g.role === 'bk' ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800'}">
+                                ${g.role}
+                            </span>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="resetPasswordGuruDefault('${g.id}', '${g.username.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition">
+                                <i class="fa-solid fa-key"></i> Reset Pass
+                            </button>
+                        </td>
+                        <td class="p-3 text-center">
+                            <button onclick="hapusGuru('${g.id}', '${g.username.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition">
+                                <i class="fa-solid fa-trash"></i> Hapus
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500 font-bold">Gagal memuat: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function resetPasswordSiswaDefault(nisn, nama) {
+            if (!confirm(`Reset password "${nama}" (NISN: ${nisn}) kembali ke default "yhan123"?`)) return;
+            try {
+                await queryTurso('UPDATE siswa SET password = ? WHERE nisn = ?', ['yhan123', nisn]);
+                alert(`Password "${nama}" berhasil direset ke "yhan123".`);
+            } catch (err) {
+                alert("Gagal reset password: " + err.message);
+            }
+        }
+
+        async function hapusSiswa(nisn, nama) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus siswa "${nama}" (NISN: ${nisn})?`)) return;
+            try {
+                await queryTurso('DELETE FROM siswa WHERE nisn = ?', [nisn]);
+                alert(`Siswa "${nama}" berhasil dihapus.`);
+                muatDaftarSiswa();
+            } catch (err) {
+                alert("Gagal menghapus: " + err.message);
+            }
+        }
+
+        async function resetPasswordGuruDefault(id, username) {
+            if (!confirm(`Reset password user petugas "${username}" kembali ke default "smada123"?`)) return;
+            try {
+                await queryTurso('UPDATE users SET password = ? WHERE id = ?', ['smada123', id]);
+                alert(`Password "${username}" berhasil direset ke "smada123".`);
+            } catch (err) {
+                alert("Gagal reset password: " + err.message);
+            }
+        }
+
+        async function hapusGuru(id, username) {
+            if (!confirm(`Apakah Anda yakin ingin menghapus user petugas "${username}"?`)) return;
+            try {
+                await queryTurso('DELETE FROM users WHERE id = ?', [id]);
+                alert(`User petugas "${username}" berhasil dihapus.`);
+                muatDaftarGuru();
+            } catch (err) {
+                alert("Gagal menghapus: " + err.message);
+            }
         }
     </script>
 </body>
