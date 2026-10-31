@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Super Admin - SMAN 2 Karanganyar</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Konfigurasi Turso Engine Direct API -->
+    <script src="js/config.js?v=login_sa_final"></script>
+</head>
+<body class="bg-slate-900 font-sans min-h-screen flex items-center justify-center p-4 text-slate-800">
+
+    <!-- CONTAINER KARTU LOGIN -->
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-6 border border-slate-700 relative overflow-hidden">
+        
+        <!-- HEADER FORM -->
+        <div class="text-center space-y-2">
+            <div class="inline-flex p-3 bg-amber-500/10 rounded-full text-amber-500 mb-1 border border-amber-500/20">
+                <i class="fa-solid fa-user-shield text-3xl"></i>
+            </div>
+            <h1 class="text-2xl font-black text-slate-900 tracking-tight">PORTAL SUPER ADMIN</h1>
+            <p class="text-xs text-slate-500 font-medium">SMAN 2 Karanganyar - Akses Privilese Khusus System Administrator</p>
+        </div>
+
+        <!-- FORM LOGIN -->
+        <form onsubmit="handleLoginSuperAdmin(event)" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Username Super Admin</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-user"></i>
+                    </span>
+                    <input type="text" id="sa-username" required placeholder="Masukkan username..." class="w-full pl-10 pr-3 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none font-mono">
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-lock"></i>
+                    </span>
+                    <input type="password" id="sa-password" required placeholder="••••••••" class="w-full pl-10 pr-3 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+            </div>
+
+            <!-- PESAN ERROR -->
+            <div id="error-msg" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-medium space-x-1.5 flex items-center">
+                <i class="fa-solid fa-circle-exclamation text-red-500"></i>
+                <span id="error-text"></span>
+            </div>
+
+            <!-- TOMBOL SUBMIT -->
+            <button type="submit" id="btn-login-sa" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center justify-center space-x-2">
+                <i class="fa-solid fa-right-to-bracket"></i>
+                <span>Masuk ke Panel Super Admin</span>
+            </button>
+        </form>
+
+        <div class="text-center pt-2 border-t border-slate-100">
+            <a href="index.html" class="text-xs text-slate-500 hover:text-slate-800 transition inline-flex items-center space-x-1">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Kembali ke Portal Login Utama</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- LOGIKA JAVASCRIPT KHUSUS LOG IN SUPERADMIN -->
+    <script>
+        async function handleLoginSuperAdmin(e) {
+            e.preventDefault();
+            const username = document.getElementById('sa-username').value.trim();
+            const password = document.getElementById('sa-password').value.trim();
+            const errorBox = document.getElementById('error-msg');
+            const errorText = document.getElementById('error-text');
+            const btn = document.getElementById('btn-login-sa');
+
+            errorBox.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akses...</span>`;
+
+            try {
+                // VERIFIKASI HARDCODED RAHASIA (TIDAK ADA DI TABEL USER DATABASE)
+                if (username === 'superadmin' && password === 'Indonesia22') {
+                    // Simpan sesi autentikasi ke localStorage
+                    localStorage.setItem('smada_user', JSON.stringify({
+                        username: 'superadmin',
+                        nama: 'System Administrator (Root)',
+                        role: 'super_admin'
+                    }));
+
+                    // Alihkan langsung ke halaman dashboard super-admin.html
+                    window.location.replace('super-admin.html');
+                    return;
+                }
+
+                // JIKA BUKAN KREDENSIAL HARDCODED, CEK DB SEBAGAI BACKUP (AKUN GURU/PETUGAS LAIN DITOLAK)
+                const dbUserMatch = await queryTurso(
+                    'SELECT * FROM users WHERE username = ? AND password_hash = ? LIMIT 1',
+                    [username, password]
+                );
+
+                if (dbUserMatch && dbUserMatch.length > 0) {
+                    const user = dbUserMatch[0];
+                    const roleStr = String(user.role || '').toLowerCase();
+
+                    if (roleStr.includes('superadmin') || roleStr.includes('super_admin')) {
+                        localStorage.setItem('smada_user', JSON.stringify({
+                            username: user.username,
+                            nama: user.nama,
+                            role: user.role
+                        }));
+                        window.location.replace('super-admin.html');
+                        return;
+                    }
+                }
+
+                throw new Error("Username atau Password Super Admin tidak valid!");
+
+            } catch (err) {
+                errorText.textContent = err.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk ke Panel Super Admin</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
