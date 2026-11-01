@@ -6,224 +6,249 @@
     <title>Portal Presensi & Kedisiplinan - SMAN 2 Karanganyar</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome CDN -->
+    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Konfigurasi Turso Engine Direct API -->
-    <script src="js/config.js?v=index_turso_final"></script>
-    <style>
-        .bg-school-overlay {
-            background-image: linear-gradient(to bottom, rgba(15, 23, 42, 0.75), rgba(15, 23, 42, 0.90)), 
-                              url('https://lh3.googleusercontent.com/d/1qqhX88M3FtfF07-qQbiIz_aCuJ5VNds5');
-            background-size: cover;
-            background-position: center;
-            background-repeat: no-repeat;
-        }
-    </style>
+    <!-- Konfigurasi Turso DB Engine Direct API -->
+    <script src="js/config.js?v=20261101_index_v1"></script>
 </head>
-<body class="bg-slate-900 font-sans min-h-screen flex flex-col justify-between text-slate-800 bg-school-overlay">
+<body class="bg-slate-900 font-sans text-slate-800 min-h-screen flex flex-col justify-between relative overflow-x-hidden">
 
-    <!-- HEADER NAVIGATION BAR -->
-    <header class="w-full bg-slate-900/60 backdrop-blur-md border-b border-slate-700/50 sticky top-0 z-50">
-        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-            <div class="flex items-center space-x-3">
-                <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" 
-                     onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" 
-                     class="w-10 h-10 object-contain drop-shadow" 
-                     alt="Logo SMAN 2 Karanganyar">
-                <div class="text-left text-white">
-                    <h1 class="font-black text-sm sm:text-base tracking-wide leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-[11px] text-blue-300 font-medium">Sistem Presensi & Kedisiplinan Digital</p>
-                </div>
-            </div>
+    <!-- BACKGROUND GRADIENT DEKORATIF -->
+    <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-900 via-slate-900 to-black opacity-90 -z-10"></div>
 
+    <!-- HEADER BAR TOP -->
+    <header class="bg-slate-950/80 backdrop-blur-md border-b border-slate-800 text-white px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" 
+                 onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" 
+                 class="w-10 h-10 object-contain drop-shadow" alt="Logo SMADA">
             <div>
-                <a href="laporan-publik.html" class="bg-blue-600/30 hover:bg-blue-600/50 text-blue-200 border border-blue-400/40 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition flex items-center space-x-1.5 shadow">
-                    <i class="fa-solid fa-chart-pie"></i>
-                    <span>Laporan Publik</span>
-                </a>
+                <h1 class="font-black text-base sm:text-lg tracking-wide leading-tight">SMAN 2 KARANGANYAR</h1>
+                <p class="text-xs text-yellow-400 font-bold">Centralized School Ecosystem & SSO Portal</p>
             </div>
+        </div>
+        <div class="hidden sm:block text-right">
+            <span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-3 py-1 rounded-full font-mono font-bold">Turso DB Engine</span>
         </div>
     </header>
 
-    <!-- KONTEN UTAMA: CARD LOGIN UTAMA -->
+    <!-- FORM LOGIN UTAMA -->
     <main class="flex-grow flex items-center justify-center p-4">
-        <div class="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl max-w-md w-full p-8 space-y-6 border border-white/20 text-left relative">
+        <div class="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-slate-200 space-y-6">
             
-            <!-- LOGO DAN HEADING PORTAL -->
-            <div class="text-center space-y-2">
-                <div class="inline-block p-2 bg-blue-50 rounded-full border border-blue-100 mb-1">
-                    <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" 
-                         onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" 
-                         class="w-16 h-16 object-contain mx-auto" 
-                         alt="Logo SMAN 2 Karanganyar">
+            <div class="text-center space-y-1">
+                <div class="w-16 h-16 bg-blue-950 text-yellow-400 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-lg border-2 border-yellow-400 mb-2">
+                    <i class="fa-solid fa-user-shield"></i>
                 </div>
-                <h2 class="text-2xl font-black text-slate-900 tracking-tight">PORTAL LOGIN INTEGRASI</h2>
-                <p class="text-xs text-slate-500 font-medium">Masukkan Username/NISN/NIP & Password Akun Anda</p>
+                <h2 class="text-xl font-black text-slate-900">MASUK PORTAL</h2>
+                <p class="text-xs font-semibold text-slate-500">Gunakan NIP / Username & Kata Sandi Anda</p>
             </div>
 
-            <!-- FORM LOGIN MULTI-ROLE -->
-            <form onsubmit="handleLogin(event)" class="space-y-4">
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Username / NISN / NIP</label>
+            <!-- PESAN ERROR (HIDDEN DEFAULT) -->
+            <div id="error-msg" class="hidden bg-red-100 border border-red-300 text-red-800 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-red-600 text-sm"></i>
+                <span id="error-text">Terjadi kesalahan login.</span>
+            </div>
+
+            <!-- FORM LOGIN -->
+            <form id="formLogin" onsubmit="handleLogin(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="block text-xs font-black uppercase text-slate-700">Username / NIP / NISN</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <i class="fa-solid fa-user-gear"></i>
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-user"></i>
                         </span>
-                        <input type="text" id="input-username" required placeholder="Ketik NISN atau NIP/Username..." class="w-full pl-10 pr-3 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none font-mono">
+                        <input type="text" id="input-username" required placeholder="Masukkan NIP atau Username..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-950 transition">
                     </div>
                 </div>
 
-                <div>
-                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Password</label>
+                <div class="space-y-1">
+                    <label class="block text-xs font-black uppercase text-slate-700">Kata Sandi / Password</label>
                     <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <i class="fa-solid fa-lock"></i>
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-key"></i>
                         </span>
-                        <!-- INPUT PASSWORD DENGAN TOMBOL MATA INTI -->
-                        <input type="password" id="input-password" required placeholder="••••••••" class="w-full pl-10 pr-10 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-600 outline-none">
-                        <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-700 transition focus:outline-none">
-                            <i id="icon-toggle-password" class="fa-solid fa-eye"></i>
-                        </button>
+                        <input type="password" id="input-password" required placeholder="Masukkan Kata Sandi..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-950 transition">
                     </div>
                 </div>
 
-                <!-- NOTIFIKASI ERROR -->
-                <div id="error-msg" class="hidden p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-700 font-semibold space-x-1.5 flex items-center">
-                    <i class="fa-solid fa-circle-exclamation text-red-500"></i>
-                    <span id="error-text"></span>
-                </div>
-
-                <!-- TOMBOL LOGIN -->
-                <button type="submit" id="btn-login" class="w-full py-3 bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 hover:from-blue-800 hover:to-indigo-800 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center justify-center space-x-2 cursor-pointer">
+                <button type="submit" id="btn-login" class="w-full bg-blue-950 hover:bg-blue-900 text-yellow-300 font-black py-3.5 px-4 rounded-xl text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-2 cursor-pointer border-2 border-yellow-400">
                     <i class="fa-solid fa-right-to-bracket"></i>
                     <span>Masuk Ke Portal</span>
                 </button>
             </form>
 
-            <div class="text-center pt-2 border-t border-slate-100">
-                <a href="laporan-publik.html" class="text-xs text-blue-700 hover:text-blue-900 font-bold transition inline-flex items-center space-x-1">
-                    <i class="fa-solid fa-eye"></i>
-                    <span>Lihat Rekap Presensi & Kedisiplinan Publik</span>
-                </a>
+            <div class="text-center border-t pt-4">
+                <p class="text-[11px] text-slate-400 font-semibold">Mengalami masalah login? Hubungi Administrator System Sekolah.</p>
             </div>
         </div>
     </main>
 
     <!-- FOOTER -->
-    <footer class="w-full bg-slate-900/80 backdrop-blur-md border-t border-slate-800 py-4 text-center text-xs text-slate-400">
+    <footer class="bg-slate-950 text-slate-400 text-xs text-center py-4 border-t border-slate-800">
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- LOGIKA JAVASCRIPT PEMROSES LOGIN MULTI-ROLE & SHOW/HIDE PASSWORD -->
+    <!-- LOGIKA LOGIN MULTI-ROLE & SSO -->
     <script>
-        // FUNGSI TAMPILKAN / SEMBUNYIKAN PASSWORD (MATA)
-        function togglePasswordVisibility() {
-            const passInput = document.getElementById('input-password');
-            const toggleIcon = document.getElementById('icon-toggle-password');
+        let pendingUserSession = null;
 
-            if (passInput.type === 'password') {
-                passInput.type = 'text';
-                toggleIcon.classList.remove('fa-eye');
-                toggleIcon.classList.add('fa-eye-slash');
-            } else {
-                passInput.type = 'password';
-                toggleIcon.classList.remove('fa-eye-slash');
-                toggleIcon.classList.add('fa-eye');
+        async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('input-username').value.trim();
+            const passwordInput = document.getElementById('input-password').value.trim();
+            const errorBox = document.getElementById('error-msg');
+            const errorText = document.getElementById('error-text');
+            const btnLogin = document.getElementById('btn-login');
+
+            errorBox.classList.add('hidden');
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
+
+            try {
+                // 1. HARDCODED SUPER ADMIN ACCESS (ROOT RAHASIA)
+                if (usernameInput === 'superadmin' && passwordInput === 'Indonesia22') {
+                    localStorage.setItem('smada_user', JSON.stringify({
+                        username: 'superadmin',
+                        nama: 'System Administrator (Root)',
+                        role: 'super_admin'
+                    }));
+                    localStorage.setItem('smada_role', 'super_admin');
+                    window.location.replace('super-admin.html');
+                    return;
+                }
+
+                // 2. CEK USERS GURU / ADMIN / PETUGAS (DATABASE TURSO)
+                const userMatch = await queryTurso(
+                    'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
+                    [usernameInput, passwordInput]
+                );
+
+                if (userMatch && userMatch.length > 0) {
+                    const user = userMatch[0];
+                    const roleStr = String(user.role || '').toLowerCase().trim();
+
+                    // Simpan data sesi login utama
+                    localStorage.setItem('smada_user', JSON.stringify({
+                        username: user.username,
+                        nama: user.nama,
+                        role: user.role
+                    }));
+                    localStorage.setItem('smada_role', user.role);
+
+                    pendingUserSession = user;
+
+                    // Hitung jumlah peran yang dimiliki akun ini
+                    const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
+                    const hasPiket = roleStr.includes('piket');
+                    const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
+                    const hasMapel = roleStr.includes('mapel') || roleStr.includes('guru');
+
+                    const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
+
+                    // JIKA MULTI-ROLE ATAU ADMIN -> TAMPILKAN POP-UP MODAL PILIH PERAN
+                    if (totalRoleCount > 1 || hasAdmin) {
+                        tampilkanModalPilihPeran(user, { hasAdmin, hasPiket, hasBK, hasMapel });
+                        return;
+                    }
+
+                    // JIKA PERAN TUNGGAL -> REDIRECT LANGSUNG
+                    if (hasBK) {
+                        window.location.replace('bk.html');
+                    } else if (hasPiket) {
+                        window.location.replace('piket.html');
+                    } else {
+                        // Default Guru Mapel -> Redirect Jurnal Mengajar via SSO Token
+                        const ssoToken = btoa(JSON.stringify(user));
+                        window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${encodeURIComponent(ssoToken)}`);
+                    }
+                    return;
+                }
+
+                // 3. CEK LOGIN SISWA MANDIRI (DATABASE TURSO)
+                const siswaMatch = await queryTurso(
+                    'SELECT * FROM siswa WHERE nisn = ? AND password = ? LIMIT 1',
+                    [usernameInput, passwordInput]
+                );
+
+                if (siswaMatch && siswaMatch.length > 0) {
+                    const siswa = siswaMatch[0];
+                    localStorage.setItem('smada_siswa', JSON.stringify({
+                        id: siswa.id, 
+                        nisn: siswa.nisn, 
+                        nama: siswa.nama, 
+                        kelas: siswa.kelas
+                    }));
+                    window.location.replace('siswa.html');
+                    return;
+                }
+
+                throw new Error("Username/NISN atau Password tidak ditemukan!");
+
+            } catch (err) {
+                errorText.textContent = err.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
             }
         }
 
-     async function handleLogin(e) {
-    e.preventDefault();
-    const usernameInput = document.getElementById('input-username').value.trim();
-    const passwordInput = document.getElementById('input-password').value.trim();
-    const errorBox = document.getElementById('error-msg');
-    const errorText = document.getElementById('error-text');
-    const btnLogin = document.getElementById('btn-login');
-
-    errorBox.classList.add('hidden');
-    btnLogin.disabled = true;
-    btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
-
-    try {
-        // 1. CEK KHUSUS SUPER ADMIN (HARDCODED RAHASIA)
-        if (usernameInput === 'superadmin' && passwordInput === 'Indonesia22') {
-            localStorage.setItem('smada_user', JSON.stringify({
-                username: 'superadmin',
-                nama: 'System Administrator (Root)',
-                role: 'super_admin'
-            }));
-
-            window.location.replace('super-admin.html');
-            return;
-        }
-
-        // 2. CEK LOGIN GURU / ADMIN / PETUGAS (DATABASE TURSO)
-        // PERBAIKAN: Menggunakan nama kolom 'password' (bukan password_hash)
-        const userMatch = await queryTurso(
-            'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
-            [usernameInput, passwordInput]
-        );
-
-        if (userMatch && userMatch.length > 0) {
-            const user = userMatch[0];
-            const roleStr = String(user.role || '').toLowerCase().trim();
-
-            localStorage.setItem('smada_user', JSON.stringify({
-                username: user.username,
-                nama: user.nama,
-                role: user.role
-            }));
-
-            // REDIRECTION SESUAI ROLE
-            if (roleStr.includes('superadmin') || roleStr.includes('super_admin')) {
-                window.location.replace('super-admin.html');
-            } else if (roleStr.includes('admin')) {
-                window.location.replace('admin.html');
-            } else if (roleStr.includes('piket')) {
-                window.location.replace('piket.html');
-            } else if (roleStr.includes('bk') || roleStr.includes('stp2k')) {
-                window.location.replace('bk.html');
-            } else if (roleStr.includes('mapel') || roleStr.includes('guru')) {
-                // GURU MAPEL: Redirect langsung ke Portal Jurnal Mengajar dengan Token SSO
-                const ssoToken = btoa(JSON.stringify(user));
-                window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${encodeURIComponent(ssoToken)}`);
-            } else {
-                window.location.replace('piket.html');
+        // FUNGSI POP-UP MODAL PILIH PERAN (MULTI-ROLE)
+        function tampilkanModalPilihPeran(user, roles) {
+            let modal = document.getElementById('modalPilihPeranMulti');
+            
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'modalPilihPeranMulti';
+                modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+                document.body.appendChild(modal);
             }
-            return;
+
+            const ssoToken = btoa(JSON.stringify(user));
+
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border-2 border-blue-200 animate-fade-in">
+                    <div class="text-center border-b pb-3 space-y-1">
+                        <span class="bg-blue-100 text-blue-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">Beberapa Peran Terdeteksi</span>
+                        <h3 class="font-black text-slate-900 text-base">Pilih Modul Akses Anda</h3>
+                        <p class="text-xs text-slate-500 font-bold">${user.nama} (${user.username})</p>
+                    </div>
+
+                    <div class="space-y-2.5 text-xs font-black">
+                        ${roles.hasAdmin ? `
+                            <button onclick="window.location.href='super-admin.html'" class="w-full bg-slate-950 hover:bg-slate-900 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-yellow-400">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-shield-halved text-base text-yellow-400"></i> Panel Super Admin / System</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+
+                        ${roles.hasMapel || (!roles.hasPiket && !roles.hasBK && !roles.hasAdmin) ? `
+                            <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${encodeURIComponent(ssoToken)}'" class="w-full bg-blue-900 hover:bg-blue-950 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-blue-700">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-book-bookmark text-yellow-300 text-base"></i> Portal Jurnal Mengajar</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+
+                        ${roles.hasPiket ? `
+                            <button onclick="window.location.href='piket.html'" class="w-full bg-teal-700 hover:bg-teal-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-clipboard-user text-base"></i> Menu Guru Piket</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+
+                        ${roles.hasBK ? `
+                            <button onclick="window.location.href='bk.html'" class="w-full bg-rose-700 hover:bg-rose-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-triangle-exclamation text-base"></i> Menu BK & STP2K</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
         }
-
-        // 3. CEK LOGIN SISWA MANDIRI (DATABASE TURSO)
-        const siswaMatch = await queryTurso(
-            'SELECT * FROM siswa WHERE nisn = ? AND password = ? LIMIT 1',
-            [usernameInput, passwordInput]
-        );
-
-        if (siswaMatch && siswaMatch.length > 0) {
-            const siswa = siswaMatch[0];
-
-            localStorage.setItem('smada_siswa', JSON.stringify({
-                id: siswa.id,
-                nisn: siswa.nisn,
-                nama: siswa.nama,
-                kelas: siswa.kelas
-            }));
-
-            window.location.replace('siswa.html');
-            return;
-        }
-
-        throw new Error("Username/NISN atau Password tidak ditemukan!");
-
-    } catch (err) {
-        errorText.textContent = err.message;
-        errorBox.classList.remove('hidden');
-    } finally {
-        btnLogin.disabled = false;
-        btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
-    }
-}
-
     </script>
 </body>
 </html>
