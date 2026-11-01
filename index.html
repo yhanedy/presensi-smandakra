@@ -9,13 +9,12 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Konfigurasi Turso DB Engine Direct API -->
-    <script src="js/config.js?v=20261101_index_v2"></script>
+    <script src="js/config.js?v=20261101_index_v3"></script>
 </head>
 <body class="font-sans text-slate-800 min-h-screen flex flex-col justify-between relative overflow-x-hidden bg-slate-900">
 
     <!-- BACKGROUND FOTO (GOOGLE DRIVE IMAGE + OVERLAY GELAP ELEGAN) -->
     <div class="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat" style="background-image: url('https://lh3.googleusercontent.com/d/1qqhX88M3FtfF07-qQbiIz_aCuJ5VNds5');">
-        <!-- Overlay Gradien Hitam/Navy untuk meningkatkan kontras baca -->
         <div class="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-slate-900/75 to-slate-950/90 backdrop-blur-[2px]"></div>
     </div>
 
@@ -40,14 +39,17 @@
         <div class="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-slate-200/90 space-y-6">
             
             <div class="text-center space-y-1">
-                <div class="w-16 h-16 bg-blue-950 text-yellow-400 rounded-2xl mx-auto flex items-center justify-center text-2xl shadow-lg border-2 border-yellow-400 mb-2">
-                    <i class="fa-solid fa-user-shield"></i>
-                </div>
+                <!-- LOGO RESMI SMADA -->
+                <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" 
+                     onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" 
+                     class="w-20 h-20 object-contain mx-auto drop-shadow-md mb-2" 
+                     alt="Logo SMAN 2 Karanganyar">
+
                 <h2 class="text-xl font-black text-slate-900">MASUK PORTAL</h2>
                 <p class="text-xs font-semibold text-slate-500">Gunakan NIP / Username & Kata Sandi Anda</p>
             </div>
 
-            <!-- PESAN ERROR (HIDDEN DEFAULT) -->
+            <!-- PESAN ERROR -->
             <div id="error-msg" class="hidden bg-red-100 border border-red-300 text-red-800 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
                 <i class="fa-solid fa-circle-exclamation text-red-600 text-sm"></i>
                 <span id="error-text">Terjadi kesalahan login.</span>
@@ -73,7 +75,7 @@
                         </span>
                         <input type="password" id="input-password" required placeholder="Masukkan Kata Sandi..." class="w-full pl-10 pr-12 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-950 transition">
                         
-                        <!-- TOMBOL MATA UNTUK MEMPERLIHATKAN / MEMBUNYIKAN PASSWORD -->
+                        <!-- TOMBOL MATA SHOW/HIDE PASSWORD -->
                         <button type="button" onclick="toggleTampilPassword()" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-blue-950 transition cursor-pointer">
                             <i id="icon-toggle-password" class="fa-solid fa-eye"></i>
                         </button>
@@ -101,7 +103,6 @@
     <script>
         let pendingUserSession = null;
 
-        // FUNGSI TOGGLE LIHAT PASSWORD
         function toggleTampilPassword() {
             const passInput = document.getElementById('input-password');
             const passIcon = document.getElementById('icon-toggle-password');
@@ -130,7 +131,6 @@
             btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
 
             try {
-                // 1. HARDCODED SUPER ADMIN ACCESS (ROOT RAHASIA)
                 if (usernameInput === 'superadmin' && passwordInput === 'Indonesia22') {
                     localStorage.setItem('smada_user', JSON.stringify({
                         username: 'superadmin',
@@ -142,7 +142,6 @@
                     return;
                 }
 
-                // 2. CEK USERS GURU / ADMIN / PETUGAS (DATABASE TURSO)
                 const userMatch = await queryTurso(
                     'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
                     [usernameInput, passwordInput]
@@ -152,7 +151,6 @@
                     const user = userMatch[0];
                     const roleStr = String(user.role || '').toLowerCase().trim();
 
-                    // Simpan data sesi login utama
                     localStorage.setItem('smada_user', JSON.stringify({
                         username: user.username,
                         nama: user.nama,
@@ -162,7 +160,6 @@
 
                     pendingUserSession = user;
 
-                    // Hitung jumlah peran yang dimiliki akun ini
                     const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
                     const hasPiket = roleStr.includes('piket');
                     const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
@@ -170,26 +167,22 @@
 
                     const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
 
-                    // JIKA MULTI-ROLE ATAU ADMIN -> TAMPILKAN POP-UP MODAL PILIH PERAN
                     if (totalRoleCount > 1 || hasAdmin) {
                         tampilkanModalPilihPeran(user, { hasAdmin, hasPiket, hasBK, hasMapel });
                         return;
                     }
 
-                    // JIKA PERAN TUNGGAL -> REDIRECT LANGSUNG
                     if (hasBK) {
                         window.location.replace('bk.html');
                     } else if (hasPiket) {
                         window.location.replace('piket.html');
                     } else {
-                        // Default Guru Mapel -> Redirect Jurnal Mengajar via SSO Token
                         const ssoToken = btoa(JSON.stringify(user));
                         window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${encodeURIComponent(ssoToken)}`);
                     }
                     return;
                 }
 
-                // 3. CEK LOGIN SISWA MANDIRI (DATABASE TURSO)
                 const siswaMatch = await queryTurso(
                     'SELECT * FROM siswa WHERE nisn = ? AND password = ? LIMIT 1',
                     [usernameInput, passwordInput]
@@ -218,7 +211,6 @@
             }
         }
 
-        // FUNGSI POP-UP MODAL PILIH PERAN (MULTI-ROLE)
         function tampilkanModalPilihPeran(user, roles) {
             let modal = document.getElementById('modalPilihPeranMulti');
             
