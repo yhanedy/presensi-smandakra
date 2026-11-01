@@ -9,7 +9,7 @@
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Konfigurasi Turso Engine Direct API -->
-    <script src="js/config.js?v=siswa_turso_final"></script>
+    <script src="js/config.js?v=siswa_turso_final_v4"></script>
 
     <!-- PROTEKSI SESI KHUSUS SISWA MANDIRI -->
     <script>
@@ -159,13 +159,30 @@
                 </button>
             </div>
 
-            <!-- MENU FOTO ALTERNATIF -->
+            <!-- MENU KAMERA ALTERNATIF -->
             <div class="pt-3 border-t border-slate-800/80">
                 <button id="btn-kamera-alt" onclick="bukaModalOpsiKamera()" class="w-full py-3 px-4 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition flex items-center justify-center space-x-2 shadow cursor-pointer">
                     <i class="fa-solid fa-camera"></i>
                     <span id="btn-kamera-label">GPS Bermasalah? Presensi Kamera</span>
                 </button>
             </div>
+        </div>
+
+        <!-- TOMBOL UTAMA PERMOHONAN IZIN / DISPEN -->
+        <div class="bg-gradient-to-r from-purple-900 to-indigo-950 p-4 rounded-2xl border-2 border-purple-400 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-purple-500/20 border border-purple-300 rounded-xl flex items-center justify-center text-xl text-purple-300">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                </div>
+                <div>
+                    <h3 class="font-black text-sm sm:text-base tracking-wide">Permohonan Izin / Sakit / Dispen</h3>
+                    <p class="text-xs text-purple-200 font-medium">Ajukan surat izin tulis tangan atau surat tugas/dokter untuk diproses Guru Piket.</p>
+                </div>
+            </div>
+            <button onclick="bukaModalIzinDispen()" class="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white font-black px-5 py-3 rounded-xl text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-2 cursor-pointer border border-purple-300">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Buat Permohonan</span>
+            </button>
         </div>
 
         <!-- GRID DUA KOLOM: RIWAYAT KEHADIRAN & GANTI PASSWORD -->
@@ -214,7 +231,142 @@
 
     </main>
 
-    <!-- MODAL 1: POP-UP KONFIRMASI PILIHAN PRESENSI -->
+    <!-- MODAL BROADCAST PENGUMUMAN ADMIN KHUSUS SISWA -->
+    <div id="modal-pengumuman-siswa" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 text-left shadow-2xl relative border-2 border-yellow-400">
+            <div class="flex items-center gap-3 border-b pb-3">
+                <div class="w-10 h-10 bg-blue-950 text-yellow-400 rounded-2xl flex items-center justify-center text-xl shadow border border-yellow-400">
+                    <i class="fa-solid fa-bullhorn animate-bounce"></i>
+                </div>
+                <div>
+                    <span class="text-[10px] bg-yellow-100 text-yellow-900 font-black px-2 py-0.5 rounded-full uppercase">Pengumuman Sekolah</span>
+                    <h3 id="pop-judul-pengumuman" class="font-black text-slate-900 text-sm sm:text-base leading-tight">...</h3>
+                </div>
+            </div>
+
+            <div id="pop-isi-pengumuman" class="text-xs text-slate-700 space-y-2 leading-relaxed max-h-60 overflow-y-auto p-3 bg-slate-50 rounded-2xl border border-slate-200 font-semibold">
+                ...
+            </div>
+
+            <button onclick="tutupPopupPengumuman()" class="w-full bg-blue-950 hover:bg-blue-900 text-yellow-300 font-black py-3 rounded-xl text-xs transition shadow border border-yellow-400 cursor-pointer">
+                Saya Mengerti / Paham
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PERMOHONAN: 2 TAB (IZIN HARIAN 1 HARI vs SURAT DOKTER & DISPEN) -->
+    <div id="modal-permohonan-ijin" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 text-left shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto border-2 border-purple-200">
+            <button onclick="tutupModalIzinDispen()" class="absolute top-4 right-4 text-slate-400 hover:text-red-600 text-xl font-bold">&times;</button>
+
+            <div class="border-b pb-3 space-y-1">
+                <span class="bg-purple-100 text-purple-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">Formulir Permohonan Siswa</span>
+                <h3 class="font-black text-slate-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature text-purple-600"></i>
+                    <span>Pengajuan Izin / Dokter / Dispen</span>
+                </h3>
+            </div>
+
+            <!-- SWITCH TAB -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl font-bold text-xs">
+                <button onclick="switchTabIzinDispen('tab-ijin-harian')" id="btn-tab-ijin-harian" class="tab-ijin-btn py-2.5 rounded-xl bg-purple-900 text-white font-black shadow transition">
+                    <i class="fa-solid fa-user-pen mr-1 text-yellow-300"></i> 1. Izin Tulis Tangan (1 Hari)
+                </button>
+                <button onclick="switchTabIzinDispen('tab-dispen')" id="btn-tab-dispen" class="tab-ijin-btn py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition">
+                    <i class="fa-solid fa-notes-medical mr-1 text-blue-600"></i> 2. Surat Dokter & Dispen
+                </button>
+            </div>
+
+            <!-- TAB 1: IZIN TULIS TANGAN (BERLAKU 1 HARI) -->
+            <div id="tab-ijin-harian" class="tab-ijin-content space-y-3 text-xs">
+                <div class="bg-purple-50 border border-purple-200 p-3 rounded-2xl space-y-1 text-purple-900">
+                    <span class="font-black text-[11px] uppercase flex items-center gap-1">
+                        <i class="fa-solid fa-circle-info text-purple-700"></i> Ketentuan Izin Tulis Tangan:
+                    </span>
+                    <ul class="list-disc list-inside space-y-0.5 font-semibold text-[11px] text-slate-700">
+                        <li>Berlaku khusus <strong>1 Hari (Tanggal: <span id="ijinTanggalToday" class="font-bold text-purple-900"></span>)</strong>.</li>
+                        <li>Wajib surat <strong>TULIS TANGAN</strong> bertanda tangan <strong>ORANG TUA / WALI</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-black text-slate-700 uppercase text-[11px]">Uraian Alasan Izin</label>
+                    <textarea id="ijin-alasan" rows="2" placeholder="Tuliskan alasan izin..." class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-semibold outline-none"></textarea>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-purple-300 text-center space-y-2">
+                    <span class="block font-black text-slate-800 text-[11px]">Foto Surat Izin Tulis Tangan</span>
+                    <input type="file" id="ijinFotoInput" accept="image/*" capture="environment" onchange="previewFotoIzin(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('ijinFotoInput').click()" class="bg-purple-900 hover:bg-purple-950 text-white font-black px-4 py-2 rounded-xl text-xs shadow cursor-pointer">
+                        <i class="fa-solid fa-camera text-yellow-300 mr-1"></i> Foto Surat
+                    </button>
+                    <div id="ijinPreviewBox" class="hidden">
+                        <img id="ijinFotoPreview" src="#" class="h-28 mx-auto rounded-xl border-2 border-purple-400 object-cover">
+                    </div>
+                </div>
+
+                <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-900 font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-amber-600 text-sm"></i>
+                    <span>Foto disimpan di Google Drive Sekolah & dibersihkan otomatis setelah 4 pekan.</span>
+                </div>
+
+                <button onclick="kirimPermohonanIzinHarian()" id="btnKirimIjinHarian" class="w-full bg-purple-900 hover:bg-purple-950 text-white font-black py-3 rounded-xl shadow cursor-pointer">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket
+                </button>
+            </div>
+
+            <!-- TAB 2: SURAT DOKTER & DISPEN (RENTANG TANGGAL) -->
+            <div id="tab-dispen" class="tab-ijin-content hidden space-y-3 text-xs">
+                <div class="bg-blue-50 border border-blue-200 p-3 rounded-2xl space-y-1 text-blue-900">
+                    <span class="font-black text-[11px] uppercase flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-days text-blue-600"></i> Surat Dokter / Dispensasi Resmi:
+                    </span>
+                    <p class="text-[11px] text-slate-700 font-medium">Mendukung rentang waktu beberapa hari untuk pemulihan sakit atau tugas dinas/organisasi.</p>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-black text-slate-700 uppercase text-[11px]">Jenis Pengajuan</label>
+                    <select id="dispenKategori" class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-bold bg-white text-slate-800">
+                        <option value="Sakit (Surat Dokter)">Sakit (Dengan Surat Dokter)</option>
+                        <option value="Dispensasi">Dispensasi / Tugas Luar Sekolah</option>
+                    </select>
+                </div>
+
+                <!-- RENTANG TANGGAL -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                        <label class="block font-black text-slate-700 uppercase text-[11px]">Dari Tanggal</label>
+                        <input type="date" id="dispenTglMulai" class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-bold bg-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block font-black text-slate-700 uppercase text-[11px]">Sampai Tanggal</label>
+                        <input type="date" id="dispenTglSelesai" class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-bold bg-white">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-black text-slate-700 uppercase text-[11px]">Keterangan Dokter / Nama Kegiatan</label>
+                    <input type="text" id="dispenKeterangan" placeholder="Contoh: Istirahat Sakit / Lomba O2SN..." class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-semibold bg-white">
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-blue-300 text-center space-y-2">
+                    <span class="block font-black text-slate-800 text-[11px]">Upload Surat Dokter / Surat Tugas (PDF / Foto)</span>
+                    <input type="file" id="dispenFileInput" accept="image/*,.pdf" onchange="previewFileDispen(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('dispenFileInput').click()" class="bg-blue-900 hover:bg-blue-950 text-white font-black px-4 py-2 rounded-xl text-xs shadow cursor-pointer">
+                        <i class="fa-solid fa-file-arrow-up text-yellow-300 mr-1"></i> Upload Surat Dokter / Dispen
+                    </button>
+                    <p id="dispenFileNama" class="text-[11px] font-bold text-blue-900 hidden"></p>
+                </div>
+
+                <button onclick="kirimPermohonanDispenDokter()" id="btnKirimDispenDokter" class="w-full bg-blue-900 hover:bg-blue-950 text-white font-black py-3 rounded-xl shadow cursor-pointer">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan Ke Piket
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 1: POP-UP KONFIRMASI PILIHAN PRESENSI KAMERA -->
     <div id="modal-opsi-presensi" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-left shadow-2xl relative">
             <button onclick="tutupModalOpsiPresensi()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600">
@@ -302,8 +454,10 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- SCRIPT JAVASCRIPT LOGIKA PORTAL TURSO ENGINE -->
+    <!-- SCRIPT LOGIKA UTAMA PORTAL SISWA -->
     <script>
+        const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbz4inApesetc3y14EJrgWUU-b_l9pKn8l0VVB6_mg2mJfjJS8XL4Gvjj45h29cvcggywA/exec";
+
         let currentActiveUser = null;
         let siswaDistanceMeters = null;
         let latSekolah = -7.6005890;
@@ -313,6 +467,10 @@
         let isSudahPresensiMasuk = false;
         let modePresensiKameraDipilih = null;
         let videoStream = null;
+
+        let fotoIzinBase64 = null;
+        let fileDispenBase64 = null;
+        let activeAnnouncementId = null;
 
         function getTanggalWIB(d = new Date()) {
             return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
@@ -348,6 +506,7 @@
 
             muatSettingSekolah();
             muatPortalSiswa();
+            cekPengumumanKhususSiswa();
         };
 
         async function muatSettingSekolah() {
@@ -381,6 +540,184 @@
             muatRiwayatSiswa();
         }
 
+        /* --- FUNGSI PENGUMUMAN BROADCAST KHUSUS SISWA --- */
+        async function cekPengumumanKhususSiswa() {
+            try {
+                // Kueri mencari pengumuman aktif khusus target 'siswa' atau 'semua'
+                const data = await queryTurso(
+                    'SELECT * FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = "siswa" OR LOWER(target_role) = "semua") ORDER BY id DESC LIMIT 1'
+                );
+
+                if (data && data.length > 0) {
+                    const ann = data[0];
+                    const readId = localStorage.getItem('smada_read_announcement_id');
+
+                    // Jika pengumuman belum dibaca oleh siswa ini di browser ini
+                    if (readId !== String(ann.id)) {
+                        activeAnnouncementId = ann.id;
+                        document.getElementById('pop-judul-pengumuman').innerText = ann.judul;
+                        document.getElementById('pop-isi-pengumuman').innerText = ann.isi;
+                        document.getElementById('modal-pengumuman-siswa').classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.log("Belum ada tabel pengumuman / tidak aktif.");
+            }
+        }
+
+        function tutupPopupPengumuman() {
+            if (activeAnnouncementId) {
+                localStorage.setItem('smada_read_announcement_id', String(activeAnnouncementId));
+            }
+            document.getElementById('modal-pengumuman-siswa').classList.add('hidden');
+        }
+
+        /* --- FUNGSI MODAL PERMOHONAN IZIN & DISPEN --- */
+        function bukaModalIzinDispen() {
+            const tglStr = getTanggalWIB();
+            document.getElementById('ijinTanggalToday').innerText = tglStr;
+            document.getElementById('dispenTglMulai').value = tglStr;
+            document.getElementById('dispenTglSelesai').value = tglStr;
+            document.getElementById('modal-permohonan-ijin').classList.remove('hidden');
+        }
+
+        function tutupModalIzinDispen() {
+            document.getElementById('modal-permohonan-ijin').classList.add('hidden');
+        }
+
+        function switchTabIzinDispen(tabId) {
+            document.querySelectorAll('.tab-ijin-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-ijin-btn').forEach(b => b.className = "tab-ijin-btn py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition");
+            
+            if (tabId === 'tab-ijin-harian') {
+                document.getElementById('btn-tab-ijin-harian').className = "tab-ijin-btn py-2.5 rounded-xl bg-purple-900 text-white font-black shadow transition";
+            } else {
+                document.getElementById('btn-tab-dispen').className = "tab-ijin-btn py-2.5 rounded-xl bg-blue-900 text-white font-black shadow transition";
+            }
+        }
+
+        function previewFotoIzin(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fotoIzinBase64 = e.target.result;
+                    document.getElementById('ijinFotoPreview').src = fotoIzinBase64;
+                    document.getElementById('ijinPreviewBox').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function previewFileDispen(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fileDispenBase64 = e.target.result;
+                    const namaEl = document.getElementById('dispenFileNama');
+                    namaEl.innerText = `File Terpilih: ${file.name}`;
+                    namaEl.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function uploadKeDriveGAS(base64Data, prefix) {
+            if (!base64Data) return "";
+            try {
+                const res = await fetch(GAS_UPLOAD_IJIN_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        image: base64Data,
+                        mimeType: "image/jpeg",
+                        fileName: `${prefix}_${currentActiveUser.nisn || currentActiveUser.username}_${Date.now()}.jpg`,
+                        folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
+                    })
+                });
+                const json = await res.json();
+                return json.status === 'success' ? json.url : "";
+            } catch (e) {
+                console.error("Gagal upload Drive:", e);
+                return "";
+            }
+        }
+
+        async function kirimPermohonanIzinHarian() {
+            const alasan = document.getElementById('ijin-alasan').value.trim();
+            const btn = document.getElementById('btnKirimIjinHarian');
+
+            if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
+            if (!fotoIzinBase64) { alert("Wajib mefoto Surat Izin Tulis Tangan bertanda tangan Orang Tua!"); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Permohonan...`;
+
+            try {
+                const tglWIB = getTanggalWIB();
+                const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+                const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan");
+
+                await queryTurso(
+                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
+                    [nisnVal, tglWIB, getJamWIB(), 'Izin', `Izin Harian (1 Hari): ${alasan} (Surat: ${driveUrl || 'Tulis Tangan'})`]
+                );
+
+                alert(`Permohonan Izin Harian berhasil dikirim ke Guru Piket!`);
+                tutupModalIzinDispen();
+                muatPresensiSiswaHariIni();
+                muatRiwayatSiswa();
+            } catch (err) {
+                alert("Gagal mengirim izin: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket`;
+            }
+        }
+
+        async function kirimPermohonanDispenDokter() {
+            const jenisKategori = document.getElementById('dispenKategori').value;
+            const tglMulai = document.getElementById('dispenTglMulai').value;
+            const tglSelesai = document.getElementById('dispenTglSelesai').value;
+            const keterangan = document.getElementById('dispenKeterangan').value.trim();
+            const btn = document.getElementById('btnKirimDispenDokter');
+
+            if (!keterangan) { alert("Tuliskan keterangan surat dokter / kegiatan dispen!"); return; }
+            if (!tglMulai || !tglSelesai) { alert("Pilih rentang tanggal pelaksanaan!"); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+
+            try {
+                const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+                const driveUrl = await uploadKeDriveGAS(fileDispenBase64, "dispen_dokter");
+
+                await queryTurso(
+                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
+                    [
+                        nisnVal, 
+                        tglMulai, 
+                        getJamWIB(), 
+                        jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi', 
+                        `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} (File: ${driveUrl || 'Lampiran'})`
+                    ]
+                );
+
+                alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil diteruskan ke Rule Guru Piket!`);
+                tutupModalIzinDispen();
+                muatPresensiSiswaHariIni();
+                muatRiwayatSiswa();
+            } catch (err) {
+                alert("Gagal mengirim pengajuan: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan Ke Piket`;
+            }
+        }
+
+        /* --- FUNGSI LOKASI & GEOLOKASI GPS --- */
         function cekSiswaGPS() {
             const badgeText = document.getElementById('gps-status-badge');
             const radiusText = document.getElementById('siswa-status-radius-text');
@@ -458,9 +795,7 @@
             const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
                       Math.cos(φ1) * Math.cos(φ2) *
                       Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-
-            return R * c;
+            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
         async function muatPresensiSiswaHariIni() {
@@ -671,7 +1006,8 @@
                     let badgeClass = "bg-slate-100 text-slate-800";
                     if (r.status === 'Hadir') badgeClass = "bg-emerald-100 text-emerald-800";
                     else if (r.status === 'Terlambat') badgeClass = "bg-amber-100 text-amber-800";
-                    else if (r.status === 'Sakit' || r.status === 'Izin') badgeClass = "bg-blue-100 text-blue-800";
+                    else if (r.status === 'Sakit' || r.status === 'Izin') badgeClass = "bg-purple-100 text-purple-800";
+                    else if (r.status === 'Dispensasi') badgeClass = "bg-blue-100 text-blue-800";
                     else if (r.status === 'Alpa' || r.status === 'Alpha') badgeClass = "bg-red-100 text-red-800";
 
                     return `
