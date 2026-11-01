@@ -132,91 +132,98 @@
             }
         }
 
-        async function handleLogin(e) {
-            e.preventDefault();
-            const usernameInput = document.getElementById('input-username').value.trim();
-            const passwordInput = document.getElementById('input-password').value.trim();
-            const errorBox = document.getElementById('error-msg');
-            const errorText = document.getElementById('error-text');
-            const btnLogin = document.getElementById('btn-login');
+     async function handleLogin(e) {
+    e.preventDefault();
+    const usernameInput = document.getElementById('input-username').value.trim();
+    const passwordInput = document.getElementById('input-password').value.trim();
+    const errorBox = document.getElementById('error-msg');
+    const errorText = document.getElementById('error-text');
+    const btnLogin = document.getElementById('btn-login');
 
-            errorBox.classList.add('hidden');
-            btnLogin.disabled = true;
-            btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
+    errorBox.classList.add('hidden');
+    btnLogin.disabled = true;
+    btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
 
-            try {
-                // 1. CEK KHUSUS SUPER ADMIN (HARDCODED RAHASIA)
-                if (usernameInput === 'superadmin' && passwordInput === 'Indonesia22') {
-                    localStorage.setItem('smada_user', JSON.stringify({
-                        username: 'superadmin',
-                        nama: 'System Administrator (Root)',
-                        role: 'super_admin'
-                    }));
+    try {
+        // 1. CEK KHUSUS SUPER ADMIN (HARDCODED RAHASIA)
+        if (usernameInput === 'superadmin' && passwordInput === 'Indonesia22') {
+            localStorage.setItem('smada_user', JSON.stringify({
+                username: 'superadmin',
+                nama: 'System Administrator (Root)',
+                role: 'super_admin'
+            }));
 
-                    window.location.replace('super-admin.html');
-                    return;
-                }
-
-                // 2. CEK LOGIN GURU / ADMIN / PETUGAS (DATABASE TURSO)
-                const userMatch = await queryTurso(
-                    'SELECT * FROM users WHERE username = ? AND password_hash = ? LIMIT 1',
-                    [usernameInput, passwordInput]
-                );
-
-                if (userMatch && userMatch.length > 0) {
-                    const user = userMatch[0];
-                    const roleStr = String(user.role || '').toLowerCase();
-
-                    localStorage.setItem('smada_user', JSON.stringify({
-                        username: user.username,
-                        nama: user.nama,
-                        role: user.role
-                    }));
-
-                    if (roleStr.includes('superadmin') || roleStr.includes('super_admin')) {
-                        window.location.replace('super-admin.html');
-                    } else if (roleStr.includes('admin')) {
-                        window.location.replace('admin.html');
-                    } else if (roleStr.includes('piket')) {
-                        window.location.replace('piket.html');
-                    } else if (roleStr.includes('bk') || roleStr.includes('stp2k')) {
-                        window.location.replace('bk.html');
-                    } else {
-                        window.location.replace('piket.html');
-                    }
-                    return;
-                }
-
-                // 3. CEK LOGIN SISWA MANDIRI (DATABASE TURSO)
-                const siswaMatch = await queryTurso(
-                    'SELECT * FROM siswa WHERE nisn = ? AND password = ? LIMIT 1',
-                    [usernameInput, passwordInput]
-                );
-
-                if (siswaMatch && siswaMatch.length > 0) {
-                    const siswa = siswaMatch[0];
-
-                    localStorage.setItem('smada_siswa', JSON.stringify({
-                        id: siswa.id,
-                        nisn: siswa.nisn,
-                        nama: siswa.nama,
-                        kelas: siswa.kelas
-                    }));
-
-                    window.location.replace('siswa.html');
-                    return;
-                }
-
-                throw new Error("Username/NISN atau Password tidak ditemukan!");
-
-            } catch (err) {
-                errorText.textContent = err.message;
-                errorBox.classList.remove('hidden');
-            } finally {
-                btnLogin.disabled = false;
-                btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
-            }
+            window.location.replace('super-admin.html');
+            return;
         }
+
+        // 2. CEK LOGIN GURU / ADMIN / PETUGAS (DATABASE TURSO)
+        // PERBAIKAN: Menggunakan nama kolom 'password' (bukan password_hash)
+        const userMatch = await queryTurso(
+            'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
+            [usernameInput, passwordInput]
+        );
+
+        if (userMatch && userMatch.length > 0) {
+            const user = userMatch[0];
+            const roleStr = String(user.role || '').toLowerCase().trim();
+
+            localStorage.setItem('smada_user', JSON.stringify({
+                username: user.username,
+                nama: user.nama,
+                role: user.role
+            }));
+
+            // REDIRECTION SESUAI ROLE
+            if (roleStr.includes('superadmin') || roleStr.includes('super_admin')) {
+                window.location.replace('super-admin.html');
+            } else if (roleStr.includes('admin')) {
+                window.location.replace('admin.html');
+            } else if (roleStr.includes('piket')) {
+                window.location.replace('piket.html');
+            } else if (roleStr.includes('bk') || roleStr.includes('stp2k')) {
+                window.location.replace('bk.html');
+            } else if (roleStr.includes('mapel') || roleStr.includes('guru')) {
+                // GURU MAPEL: Redirect langsung ke Portal Jurnal Mengajar dengan Token SSO
+                const ssoToken = btoa(JSON.stringify(user));
+                window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${encodeURIComponent(ssoToken)}`);
+            } else {
+                window.location.replace('piket.html');
+            }
+            return;
+        }
+
+        // 3. CEK LOGIN SISWA MANDIRI (DATABASE TURSO)
+        const siswaMatch = await queryTurso(
+            'SELECT * FROM siswa WHERE nisn = ? AND password = ? LIMIT 1',
+            [usernameInput, passwordInput]
+        );
+
+        if (siswaMatch && siswaMatch.length > 0) {
+            const siswa = siswaMatch[0];
+
+            localStorage.setItem('smada_siswa', JSON.stringify({
+                id: siswa.id,
+                nisn: siswa.nisn,
+                nama: siswa.nama,
+                kelas: siswa.kelas
+            }));
+
+            window.location.replace('siswa.html');
+            return;
+        }
+
+        throw new Error("Username/NISN atau Password tidak ditemukan!");
+
+    } catch (err) {
+        errorText.textContent = err.message;
+        errorBox.classList.remove('hidden');
+    } finally {
+        btnLogin.disabled = false;
+        btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
+    }
+}
+
     </script>
 </body>
 </html>
