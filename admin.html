@@ -14,14 +14,42 @@
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- PROTEKSI HAK AKSES ADMIN -->
-    <script>
-        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
-        const activeRole = localStorage.getItem('smada_role');
-        if (!activeUser || !activeRole || (!activeRole.includes('admin') && !activeRole.includes('superadmin'))) {
-            alert('Akses Ditolak! Anda harus login sebagai Administrator.');
+  <script>
+    (function verifikasiAksesModul() {
+        // 1. Ambil data sesi pengguna dari LocalStorage
+        const rawUser = localStorage.getItem('smada_user');
+        const activeRoleRaw = localStorage.getItem('smada_role');
+
+        if (!rawUser) {
+            alert('Akses Ditolak! Silakan login terlebih dahulu.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        try {
+            const activeUser = JSON.parse(rawUser);
+            // Gabungkan role dari object user dan item localstorage agar fleksibel
+            const userRole = String(activeUser.role || activeRoleRaw || '').toLowerCase();
+
+            // 2. Cek apakah pengguna memiliki role BK/STP2K, Admin, ATAU Super Admin
+            const MemilikiAkses = 
+                userRole.includes('bk') || 
+                userRole.includes('stp2k') || 
+                userRole.includes('admin') || 
+                userRole.includes('superadmin') || 
+                userRole.includes('super_admin');
+
+            if (!MemilikiAkses) {
+                alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
+                window.location.href = 'index.html';
+            }
+        } catch (e) {
+            console.error("Gagal membaca data sesi login:", e);
+            localStorage.removeItem('smada_user');
             window.location.href = 'index.html';
         }
-    </script>
+    })();
+</script>
 
     <!-- HEADER / NAVBAR INTERNAL ADMIN -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
