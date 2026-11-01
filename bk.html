@@ -140,6 +140,7 @@
     </footer>
 
     <!-- JAVASCRIPT LOGIKA BK (TURSO DRIVEN) -->
+    
     <script>
         let currentOffset = 0;
         const LIMIT = 15;
@@ -156,7 +157,19 @@
             localStorage.removeItem('smada_role');
             window.location.href = 'index.html';
         }
+        (function verifikasiAkses() {
+    const rawUser = localStorage.getItem('smada_user');
+    if (!rawUser) { window.location.replace('index.html'); return; }
+    
+    const user = JSON.parse(rawUser);
+    const r = String(user.role || '').toLowerCase();
 
+    // Tambahkan role 'superadmin' dan 'super_admin' agar bisa masuk
+    if (!r.includes('bk') && !r.includes('stp2k') && !r.includes('superadmin') && !r.includes('super_admin') && !r.includes('admin')) {
+        alert("Akses Ditolak! Khusus Tim BK / Super Admin.");
+        window.location.replace('index.html');
+    }
+})();
         async function simpanPelanggaranBK() {
             const nisn = document.getElementById('pelanggaran-nisn').value.trim();
             const catatan = document.getElementById('pelanggaran-catatan').value.trim();
