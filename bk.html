@@ -14,14 +14,42 @@
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- PROTEKSI HAK AKSES GURU BK / STP2K / ADMIN -->
-    <script>
-        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
-        const activeRole = localStorage.getItem('smada_role');
-        if (!activeUser || !activeRole || (!activeRole.includes('bk') && !activeRole.includes('admin'))) {
-            alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
+<script>
+    (function verifikasiAksesModul() {
+        // 1. Ambil data sesi pengguna dari LocalStorage
+        const rawUser = localStorage.getItem('smada_user');
+        const activeRoleRaw = localStorage.getItem('smada_role');
+
+        if (!rawUser) {
+            alert('Akses Ditolak! Silakan login terlebih dahulu.');
+            window.location.href = 'index.html';
+            return;
+        }
+
+        try {
+            const activeUser = JSON.parse(rawUser);
+            // Gabungkan role dari object user dan item localstorage agar fleksibel
+            const userRole = String(activeUser.role || activeRoleRaw || '').toLowerCase();
+
+            // 2. Cek apakah pengguna memiliki role BK/STP2K, Admin, ATAU Super Admin
+            const MemilikiAkses = 
+                userRole.includes('bk') || 
+                userRole.includes('stp2k') || 
+                userRole.includes('admin') || 
+                userRole.includes('superadmin') || 
+                userRole.includes('super_admin');
+
+            if (!MemilikiAkses) {
+                alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
+                window.location.href = 'index.html';
+            }
+        } catch (e) {
+            console.error("Gagal membaca data sesi login:", e);
+            localStorage.removeItem('smada_user');
             window.location.href = 'index.html';
         }
-    </script>
+    })();
+</script>
 
     <!-- HEADER -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
@@ -157,19 +185,7 @@
             localStorage.removeItem('smada_role');
             window.location.href = 'index.html';
         }
-        (function verifikasiAkses() {
-    const rawUser = localStorage.getItem('smada_user');
-    if (!rawUser) { window.location.replace('index.html'); return; }
-    
-    const user = JSON.parse(rawUser);
-    const r = String(user.role || '').toLowerCase();
-
-    // Tambahkan role 'superadmin' dan 'super_admin' agar bisa masuk
-    if (!r.includes('bk') && !r.includes('stp2k') && !r.includes('superadmin') && !r.includes('super_admin') && !r.includes('admin')) {
-        alert("Akses Ditolak! Khusus Tim BK / Super Admin.");
-        window.location.replace('index.html');
-    }
-})();
+   
         async function simpanPelanggaranBK() {
             const nisn = document.getElementById('pelanggaran-nisn').value.trim();
             const catatan = document.getElementById('pelanggaran-catatan').value.trim();
