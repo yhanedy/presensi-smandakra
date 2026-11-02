@@ -1,23 +1,29 @@
-// KONFIGURASI BARU AMAN (API GATEWAY CLOUDFLARE WORKER)
 const API_WORKER_URL = "https://smada-api-gateway.yhanedy.workers.dev/api/query";
 
-async function queryTurso(sql, args = []) {
+async function queryTurso(sql, params = []) {
     try {
         const response = await fetch(API_WORKER_URL, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json' 
+            headers: {
+                'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ sql, args })
+            body: JSON.stringify({
+                sql: sql,
+                args: params
+            })
         });
 
+        const resData = await response.json().catch(() => ({}));
+
         if (!response.ok) {
-            throw new Error(`API Backend Error: ${response.status} ${response.statusText}`);
+            // TAMPILKAN DETAIL QUERY KETIKA ERROR 400 TERJADI
+            console.error("SQL Error Detail:", { sql, params, error: resData.error });
+            throw new Error(resData.error || `HTTP ${response.status}`);
         }
 
-        return await response.json();
+        return resData;
     } catch (err) {
-        console.error("Gagal terhubung ke API Backend Serverless:", err);
+        console.error("Gagal Query Turso:", err);
         throw err;
     }
 }
