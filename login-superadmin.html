@@ -68,66 +68,72 @@
         </div>
     </div>
 
-    <!-- LOGIKA JAVASCRIPT KHUSUS LOG IN SUPERADMIN -->
-    <script>
-        async function handleLoginSuperAdmin(e) {
-            e.preventDefault();
-            const username = document.getElementById('sa-username').value.trim();
-            const password = document.getElementById('sa-password').value.trim();
-            const errorBox = document.getElementById('error-msg');
-            const errorText = document.getElementById('error-text');
-            const btn = document.getElementById('btn-login-sa');
+   <!-- LOGIKA JAVASCRIPT KHUSUS LOG IN SUPERADMIN (SECURITY HARDENED) -->
+<script>
+    async function handleLoginSuperAdmin(e) {
+        e.preventDefault();
+        const username = document.getElementById('sa-username').value.trim();
+        const password = document.getElementById('sa-password').value.trim();
+        const errorBox = document.getElementById('error-msg');
+        const errorText = document.getElementById('error-text');
+        const btn = document.getElementById('btn-login-sa');
 
-            errorBox.classList.add('hidden');
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akses...</span>`;
+        if (!username || !password) {
+            if (errorText && errorBox) {
+                errorText.textContent = "Username dan Password Super Admin wajib diisi!";
+                errorBox.classList.remove('hidden');
+            }
+            return;
+        }
 
-            try {
-                // VERIFIKASI HARDCODED RAHASIA (TIDAK ADA DI TABEL USER DATABASE)
-                if (username === 'superadmin' && password === 'Indonesia22') {
-                    // Simpan sesi autentikasi ke localStorage
+        if (errorBox) errorBox.classList.add('hidden');
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akses...</span>`;
+
+        try {
+            // VERIFIKASI KE DATABASE TURSO VIA API GATEWAY WORKER (BEBAS HARDCODED)
+            const dbUserMatch = await queryTurso(
+                'SELECT * FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND (TRIM(password) = ? OR TRIM(password_hash) = ?) LIMIT 1',
+                [username, password, password]
+            );
+
+            if (dbUserMatch && dbUserMatch.length > 0) {
+                const user = dbUserMatch[0];
+                const roleStr = String(user.role || '').toLowerCase().trim();
+
+                // OTORISASI KHUSUS PERAN SUPER ADMIN / ADMIN
+                if (roleStr.includes('superadmin') || roleStr.includes('super_admin') || roleStr === 'admin') {
+                    // Simpan sesi autentikasi resmi
                     localStorage.setItem('smada_user', JSON.stringify({
-                        username: 'superadmin',
-                        nama: 'System Administrator (Root)',
-                        role: 'super_admin'
+                        username: user.username,
+                        nama: user.nama || 'System Administrator',
+                        role: user.role || 'super_admin'
                     }));
+                    localStorage.setItem('smada_role', user.role || 'super_admin');
 
-                    // Alihkan langsung ke halaman dashboard super-admin.html
+                    // Alihkan langsung ke dashboard super-admin.html
                     window.location.replace('super-admin.html');
                     return;
+                } else {
+                    throw new Error("Akun Anda tidak memiliki hak akses Super Admin!");
                 }
-
-                // JIKA BUKAN KREDENSIAL HARDCODED, CEK DB SEBAGAI BACKUP (AKUN GURU/PETUGAS LAIN DITOLAK)
-                const dbUserMatch = await queryTurso(
-                    'SELECT * FROM users WHERE username = ? AND password_hash = ? LIMIT 1',
-                    [username, password]
-                );
-
-                if (dbUserMatch && dbUserMatch.length > 0) {
-                    const user = dbUserMatch[0];
-                    const roleStr = String(user.role || '').toLowerCase();
-
-                    if (roleStr.includes('superadmin') || roleStr.includes('super_admin')) {
-                        localStorage.setItem('smada_user', JSON.stringify({
-                            username: user.username,
-                            nama: user.nama,
-                            role: user.role
-                        }));
-                        window.location.replace('super-admin.html');
-                        return;
-                    }
-                }
-
-                throw new Error("Username atau Password Super Admin tidak valid!");
-
-            } catch (err) {
-                errorText.textContent = err.message;
-                errorBox.classList.remove('hidden');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk ke Panel Super Admin</span>`;
             }
+
+            throw new Error("Username atau Password Super Admin tidak valid!");
+
+        } catch (err) {
+            console.error("Superadmin login error:", err);
+            if (errorText && errorBox) {
+                errorText.textContent = err.message || "Gagal melakukan verifikasi kredensial.";
+                errorBox.classList.remove('hidden');
+            } else {
+                alert(err.message || "Gagal login Super Admin!");
+            }
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk ke Panel Super Admin</span>`;
         }
-    </script>
+    }
+</script>
 </body>
 </html>
