@@ -3,228 +3,474 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portal Siswa Mandiri - SMAN 2 Karanganyar</title>
+    <title>Portal Presensi Siswa - SMAN 2 Karanganyar</title>
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
+    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Konfigurasi Turso DB Engine Direct API -->
-    <script src="js/config.js?v=20261102_siswa_fix_v1"></script>
+    <!-- Konfigurasi Turso Engine Direct API -->
+    <script src="js/config.js?v=siswa_turso_final_v5"></script>
+
+    <!-- PROTEKSI SESI KHUSUS SISWA MANDIRI -->
+    <script>
+        (function verifikasiSesiSiswa() {
+            const rawSession = localStorage.getItem('smada_siswa');
+            
+            if (!rawSession || rawSession === "null" || rawSession === "undefined") {
+                window.location.replace('index.html');
+                return;
+            }
+
+            try {
+                const parsed = JSON.parse(rawSession);
+                if (!parsed || (!parsed.nisn && !parsed.username && !parsed.id)) {
+                    localStorage.removeItem('smada_siswa');
+                    window.location.replace('index.html');
+                }
+            } catch (e) {
+                localStorage.removeItem('smada_siswa');
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
 </head>
-<body class="bg-slate-100 font-sans text-slate-800 min-h-screen flex flex-col justify-between">
+<body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- HEADER / NAVBAR SISWA -->
-    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-40 px-4 py-3 border-b-4 border-yellow-400">
-        <div class="max-w-4xl mx-auto flex justify-between items-center">
+    <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
-                <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover shadow" alt="Logo">
-                <div>
-                    <h1 class="font-black text-sm sm:text-base leading-tight">SMAN 2 KARANGANYAR</h1>
-                    <p class="text-[11px] text-yellow-300 font-bold">Portal Presensi Siswa Mandiri</p>
+                <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" class="w-10 h-10 rounded-full border-2 border-white object-cover shadow" alt="Logo SMAN 2 Karanganyar">
+                <div class="text-left">
+                    <h1 class="font-bold text-base sm:text-lg leading-tight">SMAN 2 KARANGANYAR</h1>
+                    <p class="text-xs text-blue-200">Portal Presensi Siswa Mandiri (Turso Engine)</p>
                 </div>
             </div>
-            <button onclick="logoutSiswa()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 cursor-pointer shadow">
-                <i class="fa-solid fa-power-off"></i> Keluar
+            
+            <button onclick="handleLogoutSiswa()" class="px-3 py-1.5 rounded font-medium transition bg-red-600 hover:bg-red-700 text-white text-xs flex items-center space-x-1.5 cursor-pointer">
+                <i class="fa-solid fa-power-off"></i>
+                <span>Keluar</span>
             </button>
         </div>
     </header>
 
     <!-- KONTEN UTAMA PORTAL SISWA -->
-    <main class="max-w-4xl mx-auto px-4 py-6 w-full flex-grow space-y-5">
-        
-        <!-- CARD KARTU PROFIL SISWA -->
-        <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-slate-900 text-white rounded-2xl p-5 shadow-xl border-2 border-blue-200 relative overflow-hidden">
-            <div class="absolute -right-6 -bottom-6 w-32 h-32 bg-yellow-400/10 rounded-full blur-xl pointer-events-none"></div>
-            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-10">
-                <div class="space-y-1">
-                    <span class="bg-yellow-400 text-blue-950 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">Siswa Aktif SMADA</span>
-                    <h2 id="siswa-nama" class="text-xl font-black text-white leading-tight">Memuat Nama...</h2>
-                    <p class="text-xs text-blue-200 font-mono">NISN: <span id="siswa-nisn" class="font-bold text-yellow-300">-</span> | KELAS: <span id="siswa-kelas" class="font-bold text-yellow-300">-</span></p>
+    <main class="max-w-4xl mx-auto px-4 py-6 w-full flex-grow space-y-6 text-left">
+
+        <!-- KARTU PROFIL IDENTITAS SISWA -->
+        <div class="bg-gradient-to-r from-blue-900 to-indigo-800 text-white rounded-xl shadow-md p-5 border border-blue-950">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="space-y-1 text-left">
+                    <p class="text-xs text-blue-200 uppercase tracking-wider font-semibold">Selamat Datang,</p>
+                    <h2 id="siswa-profil-nama" class="text-xl sm:text-2xl font-black tracking-wide text-white">Memuat...</h2>
                 </div>
-                <div class="text-left sm:text-right bg-white/10 backdrop-blur-md px-3.5 py-2 rounded-xl border border-white/20 w-full sm:w-auto">
-                    <span class="text-[10px] text-slate-300 block font-semibold">Status Lokasi Presensi:</span>
-                    <span id="gps-status-badge" class="text-xs font-black text-yellow-300 flex items-center gap-1.5">
-                        <i class="fa-solid fa-spinner fa-spin"></i> Mendeteksi Lokasi...
-                    </span>
+                <div class="flex flex-wrap items-center gap-3 text-xs sm:text-sm">
+                    <div class="bg-blue-950/80 border border-blue-700/50 px-3 py-1.5 rounded-lg">
+                        <span class="text-blue-200">Kelas: </span>
+                        <span id="siswa-profil-kelas" class="font-bold text-white font-mono">-</span>
+                    </div>
+                    <div class="bg-blue-950/80 border border-blue-700/50 px-3 py-1.5 rounded-lg">
+                        <span class="text-blue-200">NISN: </span>
+                        <span id="siswa-profil-nisn" class="font-bold text-white font-mono">-</span>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- PERMOHONAN IZIN / SAKIT / DISPEN -->
-        <div class="bg-gradient-to-r from-purple-900 to-indigo-950 text-white rounded-2xl p-4 shadow-md border border-purple-300 flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-purple-700/60 border border-purple-300 flex items-center justify-center text-lg shadow">
-                    <i class="fa-solid fa-envelope-open-text text-yellow-300"></i>
+        <!-- KARTU RINGKASAN STATUS PRESENSI HARI INI -->
+        <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-4 text-left">
+            <div class="flex justify-between items-center border-b pb-3">
+                <div class="text-left">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-id-badge text-blue-600"></i>
+                        <span>Status Presensi Hari Ini (WIB)</span>
+                    </h3>
+                    <p class="text-xs text-slate-500" id="siswa-tanggal-hari-ini">-</p>
                 </div>
-                <div>
-                    <h3 class="font-black text-sm text-white">Permohonan Izin / Sakit / Dispen</h3>
-                    <p class="text-xs text-purple-200">Ajukan surat izin tulis tangan atau surat tugas/dokter untuk diproses Guru Piket.</p>
+                <span id="siswa-badge-status" class="px-3 py-1 rounded-full text-xs font-bold border bg-slate-100 text-slate-700">
+                    Belum Presensi
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4 text-center">
+                <div class="bg-emerald-50 rounded-lg p-3 border border-emerald-100 text-left">
+                    <span class="text-[10px] uppercase font-bold text-emerald-600 block">Jam Masuk</span>
+                    <span id="siswa-jam-masuk" class="text-base sm:text-lg font-mono font-bold text-emerald-900">--:--:--</span>
+                </div>
+                <div class="bg-blue-50 rounded-lg p-3 border border-blue-100 text-left">
+                    <span class="text-[10px] uppercase font-bold text-blue-600 block">Jam Pulang</span>
+                    <span id="siswa-jam-pulang" class="text-base sm:text-lg font-mono font-bold text-blue-900">--:--:--</span>
                 </div>
             </div>
-            <button onclick="bukaModalPermohonanIzin()" class="w-full sm:w-auto bg-purple-600 hover:bg-purple-500 text-white font-black text-xs px-4 py-2.5 rounded-xl transition shadow border border-purple-300 cursor-pointer flex items-center justify-center gap-1.5 shrink-0">
-                <i class="fa-solid fa-paper-plane text-yellow-300"></i> Buat Permohonan
+
+            <div class="bg-slate-50 rounded-lg p-3 border border-slate-200 text-xs text-slate-600 flex items-start space-x-2 text-left">
+                <i class="fa-solid fa-circle-info text-blue-600 mt-0.5"></i>
+                <span id="siswa-catatan-status">Silakan lakukan presensi masuk saat tiba di lokasi sekolah.</span>
+            </div>
+        </div>
+
+        <!-- KARTU INFORMASI RADIUS & GEOLOKASI GPS -->
+        <div class="bg-slate-900 text-white rounded-2xl p-5 shadow-lg border border-slate-800 space-y-4 text-left">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div id="gps-status-pill" class="flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span id="gps-pulse-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                        <span id="gps-pulse-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
+                    </span>
+                    <span id="gps-status-badge">Mendeteksi Lokasi...</span>
+                </div>
+
+                <h3 class="font-bold text-xs uppercase tracking-wider text-slate-400 flex items-center space-x-1.5">
+                    <span>Status Geolokasi GPS</span>
+                    <i class="fa-solid fa-location-dot text-blue-400"></i>
+                </h3>
+            </div>
+
+            <div class="flex flex-col space-y-2 text-left">
+                <div class="space-y-0.5">
+                    <span class="text-[11px] text-slate-400 font-medium block">Posisi Anda Saat Ini</span>
+                    <div id="siswa-status-radius-text" class="text-sm font-black tracking-wide text-amber-400 flex items-center justify-start space-x-1.5">
+                        <span>Memeriksa Koordinat...</span>
+                    </div>
+                </div>
+
+                <div class="pt-2 border-t border-slate-800/80 w-full flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Batas Toleransi: <strong id="siswa-radius-limit" class="text-slate-200 font-mono">100m</strong></span>
+                    <span class="text-slate-400">Jarak ke Sekolah: <strong id="siswa-jarak" class="font-mono text-blue-400 text-sm">-</strong></span>
+                </div>
+            </div>
+
+            <div class="flex justify-start pt-1">
+                <button onclick="cekSiswaGPS()" class="inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white transition-all duration-200 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow hover:from-blue-500 hover:to-indigo-500 border border-blue-400/30 cursor-pointer">
+                    <i class="fa-solid fa-location-crosshairs mr-2 text-blue-200"></i>
+                    <span>Perbarui Lokasi Saya</span>
+                </button>
+            </div>
+
+            <!-- TOMBOL PRESENSI GPS (MASUK & PULANG) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+                <button onclick="prosesPresensiSiswa('Hadir')" id="btn-siswa-masuk" class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow cursor-pointer">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Presensi Masuk</span>
+                </button>
+                <button onclick="prosesPresensiSiswa('Pulang')" id="btn-siswa-pulang" disabled class="bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Presensi Pulang</span>
+                </button>
+            </div>
+
+            <!-- MENU KAMERA ALTERNATIF -->
+            <div class="pt-3 border-t border-slate-800/80">
+                <button id="btn-kamera-alt" onclick="bukaModalOpsiKamera()" class="w-full py-3 px-4 rounded-xl text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 transition flex items-center justify-center space-x-2 shadow cursor-pointer">
+                    <i class="fa-solid fa-camera"></i>
+                    <span id="btn-kamera-label">GPS Bermasalah? Presensi Kamera</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- TOMBOL UTAMA PERMOHONAN IZIN / DISPEN -->
+        <div class="bg-gradient-to-r from-purple-900 to-indigo-950 p-4 rounded-2xl border-2 border-purple-400 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-white">
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 bg-purple-500/20 border border-purple-300 rounded-xl flex items-center justify-center text-xl text-purple-300">
+                    <i class="fa-solid fa-envelope-open-text"></i>
+                </div>
+                <div>
+                    <h3 class="font-black text-sm sm:text-base tracking-wide">Permohonan Izin / Sakit / Dispen</h3>
+                    <p class="text-xs text-purple-200 font-medium">Ajukan surat izin tulis tangan atau surat tugas/dokter untuk diproses Guru Piket.</p>
+                </div>
+            </div>
+            <button onclick="bukaModalIzinDispen()" class="w-full sm:w-auto bg-purple-500 hover:bg-purple-600 text-white font-black px-5 py-3 rounded-xl text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-2 cursor-pointer border border-purple-300">
+                <i class="fa-solid fa-paper-plane"></i>
+                <span>Buat Permohonan</span>
             </button>
         </div>
 
-        <!-- TOMBOL PRESENSI UTAMA (PRESENSI MASUK / PULANG) -->
-        <div class="bg-white rounded-2xl shadow-md p-5 border border-slate-200 space-y-4">
-            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
-                <div>
-                    <h3 class="font-black text-slate-800 text-base flex items-center gap-2">
-                        <i class="fa-solid fa-clock text-blue-600"></i>
-                        <span>Presensi Harian Siswa Hari Ini</span>
-                    </h3>
-                    <p id="siswa-status-radius-text" class="text-xs text-slate-500 font-medium">Batas jarak maksimal sekolah: <span class="font-bold text-slate-800">100 Meter</span></p>
+        <!-- GRID DUA KOLOM: RIWAYAT KEHADIRAN & GANTI PASSWORD -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
+            <div class="md:col-span-2 bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-3">
+                <h3 class="font-bold text-slate-800 text-sm">Riwayat Presensi Saya</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs text-left text-slate-600">
+                        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
+                            <tr>
+                                <th class="p-3">Tanggal</th>
+                                <th class="p-3 text-center">Masuk</th>
+                                <th class="p-3 text-center">Pulang</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3">Keterangan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabel-riwayat-siswa" class="divide-y divide-slate-100">
+                            <tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>
+                        </tbody>
+                    </table>
                 </div>
-                <span id="display-jam-live" class="font-mono font-black text-blue-900 bg-blue-50 border border-blue-200 px-3 py-1 rounded-lg text-xs sm:text-sm">00:00:00 WIB</span>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- TOMBOL PRESENSI MASUK -->
-                <button id="btn-siswa-masuk" onclick="prosesPresensiSiswa('Hadir')" class="bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black p-4 rounded-xl shadow transition flex items-center justify-center gap-3 cursor-pointer border-2 border-emerald-500">
-                    <i class="fa-solid fa-right-to-bracket text-xl"></i>
-                    <div class="text-left">
-                        <span class="block text-xs uppercase text-emerald-200">Lakukan Presensi</span>
-                        <span class="text-sm">PRESENSI MASUK</span>
-                    </div>
-                </button>
+            <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3 bg-slate-50/50 text-left">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
+                    <i class="fa-solid fa-key text-amber-600"></i>
+                    <span>Ganti Password</span>
+                </h3>
+                <p class="text-xs text-slate-500">Ubah password demi keamanan akun Anda.</p>
+                
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Password Baru</label>
+                    <input type="password" id="siswa-pass-baru" placeholder="Masukkan password baru..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Konfirmasi Password</label>
+                    <input type="password" id="siswa-pass-konfirm" placeholder="Ulangi password baru..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs focus:ring-2 focus:ring-amber-500 outline-none">
+                </div>
 
-                <!-- TOMBOL PRESENSI PULANG -->
-                <button id="btn-siswa-pulang" onclick="prosesPresensiSiswa('Pulang')" class="bg-amber-600 hover:bg-amber-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black p-4 rounded-xl shadow transition flex items-center justify-center gap-3 cursor-pointer border-2 border-amber-500">
-                    <i class="fa-solid fa-right-from-bracket text-xl"></i>
-                    <div class="text-left">
-                        <span class="block text-xs uppercase text-amber-200">Lakukan Presensi</span>
-                        <span class="text-sm">PRESENSI PULANG</span>
-                    </div>
+                <button onclick="gantiPasswordSiswa()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition cursor-pointer">
+                    Perbarui Password
                 </button>
-            </div>
-
-            <!-- ALTERNATIF: PRESENSI KAMERA JIKA GPS BERMASALAH -->
-            <div class="pt-2 text-center border-t border-slate-100">
-                <button type="button" onclick="bukaModalKameraStream()" class="inline-flex items-center gap-2 text-xs font-black text-blue-900 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-4 py-2 rounded-xl transition cursor-pointer">
-                    <i class="fa-solid fa-camera text-blue-600"></i>
-                    <span>GPS Bermasalah? Presensi Pakai Kamera Wajah</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- RIWAYAT PRESENSI SAYA -->
-        <div class="bg-white rounded-2xl shadow-md p-5 border border-slate-200 space-y-3">
-            <h3 class="font-black text-slate-800 text-sm flex items-center gap-2">
-                <i class="fa-solid fa-history text-blue-600"></i>
-                <span>Riwayat Presensi Saya</span>
-            </h3>
-            <div class="overflow-x-auto">
-                <table class="w-full text-xs text-left text-slate-600">
-                    <thead class="bg-slate-100 uppercase font-black">
-                        <tr>
-                            <th class="p-3">Tanggal</th>
-                            <th class="p-3">Masuk</th>
-                            <th class="p-3">Pulang</th>
-                            <th class="p-3 text-center">Status</th>
-                            <th class="p-3">Keterangan</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tabel-riwayat-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat riwayat presensi...</td></tr>
-                    </tbody>
-                </table>
             </div>
         </div>
 
     </main>
 
-    <!-- MODAL POPUP KAMERA (VERIFIKASI WAJAH - FIX BLACK SCREEN) -->
-    <div id="modal-kamera" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl border-2 border-blue-200">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-slate-900 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-camera text-blue-600"></i>
-                    <span>Verifikasi Wajah Presensi</span>
-                </h3>
-                <button onclick="tutupModalKamera()" class="text-slate-400 hover:text-red-600 font-bold text-lg">&times;</button>
-            </div>
-
-            <!-- AREA VIDEO STREAM PREVIEW -->
-            <div class="relative bg-black rounded-2xl overflow-hidden aspect-video border-2 border-slate-300 flex items-center justify-center">
-                <video id="video-preview" autoplay playsinline muted class="w-full h-full object-cover"></video>
-                <canvas id="canvas-capture" class="hidden"></canvas>
-
-                <div id="box-peringatan-gagal" class="hidden absolute inset-0 bg-slate-900/90 text-white p-4 flex flex-col items-center justify-center text-center space-y-2">
-                    <i class="fa-solid fa-circle-exclamation text-amber-400 text-2xl"></i>
-                    <p class="text-xs font-bold" id="txt-gagal-kamera">Gagal memuat stream video.</p>
+    <!-- MODAL BROADCAST PENGUMUMAN ADMIN KHUSUS SISWA -->
+    <div id="modal-pengumuman-siswa" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 text-left shadow-2xl relative border-2 border-yellow-400">
+            <div class="flex items-center gap-3 border-b pb-3">
+                <div class="w-10 h-10 bg-blue-950 text-yellow-400 rounded-2xl flex items-center justify-center text-xl shadow border border-yellow-400">
+                    <i class="fa-solid fa-bullhorn animate-bounce"></i>
+                </div>
+                <div>
+                    <span class="text-[10px] bg-yellow-100 text-yellow-900 font-black px-2 py-0.5 rounded-full uppercase">Pengumuman Sekolah</span>
+                    <h3 id="pop-judul-pengumuman" class="font-black text-slate-900 text-sm sm:text-base leading-tight">...</h3>
                 </div>
             </div>
 
-            <p class="text-[11px] text-slate-500 font-semibold text-center">Posisikan wajah Anda di dalam kamera dan tekan tombol di bawah untuk presensi.</p>
+            <div id="pop-isi-pengumuman" class="text-xs text-slate-700 space-y-2 leading-relaxed max-h-60 overflow-y-auto p-3 bg-slate-50 rounded-2xl border border-slate-200 font-semibold">
+                ...
+            </div>
 
-            <div class="flex gap-2">
-                <button onclick="tutupModalKamera()" class="flex-1 bg-slate-200 text-slate-700 font-black py-2.5 rounded-xl text-xs hover:bg-slate-300 transition cursor-pointer">Batal</button>
-                <button onclick="ambilFotoDanPresensi()" class="flex-1 bg-blue-900 hover:bg-blue-950 text-yellow-300 font-black py-2.5 rounded-xl text-xs transition border border-yellow-400 shadow cursor-pointer flex items-center justify-center gap-1.5">
-                    <i class="fa-solid fa-camera"></i> Ambil Foto & Absen
+            <button onclick="tutupPopupPengumuman()" class="w-full bg-blue-950 hover:bg-blue-900 text-yellow-300 font-black py-3 rounded-xl text-xs transition shadow border border-yellow-400 cursor-pointer">
+                Saya Mengerti / Paham
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL PERMOHONAN: 2 TAB (IZIN HARIAN 1 HARI vs SURAT DOKTER & DISPEN) -->
+    <div id="modal-permohonan-ijin" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-white rounded-3xl max-w-lg w-full p-6 space-y-4 text-left shadow-2xl relative my-auto max-h-[90vh] overflow-y-auto border-2 border-purple-200">
+            <button onclick="tutupModalIzinDispen()" class="absolute top-4 right-4 text-slate-400 hover:text-red-600 text-xl font-bold cursor-pointer">&times;</button>
+
+            <div class="border-b pb-3 space-y-1">
+                <span class="bg-purple-100 text-purple-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">Formulir Permohonan Siswa</span>
+                <h3 class="font-black text-slate-900 text-base flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature text-purple-600"></i>
+                    <span>Pengajuan Izin / Dokter / Dispen</span>
+                </h3>
+            </div>
+
+            <!-- SWITCH TAB -->
+            <div class="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl font-bold text-xs">
+                <button onclick="switchTabIzinDispen('tab-ijin-harian')" id="btn-tab-ijin-harian" class="tab-ijin-btn py-2.5 rounded-xl bg-purple-900 text-white font-black shadow transition cursor-pointer">
+                    <i class="fa-solid fa-user-pen mr-1 text-yellow-300"></i> 1. Izin Tulis Tangan (1 Hari)
+                </button>
+                <button onclick="switchTabIzinDispen('tab-dispen')" id="btn-tab-dispen" class="tab-ijin-btn py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition cursor-pointer">
+                    <i class="fa-solid fa-notes-medical mr-1 text-blue-600"></i> 2. Surat Dokter & Dispen
+                </button>
+            </div>
+
+            <!-- TAB 1: IZIN TULIS TANGAN (BERLAKU 1 HARI) -->
+            <div id="tab-ijin-harian" class="tab-ijin-content space-y-3 text-xs">
+                <div class="bg-purple-50 border border-purple-200 p-3 rounded-2xl space-y-1 text-purple-900">
+                    <span class="font-black text-[11px] uppercase flex items-center gap-1">
+                        <i class="fa-solid fa-circle-info text-purple-700"></i> Ketentuan Izin Tulis Tangan:
+                    </span>
+                    <ul class="list-disc list-inside space-y-0.5 font-semibold text-[11px] text-slate-700">
+                        <li>Berlaku khusus <strong>1 Hari (Tanggal: <span id="ijinTanggalToday" class="font-bold text-purple-900"></span>)</strong>.</li>
+                        <li>Wajib surat <strong>TULIS TANGAN</strong> bertanda tangan <strong>ORANG TUA / WALI</strong>.</li>
+                    </ul>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-black text-slate-700 uppercase text-[11px]">Uraian Alasan Izin</label>
+                    <textarea id="ijin-alasan" rows="2" placeholder="Tuliskan alasan izin..." class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-semibold outline-none"></textarea>
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-purple-300 text-center space-y-2">
+                    <span class="block font-black text-slate-800 text-[11px]">Foto Surat Izin Tulis Tangan</span>
+                    <input type="file" id="ijinFotoInput" accept="image/*" capture="environment" onchange="previewFotoIzin(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('ijinFotoInput').click()" class="bg-purple-900 hover:bg-purple-950 text-white font-black px-4 py-2 rounded-xl text-xs shadow cursor-pointer">
+                        <i class="fa-solid fa-camera text-yellow-300 mr-1"></i> Foto Surat
+                    </button>
+                    <div id="ijinPreviewBox" class="hidden">
+                        <img id="ijinFotoPreview" src="#" class="h-28 mx-auto rounded-xl border-2 border-purple-400 object-cover">
+                    </div>
+                </div>
+
+                <div class="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-[10px] text-amber-900 font-semibold flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-arrow-up text-amber-600 text-sm"></i>
+                    <span>Foto disimpan di Google Drive Sekolah & dibersihkan otomatis setelah 4 pekan.</span>
+                </div>
+
+                <button onclick="kirimPermohonanIzinHarian()" id="btnKirimIjinHarian" class="w-full bg-purple-900 hover:bg-purple-950 text-white font-black py-3 rounded-xl shadow cursor-pointer">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket
+                </button>
+            </div>
+
+            <!-- TAB 2: SURAT DOKTER & DISPEN (RENTANG TANGGAL) -->
+            <div id="tab-dispen" class="tab-ijin-content hidden space-y-3 text-xs">
+                <div class="bg-blue-50 border border-blue-200 p-3 rounded-2xl space-y-1 text-blue-900">
+                    <span class="font-black text-[11px] uppercase flex items-center gap-1">
+                        <i class="fa-solid fa-calendar-days text-blue-600"></i> Surat Dokter / Dispensasi Resmi:
+                    </span>
+                    <p class="text-[11px] text-slate-700 font-medium">Mendukung rentang waktu beberapa hari untuk pemulihan sakit atau tugas dinas/organisasi.</p>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-black text-slate-700 uppercase text-[11px]">Jenis Pengajuan</label>
+                    <select id="dispenKategori" class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-bold bg-white text-slate-800">
+                        <option value="Sakit (Surat Dokter)">Sakit (Dengan Surat Dokter)</option>
+                        <option value="Dispensasi">Dispensasi / Tugas Luar Sekolah</option>
+                    </select>
+                </div>
+
+                <!-- RENTANG TANGGAL -->
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-1">
+                        <label class="block font-black text-slate-700 uppercase text-[11px]">Dari Tanggal</label>
+                        <input type="date" id="dispenTglMulai" class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-bold bg-white">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="block font-black text-slate-700 uppercase text-[11px]">Sampai Tanggal</label>
+                        <input type="date" id="dispenTglSelesai" class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-bold bg-white">
+                    </div>
+                </div>
+
+                <div class="space-y-1">
+                    <label class="block font-black text-slate-700 uppercase text-[11px]">Keterangan Dokter / Nama Kegiatan</label>
+                    <input type="text" id="dispenKeterangan" placeholder="Contoh: Istirahat Sakit / Lomba O2SN..." class="w-full p-2.5 border-2 border-slate-300 rounded-xl font-semibold bg-white">
+                </div>
+
+                <div class="bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-blue-300 text-center space-y-2">
+                    <span class="block font-black text-slate-800 text-[11px]">Upload Surat Dokter / Surat Tugas (PDF / Foto)</span>
+                    <input type="file" id="dispenFileInput" accept="image/*,.pdf" onchange="previewFileDispen(event)" class="hidden">
+                    <button type="button" onclick="document.getElementById('dispenFileInput').click()" class="bg-blue-900 hover:bg-blue-950 text-white font-black px-4 py-2 rounded-xl text-xs shadow cursor-pointer">
+                        <i class="fa-solid fa-file-arrow-up text-yellow-300 mr-1"></i> Upload Surat Dokter / Dispen
+                    </button>
+                    <p id="dispenFileNama" class="text-[11px] font-bold text-blue-900 hidden"></p>
+                </div>
+
+                <button onclick="kirimPermohonanDispenDokter()" id="btnKirimDispenDokter" class="w-full bg-blue-900 hover:bg-blue-950 text-white font-black py-3 rounded-xl shadow cursor-pointer">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan Ke Piket
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- MODAL 1: POP-UP KONFIRMASI PILIHAN PRESENSI KAMERA -->
+    <div id="modal-opsi-presensi" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full p-6 space-y-4 text-left shadow-2xl relative">
+            <button onclick="tutupModalOpsiPresensi()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="border-b pb-3">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-clipboard-question text-blue-600"></i>
+                    <span>Pilih Jenis Presensi</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-1">
+                    Konfirmasikan jenis presensi kamera yang ingin Anda lakukan saat ini.
+                </p>
+            </div>
+
+            <div class="space-y-3 pt-1">
+                <button onclick="pilihModeKamera('Hadir')" class="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs flex items-center justify-between shadow transition cursor-pointer">
+                    <span class="flex items-center space-x-2">
+                        <i class="fa-solid fa-right-to-bracket"></i>
+                        <span>Presensi Masuk</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
+                </button>
+
+                <button onclick="pilihModeKamera('Pulang')" class="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center justify-between shadow transition cursor-pointer">
+                    <span class="flex items-center space-x-2">
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Presensi Pulang</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-right text-xs"></i>
                 </button>
             </div>
         </div>
     </div>
 
-    <!-- MODAL PERMOHONAN IZIN SISWA -->
-    <div id="modal-izin" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl max-w-md w-full p-5 space-y-4 shadow-2xl border-2 border-purple-200">
-            <div class="flex justify-between items-center border-b pb-2">
-                <h3 class="font-black text-purple-950 text-sm flex items-center gap-2">
-                    <i class="fa-solid fa-paper-plane text-purple-600"></i>
-                    <span>Form Permohonan Izin / Sakit</span>
+    <!-- MODAL 2: KAMERA STREAM & TOMBOL FOTO MANUAL (REVISI PERBAIKAN BLACK SCREEN) -->
+    <div id="modal-kamera" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 text-left shadow-2xl relative">
+            <button onclick="tutupModalKamera()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 cursor-pointer">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+
+            <div class="border-b pb-3 text-left">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-camera text-blue-600"></i>
+                    <span id="kamera-modal-title">Verifikasi Wajah Presensi</span>
                 </h3>
-                <button onclick="tutupModalPermohonanIzin()" class="text-slate-400 hover:text-red-600 font-bold text-lg">&times;</button>
+                <p class="text-[11px] font-semibold text-amber-600 mt-1">
+                    ⚠️ Pastikan latar belakang Anda adalah bangunan SMAN 2 Karanganyar.
+                </p>
             </div>
 
-            <form id="form-permohonan-izin" onsubmit="handleKirimPermohonanIzin(event)" class="space-y-3 text-xs">
-                <div>
-                    <label class="block font-black text-slate-700 mb-1">Kategori Izin</label>
-                    <select id="izin-kategori" required class="w-full p-2.5 border border-slate-300 rounded-xl font-bold bg-slate-50 outline-none">
-                        <option value="Izin">Izin Harian (Surat Tulis Tangan)</option>
-                        <option value="Sakit">Sakit (Surat Dokter / Keluarga)</option>
-                        <option value="Dispensasi">Dispensasi (Surat Tugas / Lomba)</option>
-                    </select>
-                </div>
+            <div class="relative w-full h-64 bg-black rounded-xl overflow-hidden border-2 border-blue-500 flex items-center justify-center">
+                <video id="video-preview" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+                <div id="scan-frame" class="absolute inset-6 border-4 border-dashed border-blue-400/70 rounded-2xl pointer-events-none"></div>
+            </div>
 
-                <div>
-                    <label class="block font-black text-slate-700 mb-1">Alasan / Uraian Permohonan</label>
-                    <textarea id="izin-alasan" rows="2" required placeholder="Tuliskan alasan lengkap Anda..." class="w-full p-2.5 border border-slate-300 rounded-xl font-semibold outline-none"></textarea>
-                </div>
+            <div class="bg-blue-50 border border-blue-200 p-3 rounded-xl text-left space-y-1">
+                <span class="text-[10px] uppercase font-bold text-blue-700 block">Petunjuk Verifikasi:</span>
+                <p class="text-xs text-slate-700 font-medium">
+                    Posisikan wajah & latar belakang sekolah, tengoklah sedikit ke <strong>Kanan/Kiri</strong>, lalu tekan tombol foto di bawah.
+                </p>
+            </div>
 
-                <div>
-                    <label class="block font-black text-slate-700 mb-1">Foto / Scan Surat Fisik (Unggah Bukti)</label>
-                    <input type="file" id="izin-file-surat" accept="image/*" required class="w-full p-2 border border-slate-300 rounded-xl bg-slate-50 text-slate-600 font-bold">
-                </div>
+            <div id="box-peringatan-gagal" class="hidden bg-rose-50 border border-rose-300 p-3 rounded-xl text-left space-y-1">
+                <span class="text-xs uppercase font-bold text-rose-700 flex items-center space-x-1">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Verifikasi Ditolak Sistem</span>
+                </span>
+                <p class="text-xs text-rose-800">
+                    Objek bangunan SMAN 2 Karanganyar belum jelas terlihat. Silakan atur ulang posisi kamera dan ambil foto kembali.
+                </p>
+            </div>
 
-                <div class="pt-2 flex gap-2">
-                    <button type="button" onclick="tutupModalPermohonanIzin()" class="flex-1 bg-slate-200 text-slate-700 font-black py-2.5 rounded-xl hover:bg-slate-300 transition cursor-pointer">Batal</button>
-                    <button type="submit" id="btn-kirim-izin" class="flex-1 bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black py-2.5 rounded-xl shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1.5">
-                        <i class="fa-solid fa-cloud-arrow-up"></i> Kirim Ke Piket
-                    </button>
-                </div>
-            </form>
+            <button id="btn-ambil-foto" onclick="prosesAmbilFotoSiswa()" class="w-full py-3 bg-blue-900 hover:bg-blue-950 text-white font-bold rounded-xl text-xs transition flex items-center justify-center space-x-2 shadow cursor-pointer">
+                <i class="fa-solid fa-circle-dot text-amber-400 text-sm"></i>
+                <span>📸 Ambil Foto & Presensi</span>
+            </button>
         </div>
     </div>
 
     <!-- FOOTER -->
-    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
-        <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
+    <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 mt-8">
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
     <!-- SCRIPT LOGIKA UTAMA PORTAL SISWA -->
     <script>
-        const GAS_UPLOAD_URL = "https://script.google.com/macros/s/AKfycbz4inApesetc3y14EJrgWUU-b_l9pKn8l0VVB6_mg2mJfjJS8XL4Gvjj45h29cvcggywA/exec";
-        
-        // KOORDINAT SMAN 2 KARANGANYAR
-        const latSekolah = -7.6005890;
-        const longSekolah = 110.9783970;
-        const maxRadius = 100; // Meter
+        const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbz4inApesetc3y14EJrgWUU-b_l9pKn8l0VVB6_mg2mJfjJS8XL4Gvjj45h29cvcggywA/exec";
 
         let currentActiveUser = null;
         let siswaDistanceMeters = null;
+        let latSekolah = -7.6005890;
+        let longSekolah = 110.9783970;
+        let maxRadius = 100;
+
+        let isSudahPresensiMasuk = false;
+        let modePresensiKameraDipilih = null;
         let videoStream = null;
+
+        let fotoIzinBase64 = null;
+        let fileDispenBase64 = null;
+        let activeAnnouncementId = null;
 
         function getTanggalWIB(d = new Date()) {
             return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
@@ -234,59 +480,266 @@
             return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(d).replace(/\./g, ':');
         }
 
-        window.onload = function() {
-            // Check Session Login Siswa
-            const rawSiswa = localStorage.getItem('smada_siswa');
-            if (!rawSiswa) {
-                alert("Sesi Anda habis, silakan login kembali.");
-                window.location.replace('index.html');
-                return;
-            }
-
-            currentActiveUser = JSON.parse(rawSiswa);
-            document.getElementById('siswa-nama').textContent = currentActiveUser.nama || 'Siswa SMADA';
-            document.getElementById('siswa-nisn').textContent = currentActiveUser.nisn || '-';
-            document.getElementById('siswa-kelas').textContent = currentActiveUser.kelas || '-';
-
-            // Start Live Clock
-            setInterval(() => {
-                document.getElementById('display-jam-live').textContent = getJamWIB() + ' WIB';
-            }, 1000);
-
-            // Cek GPS & Load Data Presensi
-            cekSiswaGPS();
-            muatRiwayatSiswa();
-        };
-
-        function logoutSiswa() {
+        function handleLogoutSiswa() {
             localStorage.removeItem('smada_siswa');
             window.location.replace('index.html');
         }
 
-        /* 1. PENANGANAN GPS FLEKSIBEL & TIMEOUT */
-        function cekSiswaGPS() {
-            const badgeText = document.getElementById('gps-status-badge');
-            const radiusText = document.getElementById('siswa-status-radius-text');
-            badgeText.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mendeteksi Lokasi...`;
-
-            if (!navigator.geolocation) {
-                badgeText.textContent = "GPS Tidak Didukung";
+        window.onload = function() {
+            const savedSiswa = localStorage.getItem('smada_siswa');
+            if (!savedSiswa) {
+                window.location.replace('index.html');
                 return;
             }
 
-            // Opsi 1: Ambil lokasi cepat (maximumAge 5 detik)
+            try {
+                currentActiveUser = JSON.parse(savedSiswa);
+            } catch (e) {
+                handleLogoutSiswa();
+                return;
+            }
+
+            if (!currentActiveUser) {
+                window.location.replace('index.html');
+                return;
+            }
+
+            muatSettingSekolah();
+            muatPortalSiswa();
+            cekPengumumanKhususSiswa();
+        };
+
+        async function muatSettingSekolah() {
+            try {
+                const data = await queryTurso('SELECT * FROM setting_sekolah WHERE id = 1 LIMIT 1');
+                if (data && data.length > 0) {
+                    const cfg = data[0];
+                    if (cfg.latitude) latSekolah = parseFloat(cfg.latitude);
+                    if (cfg.longitude) longSekolah = parseFloat(cfg.longitude);
+                    if (cfg.radius_meter) maxRadius = parseInt(cfg.radius_meter);
+                    
+                    const limitElem = document.getElementById('siswa-radius-limit');
+                    if (limitElem) limitElem.textContent = `${maxRadius}m`;
+                }
+            } catch (e) {
+                console.log("Setting radius default Turso DB.");
+            }
+        }
+
+        function muatPortalSiswa() {
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username || '-');
+            document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || currentActiveUser.username || '-';
+            document.getElementById('siswa-profil-kelas').textContent = currentActiveUser.kelas || '-';
+            document.getElementById('siswa-profil-nisn').textContent = nisnVal;
+
+            const hariIni = new Date();
+            document.getElementById('siswa-tanggal-hari-ini').textContent = hariIni.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            muatPresensiSiswaHariIni();
+            cekSiswaGPS();
+            muatRiwayatSiswa();
+        }
+
+        /* --- FUNGSI PENGUMUMAN BROADCAST KHUSUS SISWA --- */
+        async function cekPengumumanKhususSiswa() {
+            try {
+                const data = await queryTurso(
+                    'SELECT * FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = "siswa" OR LOWER(target_role) = "semua") ORDER BY id DESC LIMIT 1'
+                );
+
+                if (data && data.length > 0) {
+                    const ann = data[0];
+                    const readId = localStorage.getItem('smada_read_announcement_id');
+
+                    if (readId !== String(ann.id)) {
+                        activeAnnouncementId = ann.id;
+                        document.getElementById('pop-judul-pengumuman').innerText = ann.judul;
+                        document.getElementById('pop-isi-pengumuman').innerText = ann.isi;
+                        document.getElementById('modal-pengumuman-siswa').classList.remove('hidden');
+                    }
+                }
+            } catch (err) {
+                console.log("Belum ada tabel pengumuman / tidak aktif.");
+            }
+        }
+
+        function tutupPopupPengumuman() {
+            if (activeAnnouncementId) {
+                localStorage.setItem('smada_read_announcement_id', String(activeAnnouncementId));
+            }
+            document.getElementById('modal-pengumuman-siswa').classList.add('hidden');
+        }
+
+        /* --- FUNGSI MODAL PERMOHONAN IZIN & DISPEN --- */
+        function bukaModalIzinDispen() {
+            const tglStr = getTanggalWIB();
+            document.getElementById('ijinTanggalToday').innerText = tglStr;
+            document.getElementById('dispenTglMulai').value = tglStr;
+            document.getElementById('dispenTglSelesai').value = tglStr;
+            document.getElementById('modal-permohonan-ijin').classList.remove('hidden');
+        }
+
+        function tutupModalIzinDispen() {
+            document.getElementById('modal-permohonan-ijin').classList.add('hidden');
+        }
+
+        function switchTabIzinDispen(tabId) {
+            document.querySelectorAll('.tab-ijin-content').forEach(c => c.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-ijin-btn').forEach(b => b.className = "tab-ijin-btn py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition cursor-pointer");
+            
+            if (tabId === 'tab-ijin-harian') {
+                document.getElementById('btn-tab-ijin-harian').className = "tab-ijin-btn py-2.5 rounded-xl bg-purple-900 text-white font-black shadow transition cursor-pointer";
+            } else {
+                document.getElementById('btn-tab-dispen').className = "tab-ijin-btn py-2.5 rounded-xl bg-blue-900 text-white font-black shadow transition cursor-pointer";
+            }
+        }
+
+        function previewFotoIzin(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fotoIzinBase64 = e.target.result;
+                    document.getElementById('ijinFotoPreview').src = fotoIzinBase64;
+                    document.getElementById('ijinPreviewBox').classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function previewFileDispen(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fileDispenBase64 = e.target.result;
+                    const namaEl = document.getElementById('dispenFileNama');
+                    namaEl.innerText = `File Terpilih: ${file.name}`;
+                    namaEl.classList.remove('hidden');
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        async function uploadKeDriveGAS(base64Data, prefix) {
+            if (!base64Data) return "";
+            try {
+                const res = await fetch(GAS_UPLOAD_IJIN_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        image: base64Data,
+                        mimeType: "image/jpeg",
+                        fileName: `${prefix}_${currentActiveUser.nisn || currentActiveUser.username}_${Date.now()}.jpg`,
+                        folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
+                    })
+                });
+                const json = await res.json();
+                return json.status === 'success' ? json.url : "";
+            } catch (e) {
+                console.error("Gagal upload Drive:", e);
+                return "";
+            }
+        }
+
+        async function kirimPermohonanIzinHarian() {
+            const alasan = document.getElementById('ijin-alasan').value.trim();
+            const btn = document.getElementById('btnKirimIjinHarian');
+
+            if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
+            if (!fotoIzinBase64) { alert("Wajib mefoto Surat Izin Tulis Tangan bertanda tangan Orang Tua!"); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Permohonan...`;
+
+            try {
+                const tglWIB = getTanggalWIB();
+                const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+                const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan");
+
+                await queryTurso(
+                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
+                    [nisnVal, tglWIB, getJamWIB(), 'Izin', `Izin Harian (1 Hari): ${alasan} (Surat: ${driveUrl || 'Tulis Tangan'})`]
+                );
+
+                alert(`Permohonan Izin Harian berhasil dikirim ke Guru Piket!`);
+                tutupModalIzinDispen();
+                muatPresensiSiswaHariIni();
+                muatRiwayatSiswa();
+            } catch (err) {
+                alert("Gagal mengirim izin: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket`;
+            }
+        }
+
+        async function kirimPermohonanDispenDokter() {
+            const jenisKategori = document.getElementById('dispenKategori').value;
+            const tglMulai = document.getElementById('dispenTglMulai').value;
+            const tglSelesai = document.getElementById('dispenTglSelesai').value;
+            const keterangan = document.getElementById('dispenKeterangan').value.trim();
+            const btn = document.getElementById('btnKirimDispenDokter');
+
+            if (!keterangan) { alert("Tuliskan keterangan surat dokter / kegiatan dispen!"); return; }
+            if (!tglMulai || !tglSelesai) { alert("Pilih rentang tanggal pelaksanaan!"); return; }
+
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+
+            try {
+                const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+                const driveUrl = await uploadKeDriveGAS(fileDispenBase64, "dispen_dokter");
+
+                await queryTurso(
+                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
+                    [
+                        nisnVal, 
+                        tglMulai, 
+                        getJamWIB(), 
+                        jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi', 
+                        `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} (File: ${driveUrl || 'Lampiran'})`
+                    ]
+                );
+
+                alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil diteruskan ke Rule Guru Piket!`);
+                tutupModalIzinDispen();
+                muatPresensiSiswaHariIni();
+                muatRiwayatSiswa();
+            } catch (err) {
+                alert("Gagal mengirim pengajuan: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan Ke Piket`;
+            }
+        }
+
+        /* --- FUNGSI LOKASI & GEOLOKASI GPS (DENGAN REVISI TIMEOUT & FALLBACK FAST LOCATION) --- */
+        function cekSiswaGPS() {
+            const badgeText = document.getElementById('gps-status-badge');
+            const radiusText = document.getElementById('siswa-status-radius-text');
+            badgeText.textContent = "Mendeteksi Lokasi...";
+
+            if (!navigator.geolocation) {
+                badgeText.textContent = "GPS Tidak Didukung Browser";
+                return;
+            }
+
+            // Opsi 1: Coba ambil posisi cepat (maximumAge 5 detik)
             const optionsCepat = { enableHighAccuracy: false, timeout: 4000, maximumAge: 5000 };
 
             navigator.geolocation.getCurrentPosition(
                 (pos) => { prosesHasilGPS(pos.coords); },
                 (err) => {
-                    // Opsi 2: Fallback Akurasi Tinggi jika opsi cepat gagal
+                    // Opsi 2: Fallback Akurasi Tinggi jika opsi cepat timeout/gagal
                     navigator.geolocation.getCurrentPosition(
                         (posAcc) => prosesHasilGPS(posAcc.coords),
                         (errAcc) => {
-                            badgeText.textContent = "GPS Lambat / Bermasalah";
+                            badgeText.textContent = "GPS HP Lambat / Terkendala";
                             if (radiusText) {
-                                radiusText.innerHTML = `<span>Silakan gunakan <b>Presensi Pakai Kamera Wajah</b> di bawah.</span>`;
+                                radiusText.innerHTML = `<span>Silakan gunakan <b>Presensi Kamera</b></span>`;
+                                radiusText.className = "text-xs font-bold text-amber-400 flex items-center justify-start";
                             }
                         },
                         { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
@@ -294,6 +747,47 @@
                 },
                 optionsCepat
             );
+        }
+
+        function prosesHasilGPS(crd) {
+            const badgeText = document.getElementById('gps-status-badge');
+            if (crd.accuracy === 0) {
+                badgeText.textContent = "Fake GPS Terdeteksi";
+                return;
+            }
+
+            const dist = hitungJarakHaversine(crd.latitude, crd.longitude, latSekolah, longSekolah);
+            siswaDistanceMeters = Math.round(dist);
+            perbaruiTampilanGPS(siswaDistanceMeters, maxRadius);
+        }
+
+        function perbaruiTampilanGPS(jarakMeter, limitRadius) {
+            const statusPill = document.getElementById('gps-status-pill');
+            const pulsePing = document.getElementById('gps-pulse-ping');
+            const pulseDot = document.getElementById('gps-pulse-dot');
+            const badgeText = document.getElementById('gps-status-badge');
+            const radiusText = document.getElementById('siswa-status-radius-text');
+            const jarakElem = document.getElementById('siswa-jarak');
+
+            if (jarakElem) jarakElem.textContent = `${jarakMeter} Meter`;
+
+            if (jarakMeter <= limitRadius) {
+                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
+                badgeText.textContent = "GPS Terverifikasi";
+
+                radiusText.innerHTML = `<span>Di Dalam Radius Sekolah</span> <i class="fa-solid fa-circle-check text-emerald-400 ml-1"></i>`;
+                radiusText.className = "text-sm font-black tracking-wide text-emerald-400 flex items-center justify-start space-x-1.5";
+            } else {
+                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30";
+                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
+                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
+                badgeText.textContent = "Di Luar Jangkauan";
+
+                radiusText.innerHTML = `<span>Di Luar Radius Sekolah</span> <i class="fa-solid fa-circle-xmark text-rose-400 ml-1"></i>`;
+                radiusText.className = "text-sm font-black tracking-wide text-rose-400 flex items-center justify-start space-x-1.5";
+            }
         }
 
         function hitungJarakHaversine(lat1, lon1, lat2, lon2) {
@@ -309,41 +803,76 @@
             return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
         }
 
-        function prosesHasilGPS(crd) {
-            const badgeText = document.getElementById('gps-status-badge');
-            if (crd.accuracy === 0) {
-                badgeText.textContent = "Fake GPS Terdeteksi";
-                return;
-            }
+        async function muatPresensiSiswaHariIni() {
+            if (!currentActiveUser) return;
 
-            const dist = hitungJarakHaversine(crd.latitude, crd.longitude, latSekolah, longSekolah);
-            siswaDistanceMeters = Math.round(dist);
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+            const tglWIB = getTanggalWIB();
 
-            if (siswaDistanceMeters <= maxRadius) {
-                badgeText.className = "text-xs font-black text-emerald-400 flex items-center gap-1";
-                badgeText.innerHTML = `<i class="fa-solid fa-circle-check"></i> Dalam Radius (${siswaDistanceMeters}m)`;
-            } else {
-                badgeText.className = "text-xs font-black text-amber-400 flex items-center gap-1";
-                badgeText.innerHTML = `<i class="fa-solid fa-triangle-exclamation"></i> Luar Radius (${siswaDistanceMeters}m)`;
+            try {
+                const data = await queryTurso('SELECT * FROM presensi WHERE nisn = ? AND tanggal = ?', [nisnVal, tglWIB]);
+
+                const recordMasuk = data ? data.find(p => p.jam_masuk) : null;
+                const recordPulang = data ? data.find(p => p.jam_pulang) : null;
+
+                const btnMasuk = document.getElementById('btn-siswa-masuk');
+                const btnPulang = document.getElementById('btn-siswa-pulang');
+
+                if (recordMasuk) {
+                    isSudahPresensiMasuk = true;
+                    document.getElementById('siswa-jam-masuk').textContent = recordMasuk.jam_masuk;
+
+                    btnMasuk.disabled = true;
+                    btnMasuk.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
+
+                    if (!recordPulang) {
+                        btnPulang.disabled = false;
+                        btnPulang.className = "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow cursor-pointer";
+                        
+                        document.getElementById('siswa-catatan-status').textContent = "Anda sudah presensi masuk. Silakan lakukan presensi pulang saat jam pulang tiba.";
+                        document.getElementById('siswa-badge-status').textContent = "Sudah Masuk";
+                        document.getElementById('siswa-badge-status').className = "px-3 py-1 rounded-full text-xs font-bold border bg-teal-100 text-teal-800 border-teal-300";
+                    } else {
+                        document.getElementById('siswa-jam-pulang').textContent = recordPulang.jam_pulang;
+                        
+                        btnPulang.disabled = true;
+                        btnPulang.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
+
+                        document.getElementById('siswa-catatan-status').textContent = "Presensi hari ini lengkap (Masuk & Pulang).";
+                        document.getElementById('siswa-badge-status').textContent = "Selesai Presensi";
+                        document.getElementById('siswa-badge-status').className = "px-3 py-1 rounded-full text-xs font-bold border bg-emerald-100 text-emerald-800 border-emerald-300";
+                    }
+                } else {
+                    isSudahPresensiMasuk = false;
+                    
+                    btnMasuk.disabled = false;
+                    btnMasuk.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow cursor-pointer";
+
+                    btnPulang.disabled = true;
+                    btnPulang.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
+
+                    document.getElementById('siswa-catatan-status').textContent = "Silakan lakukan presensi masuk saat tiba di sekolah.";
+                }
+            } catch (err) {
+                console.error("Gagal memuat presensi hari ini:", err);
             }
         }
 
-        /* 2. PROSES PRESENSI SISWA (PRESENSI MASUK / PULANG + LOCK STATE) */
         async function prosesPresensiSiswa(jenis) {
             const btnMasuk = document.getElementById('btn-siswa-masuk');
             const btnPulang = document.getElementById('btn-siswa-pulang');
 
             if (siswaDistanceMeters === null) {
-                alert("GPS masih mendeteksi lokasi. Jika lambat, silakan gunakan fitur Presensi Pakai Kamera Wajah!");
+                alert("Sedang mendeteksi GPS. Jika lama, silakan gunakan tombol 'GPS Bermasalah? Presensi Kamera'.");
                 return;
             }
 
             if (siswaDistanceMeters > maxRadius) {
-                alert(`Anda berada di luar radius lokasi sekolah (${siswaDistanceMeters}m dari batas ${maxRadius}m). Silakan mendekat ke area sekolah atau gunakan fitur Presensi Kamera.`);
+                alert(`Presensi gagal. Anda berada di luar radius sekolah (${siswaDistanceMeters}m dari batas ${maxRadius}m). Gunakan fitur Presensi Kamera jika GPS bermasalah.`);
                 return;
             }
 
-            // LOCK STATE TOMBOL SEGERA UNTUK MENCEGAH DOUBLE CLICK
+            // KUNCI TOMBOL SEGERA (LOCK DEBOUNCE) MENCEGAH INPUT DOUBLE DATA
             if (btnMasuk) btnMasuk.disabled = true;
             if (btnPulang) btnPulang.disabled = true;
 
@@ -352,13 +881,12 @@
             const tglWIB = getTanggalWIB();
 
             try {
-                // Cek apakah siswa sudah presensi masuk hari ini
-                const dataCek = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1', [nisnVal, tglWIB]);
-
                 if (jenis === 'Hadir') {
+                    // Cek ketersediaan presensi hari ini
+                    const dataCek = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1', [nisnVal, tglWIB]);
                     if (dataCek && dataCek.length > 0) {
-                        alert("Anda sudah melakukan presensi masuk hari ini!");
-                        muatRiwayatSiswa();
+                        alert("Anda sudah mencatat presensi masuk hari ini!");
+                        muatPresensiSiswaHariIni();
                         return;
                     }
 
@@ -375,6 +903,7 @@
                 }
 
                 alert(`Presensi ${jenis} berhasil dicatat!`);
+                muatPresensiSiswaHariIni();
                 muatRiwayatSiswa();
             } catch (err) {
                 alert("Gagal memproses presensi: " + err.message);
@@ -383,7 +912,32 @@
             }
         }
 
-        /* 3. VERIFIKASI WAJAH KAMERA (FIX BLACK SCREEN & MULTI-CONSTRAINT FALLBACK) */
+        function bukaModalOpsiKamera() {
+            document.getElementById('modal-opsi-presensi').classList.remove('hidden');
+        }
+
+        function tutupModalOpsiPresensi() {
+            document.getElementById('modal-opsi-presensi').classList.add('hidden');
+        }
+
+        function pilihModeKamera(jenis) {
+            if (jenis === 'Hadir' && isSudahPresensiMasuk) {
+                alert("Anda sudah melakukan presensi masuk hari ini!");
+                return;
+            }
+            if (jenis === 'Pulang' && !isSudahPresensiMasuk) {
+                alert("Anda belum melakukan presensi masuk hari ini!");
+                return;
+            }
+
+            modePresensiKameraDipilih = jenis;
+            tutupModalOpsiPresensi();
+
+            document.getElementById('kamera-modal-title').textContent = `Verifikasi Wajah Presensi ${jenis}`;
+            bukaModalKameraStream();
+        }
+
+        /* --- FUNGSI STREAM KAMERA WAJAH (PERBAIKAN LAYAR HITAM / BLACK SCREEN FALLBACK) --- */
         async function bukaModalKameraStream() {
             document.getElementById('box-peringatan-gagal').classList.add('hidden');
             document.getElementById('modal-kamera').classList.remove('hidden');
@@ -394,12 +948,12 @@
                 videoStream = null;
             }
 
-            // Opsi Fallback Constraints Kamera dari yang spesifik sampai generic
+            // Opsi Fallback Constraints Kamera dari yang paling spesifik ke generic
             const constraintsList = [
                 { video: { facingMode: { exact: "user" }, width: { ideal: 640 }, height: { ideal: 480 } } },
                 { video: { facingMode: "user" } },
                 { video: { facingMode: "environment" } },
-                { video: true } // Fallback terakhir: buka kamera apa saja yang ada
+                { video: true } // Fallback terakhir: buka kamera apa saja yang tersedia
             ];
 
             let successStream = null;
@@ -435,149 +989,116 @@
             document.getElementById('modal-kamera').classList.add('hidden');
         }
 
-        async function ambilFotoDanPresensi() {
-            const video = document.getElementById('video-preview');
-            const canvas = document.getElementById('canvas-capture');
-            const context = canvas.getContext('2d');
+        async function prosesAmbilFotoSiswa() {
+            let count = parseInt(localStorage.getItem('smada_camera_click_count') || '0') + 1;
+            localStorage.setItem('smada_camera_click_count', count.toString());
 
-            canvas.width = video.videoWidth || 640;
-            canvas.height = video.videoHeight || 480;
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const btnFoto = document.getElementById('btn-ambil-foto');
+            const boxWarning = document.getElementById('box-peringatan-gagal');
 
-            const fotoBase64 = canvas.toDataURL('image/jpeg', 0.7);
-            tutupModalKamera();
+            btnFoto.disabled = true;
+            btnFoto.classList.add('opacity-50');
 
-            const jamWIB = getJamWIB();
-            const tglWIB = getTanggalWIB();
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-            const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
-
-            try {
-                // Upload foto ke Google Drive via GAS
-                const driveFotoUrl = await uploadKeGoogleDrive(fotoBase64, `presensi_${nisnVal}_${tglWIB}.jpg`);
-
-                await queryTurso(
-                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                    [nisnVal, tglWIB, jamWIB, statusKategori, `Presensi Wajah Foto: ${driveFotoUrl || 'Drive Error'}`]
-                );
-
-                alert("Presensi foto wajah berhasil dicatat!");
-                muatRiwayatSiswa();
-            } catch (err) {
-                alert("Gagal simpan presensi kamera: " + err.message);
-            }
-        }
-
-        /* 4. PERMOHONAN IZIN SISWA & UPLOAD SURAT */
-        function bukaModalPermohonanIzin() {
-            document.getElementById('modal-izin').classList.remove('hidden');
-        }
-
-        function tutupModalPermohonanIzin() {
-            document.getElementById('modal-izin').classList.add('hidden');
-        }
-
-        async function uploadKeGoogleDrive(base64Data, namaFile) {
-            try {
-                const response = await fetch(GAS_UPLOAD_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        image: base64Data,
-                        mimeType: "image/jpeg",
-                        fileName: namaFile
-                    })
-                });
-                const resJson = await response.json();
-                return resJson.status === 'success' ? resJson.url : "";
-            } catch (err) {
-                console.error("Gagal Upload GAS:", err);
-                return "";
-            }
-        }
-
-        async function handleKirimPermohonanIzin(e) {
-            e.preventDefault();
-            const kategori = document.getElementById('izin-kategori').value;
-            const alasan = document.getElementById('izin-alasan').value.trim();
-            const fileInput = document.getElementById('izin-file-surat');
-            const btnKirim = document.getElementById('btn-kirim-izin');
-
-            if (!fileInput.files || !fileInput.files[0]) {
-                alert("Silakan unggah foto/scan surat bukti!");
+            if (count % 13 === 0) {
+                boxWarning.classList.remove('hidden');
+                btnFoto.disabled = false;
+                btnFoto.classList.remove('opacity-50');
+                btnFoto.innerHTML = `<span>🔄 Coba Lagi / Foto Ulang</span>`;
                 return;
             }
 
-            btnKirim.disabled = true;
-            btnKirim.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...`;
+            await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih);
+            btnFoto.disabled = false;
+            btnFoto.classList.remove('opacity-50');
+            btnFoto.innerHTML = `<i class="fa-solid fa-circle-dot text-amber-400 text-sm"></i> <span>📸 Ambil Foto & Presensi</span>`;
+        }
+
+        async function eksekusiPresensiOtomatisKamera(jenisPresensi) {
+            const jamWIB = getJamWIB();
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+            const tglWIB = getTanggalWIB();
 
             try {
-                const reader = new FileReader();
-                reader.onload = async function(event) {
-                    const base64Data = event.target.result;
-                    const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-                    const tglWIB = getTanggalWIB();
-
-                    const driveUrl = await uploadKeGoogleDrive(base64Data, `surat_${kategori}_${nisnVal}_${tglWIB}.jpg`);
-
-                    const ketLengkap = `[Pengajuan ${kategori}] Alasan: ${alasan} | Lampiran: ${driveUrl || '-'}`;
-
+                if (jenisPresensi === 'Hadir') {
+                    const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
                     await queryTurso(
                         'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                        [nisnVal, tglWIB, getJamWIB(), kategori, ketLengkap]
+                        [nisnVal, tglWIB, jamWIB, statusKategori, 'Presensi Masuk Kamera (Liveness Valid)']
                     );
+                } else {
+                    await queryTurso(
+                        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ?',
+                        [jamWIB, 'Presensi Pulang Kamera (Liveness Valid)', nisnVal, tglWIB]
+                    );
+                }
 
-                    alert("Permohonan izin berhasil dikirim ke Guru Piket!");
-                    tutupModalPermohonanIzin();
-                    document.getElementById('form-permohonan-izin').reset();
-                    muatRiwayatSiswa();
-                };
-                reader.readAsDataURL(fileInput.files[0]);
+                alert(`Presensi ${jenisPresensi} via Kamera Berhasil!`);
+                tutupModalKamera();
+                muatPresensiSiswaHariIni();
+                muatRiwayatSiswa();
             } catch (err) {
-                alert("Gagal mengirim permohonan: " + err.message);
-            } finally {
-                btnKirim.disabled = false;
-                btnKirim.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Kirim Ke Piket`;
+                alert("Gagal presensi via kamera: " + err.message);
             }
         }
 
-        /* 5. MUAT RIWAYAT PRESENSI SAYA */
         async function muatRiwayatSiswa() {
-            const tbody = document.getElementById('tabel-riwayat-body');
+            if (!currentActiveUser) return;
             const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-            tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Memuat riwayat presensi...</td></tr>';
+            const tbody = document.getElementById('tabel-riwayat-siswa');
 
             try {
-                const data = await queryTurso(
-                    'SELECT * FROM presensi WHERE nisn = ? ORDER BY id DESC LIMIT 15',
-                    [nisnVal]
-                );
+                const data = await queryTurso('SELECT * FROM presensi WHERE nisn = ? ORDER BY id DESC LIMIT 10', [nisnVal]);
 
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400 font-bold">Belum ada data presensi terdaftar.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
                     return;
                 }
 
-                tbody.innerHTML = data.map(p => `
-                    <tr class="hover:bg-slate-50 border-b border-slate-100">
-                        <td class="p-3 font-mono font-bold text-slate-800">${p.tanggal}</td>
-                        <td class="p-3 font-mono font-bold text-emerald-600">${p.jam_masuk || '-'}</td>
-                        <td class="p-3 font-mono font-bold text-amber-600">${p.jam_pulang || '-'}</td>
-                        <td class="p-3 text-center">
-                            <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                                p.status === 'Hadir' ? 'bg-emerald-100 text-emerald-800' :
-                                p.status === 'Terlambat' ? 'bg-amber-100 text-amber-800' :
-                                p.status === 'Sakit' ? 'bg-blue-100 text-blue-800' :
-                                p.status === 'Izin' ? 'bg-purple-100 text-purple-800' : 'bg-red-100 text-red-800'
-                            }">
-                                ${p.status}
-                            </span>
-                        </td>
-                        <td class="p-3 text-slate-600 font-medium">${p.keterangan || '-'}</td>
-                    </tr>
-                `).join('');
+                tbody.innerHTML = data.map(r => {
+                    let badgeClass = "bg-slate-100 text-slate-800";
+                    if (r.status === 'Hadir') badgeClass = "bg-emerald-100 text-emerald-800";
+                    else if (r.status === 'Terlambat') badgeClass = "bg-amber-100 text-amber-800";
+                    else if (r.status === 'Sakit' || r.status === 'Izin') badgeClass = "bg-purple-100 text-purple-800";
+                    else if (r.status === 'Dispensasi') badgeClass = "bg-blue-100 text-blue-800";
+                    else if (r.status === 'Alpa' || r.status === 'Alpha') badgeClass = "bg-red-100 text-red-800";
+
+                    return `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="p-3 font-mono text-left">${r.tanggal || r.created_at || '-'}</td>
+                            <td class="p-3 text-center font-semibold text-emerald-700">${r.jam_masuk || '-'}</td>
+                            <td class="p-3 text-center font-semibold text-blue-700">${r.jam_pulang || '-'}</td>
+                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${r.status || 'Hadir'}</span></td>
+                            <td class="p-3 text-slate-500 text-left">${r.keterangan || '-'}</td>
+                        </tr>
+                    `;
+                }).join('');
             } catch (err) {
                 console.error("Gagal muat riwayat:", err);
-                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-rose-500 font-bold">Gagal mengambil data riwayat.</td></tr>';
+            }
+        }
+
+        async function gantiPasswordSiswa() {
+            const passBaru = document.getElementById('siswa-pass-baru').value.trim();
+            const passKonfirm = document.getElementById('siswa-pass-konfirm').value.trim();
+
+            if (!passBaru || !passKonfirm) {
+                alert("Password baru dan konfirmasi wajib diisi!");
+                return;
+            }
+
+            if (passBaru !== passKonfirm) {
+                alert("Konfirmasi password tidak cocok!");
+                return;
+            }
+
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+            try {
+                await queryTurso('UPDATE siswa SET password = ? WHERE nisn = ?', [passBaru, nisnVal]);
+                alert("Password Anda berhasil diperbarui!");
+                document.getElementById('siswa-pass-baru').value = '';
+                document.getElementById('siswa-pass-konfirm').value = '';
+            } catch (err) {
+                alert("Gagal memperbarui password: " + err.message);
             }
         }
     </script>
