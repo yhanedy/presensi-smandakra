@@ -16,13 +16,20 @@
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- PROTEKSI HAK AKSES -->
-    <script>
-        const activeUser = JSON.parse(localStorage.getItem('smada_user'));
-        if (!activeUser || (activeUser.role !== 'admin' && activeUser.role !== 'superadmin' && activeUser.role !== 'super_admin' && !activeUser.role.includes('admin'))) {
-            alert('Akses Ditolak! Anda harus login sebagai Admin / Super Admin.');
+   <script>
+    (function proteksiSuperAdmin() {
+        const activeUser = JSON.parse(localStorage.getItem('smada_user') || '{}');
+        const roleStr = String(activeUser.role || '').toLowerCase().trim();
+
+        // Pengecekan ketat: Hanya superadmin atau super_admin
+        const isSuperAdmin = roleStr === 'superadmin' || roleStr === 'super_admin';
+
+        if (!activeUser.username || !isSuperAdmin) {
+            alert('Akses Ditolak! Halaman Manajemen ini khusus untuk Super Admin.');
             window.location.href = 'index.html';
         }
-    </script>
+    })();
+</script>
 
     <!-- HEADER / NAVBAR DENGAN NAVIGASI BACK DINAMIS -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
