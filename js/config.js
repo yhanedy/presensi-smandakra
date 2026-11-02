@@ -1,9 +1,9 @@
-// KONFIGURASI API GATEWAY CLOUDFLARE WORKER (SMAN 2 KARANGANYAR)
+// KONFIGURASI API GATEWAY CLOUDFLARE WORKER (AMAN - BEBAS KREDENSIAL DB)
 const API_WORKER_URL = "https://smada-api-gateway.yhanedy.workers.dev/api/query";
 
 /**
  * Fungsi pembantu eksekusi SQL kueri ke Turso via Cloudflare Worker Proxy
- * @param {string} sql - Perintah SQL
+ * @param {string} sql - Perintah SQL (SELECT, INSERT, UPDATE, DELETE)
  * @param {Array} params - Parameter array untuk query
  */
 async function queryTurso(sql, params = []) {
@@ -19,16 +19,14 @@ async function queryTurso(sql, params = []) {
             })
         });
 
-        const resData = await response.json().catch(() => ({}));
-
         if (!response.ok) {
-            console.error("SQL Error Detail:", { sql, params, error: resData.error });
-            throw new Error(resData.error || `HTTP ${response.status}`);
+            const errJson = await response.json().catch(() => ({}));
+            throw new Error(errJson.error || `Server Error (${response.status}): ${response.statusText}`);
         }
 
-        return resData;
+        return await response.json();
     } catch (err) {
-        console.error("Gagal Query Turso:", err);
+        console.error("Gagal terhubung ke API Backend Serverless:", err);
         throw err;
     }
 }
