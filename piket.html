@@ -392,66 +392,78 @@
             }
         }
 
-        /* 5. MUAT ANTREAN PERMOHONAN IZIN SISWA */
-        async function muatAntreanIzinSiswa() {
-            const tbody = document.getElementById('tabel-antrean-izin-body');
-            tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean permohonan...</td></tr>';
+       /* PERBAIKAN PENGAMBILAN LINK FOTO / SURAT IZIN SISWA */
+async function muatAntreanIzinSiswa() {
+    const tbody = document.getElementById('tabel-antrean-izin-body');
+    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean permohonan...</td></tr>';
 
-            try {
-                const sqlStr = "SELECT p.*, COALESCE(s.nama, 'Siswa') as nama_siswa, COALESCE(s.kelas, '-') as kelas_siswa FROM presensi p LEFT JOIN siswa s ON TRIM(p.nisn) = TRIM(s.nisn) WHERE p.status IN ('Izin', 'Sakit', 'Dispensasi') ORDER BY p.id DESC LIMIT 25";
-                const data = await queryTurso(sqlStr);
+    try {
+        const sqlStr = `
+            SELECT p.*, 
+                   COALESCE(s.nama, 'Siswa') as nama_siswa, 
+                   COALESCE(s.kelas, '-') as kelas_siswa 
+            FROM presensi p 
+            LEFT JOIN siswa s ON TRIM(p.nisn) = TRIM(s.nisn) 
+            WHERE p.status IN ('Izin', 'Sakit', 'Dispensasi') 
+            ORDER BY p.id DESC LIMIT 25
+        `;
+        const data = await queryTurso(sqlStr);
 
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400 font-bold">Tidak ada antrean permohonan izin siswa saat ini.</td></tr>';
-                    return;
-                }
-
-                tbody.innerHTML = data.map(p => {
-                    const urlMatch = p.keterangan ? p.keterangan.match(/https?:\/\/[^\s]+/) : null;
-                    const driveUrl = urlMatch ? urlMatch[0] : null;
-
-                    return `
-                        <tr class="hover:bg-purple-50/50 border-b border-slate-100" id="row-antrean-${p.id}">
-                            <td class="p-3 font-mono text-slate-500 text-[11px]">${p.tanggal}<br><span class="text-blue-600 font-bold">${p.jam_masuk || ''}</span></td>
-                            <td class="p-3 font-mono font-bold text-slate-800">${p.nisn}</td>
-                            <td class="p-3 font-black text-slate-900">${p.nama_siswa}</td>
-                            <td class="p-3 text-center font-black text-blue-900 font-mono">${p.kelas_siswa}</td>
-                            <td class="p-3 text-slate-700 font-medium">${p.keterangan || '-'}</td>
-                            <td class="p-3 text-center">
-                                ${driveUrl ? `
-                                    <a href="${driveUrl}" target="_blank" class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-900 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-blue-300 transition">
-                                        <i class="fa-solid fa-image text-blue-600"></i> Lihat Surat
-                                    </a>
-                                ` : `
-                                    <span class="text-[10px] text-slate-400 font-bold italic">Tanpa Foto</span>
-                                `}
-                            </td>
-                            <td class="p-3 space-y-1.5">
-                                <select id="verifikasi-status-${p.id}" onchange="toggleInputDispen(${p.id})" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white outline-none">
-                                    <option value="Izin" ${p.status === 'Izin' ? 'selected' : ''}>Izin</option>
-                                    <option value="Sakit" ${p.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
-                                    <option value="Alpa">Alpa</option>
-                                    <option value="Dispensasi" ${p.status === 'Dispensasi' ? 'selected' : ''}>Dispensasi</option>
-                                </select>
-                                
-                                <div id="box-dispen-txt-${p.id}" class="${p.status === 'Dispensasi' ? '' : 'hidden'}">
-                                    <input type="text" id="verifikasi-dispen-txt-${p.id}" placeholder="Tuliskan nama kegiatan dispen..." class="w-full p-1.5 border border-emerald-400 bg-emerald-50 rounded-lg text-[11px] font-bold text-emerald-900 outline-none">
-                                </div>
-                            </td>
-                            <td class="p-3 text-center">
-                                <button onclick="eksekusiVerifikasiIzin(${p.id}, '${p.nisn}')" class="bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black px-3 py-2 rounded-xl text-xs shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1 mx-auto">
-                                    <i class="fa-solid fa-circle-check"></i> Verifikasi
-                                </button>
-                            </td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (err) {
-                console.error("Gagal muat antrean izin:", err);
-                tbody.innerHTML = `<tr me-auto><td colspan="8" class="p-4 text-center text-rose-500 font-bold">Error DB: ${err.message}</td></tr>`;
-            }
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400 font-bold">Tidak ada antrean permohonan izin siswa saat ini.</td></tr>';
+            return;
         }
 
+        tbody.innerHTML = data.map(p => {
+            // 1. Cek dari kolom khusus foto/bukti (jika ada di DB) ATAU cari URL di kolom keterangan
+            let driveUrl = p.foto || p.file_surat || p.url_bukti || null;
+
+            if (!driveUrl && p.keterangan) {
+                // Ekstrak URL (termasuk drive.google.com, docs.google.com, r2, dll.)
+                const urlMatch = p.keterangan.match(/https?:\/\/[^\s\)\>]+/i);
+                if (urlMatch) driveUrl = urlMatch[0];
+            }
+
+            return `
+                <tr class="hover:bg-purple-50/50 border-b border-slate-100" id="row-antrean-${p.id}">
+                    <td class="p-3 font-mono text-slate-500 text-[11px]">${p.tanggal}<br><span class="text-blue-600 font-bold">${p.jam_masuk || ''}</span></td>
+                    <td class="p-3 font-mono font-bold text-slate-800">${p.nisn}</td>
+                    <td class="p-3 font-black text-slate-900">${p.nama_siswa}</td>
+                    <td class="p-3 text-center font-black text-blue-900 font-mono">${p.kelas_siswa}</td>
+                    <td class="p-3 text-slate-700 font-medium">${p.keterangan || '-'}</td>
+                    <td class="p-3 text-center">
+                        ${driveUrl ? `
+                            <a href="${driveUrl}" target="_blank" class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-900 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-blue-300 transition">
+                                <i class="fa-solid fa-image text-blue-600"></i> Lihat Surat
+                            </a>
+                        ` : `
+                            <span class="text-[10px] text-slate-400 font-bold italic">Tanpa Foto</span>
+                        `}
+                    </td>
+                    <td class="p-3 space-y-1.5">
+                        <select id="verifikasi-status-${p.id}" onchange="toggleInputDispen(${p.id})" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white outline-none">
+                            <option value="Izin" ${p.status === 'Izin' ? 'selected' : ''}>Izin</option>
+                            <option value="Sakit" ${p.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
+                            <option value="Alpa">Alpa</option>
+                            <option value="Dispensasi" ${p.status === 'Dispensasi' ? 'selected' : ''}>Dispensasi</option>
+                        </select>
+                        <div id="box-dispen-txt-${p.id}" class="${p.status === 'Dispensasi' ? '' : 'hidden'}">
+                            <input type="text" id="verifikasi-dispen-txt-${p.id}" placeholder="Tuliskan nama kegiatan dispen..." class="w-full p-1.5 border border-emerald-400 bg-emerald-50 rounded-lg text-[11px] font-bold text-emerald-900 outline-none">
+                        </div>
+                    </td>
+                    <td class="p-3 text-center">
+                        <button onclick="eksekusiVerifikasiIzin(${p.id}, '${p.nisn}')" class="bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black px-3 py-2 rounded-xl text-xs shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1 mx-auto">
+                            <i class="fa-solid fa-circle-check"></i> Verifikasi
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    } catch (err) {
+        console.error("Gagal muat antrean izin:", err);
+        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-rose-500 font-bold">Gagal memuat antrean: ${err.message}</td></tr>`;
+    }
+}
         function toggleInputDispen(id) {
             const statusVal = document.getElementById(`verifikasi-status-${id}`).value;
             const boxDispen = document.getElementById(`box-dispen-txt-${id}`);
