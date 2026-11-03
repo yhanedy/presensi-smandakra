@@ -9,46 +9,46 @@
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Configuration & Turso DB Engine -->
-    <script src="js/config.js?v=admin_turso_final"></script>
+    <script src="js/config.js?v=admin_turso_v6"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- PROTEKSI HAK AKSES ADMIN -->
-  <script>
-    (function verifikasiAksesModul() {
-        // 1. Ambil data sesi pengguna dari LocalStorage
-        const rawUser = localStorage.getItem('smada_user');
-        const activeRoleRaw = localStorage.getItem('smada_role');
+    <script>
+        let activeUser = null;
 
-        if (!rawUser) {
-            alert('Akses Ditolak! Silakan login terlebih dahulu.');
-            window.location.href = 'index.html';
-            return;
-        }
+        (function verifikasiAksesModul() {
+            const rawUser = localStorage.getItem('smada_user');
+            const activeRoleRaw = localStorage.getItem('smada_role');
 
-        try {
-            const activeUser = JSON.parse(rawUser);
-            // Gabungkan role dari object user dan item localstorage agar fleksibel
-            const userRole = String(activeUser.role || activeRoleRaw || '').toLowerCase();
-
-            // 2. Cek apakah pengguna memiliki role BK/STP2K, Admin, ATAU Super Admin
-            const MemilikiAkses = 
-                userRole.includes('bk') || 
-                userRole.includes('stp2k') || 
-                userRole.includes('admin') || 
-                userRole.includes('superadmin') 
-
-            if (!MemilikiAkses) {
-                alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
-                window.location.href = 'index.html';
+            if (!rawUser || rawUser === "null" || rawUser === "undefined") {
+                alert('Akses Ditolak! Silakan login terlebih dahulu.');
+                window.location.replace('index.html');
+                return;
             }
-        } catch (e) {
-            console.error("Gagal membaca data sesi login:", e);
-            localStorage.removeItem('smada_user');
-            window.location.href = 'index.html';
-        }
-    })();
-</script>
+
+            try {
+                activeUser = JSON.parse(rawUser);
+                const userRole = String(activeUser.role || activeRoleRaw || '').toLowerCase();
+
+                const MemilikiAkses = 
+                    userRole.includes('bk') || 
+                    userRole.includes('stp2k') || 
+                    userRole.includes('admin') || 
+                    userRole.includes('superadmin') ||
+                    userRole.includes('super_admin');
+
+                if (!MemilikiAkses) {
+                    alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
+                    window.location.replace('index.html');
+                }
+            } catch (e) {
+                console.error("Gagal membaca data sesi login:", e);
+                localStorage.removeItem('smada_user');
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
 
     <!-- HEADER / NAVBAR INTERNAL ADMIN -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
@@ -64,7 +64,7 @@
                 <span class="text-xs bg-blue-950 px-3 py-1.5 rounded-lg font-mono text-blue-200">
                     <strong class="text-white" id="display-admin-name">Admin</strong>
                 </span>
-                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer">
                     <i class="fa-solid fa-power-off"></i>
                     <span>Logout</span>
                 </button>
@@ -75,7 +75,7 @@
     <!-- MAIN CONTENT AREA -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
 
-        <!-- BARIS 1: GRID UTAMA KONFIGURASI ADMIN (4 KOTAK / CARDS) -->
+        <!-- BARIS 1: GRID UTAMA KONFIGURASI ADMIN -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
 
             <!-- 1. Tambah Siswa Manual -->
@@ -102,7 +102,7 @@
                         <input type="password" id="admin-siswa-pass" placeholder="Default: yhan123" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500">
                     </div>
                 </div>
-                <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition mt-2">
+                <button onclick="tambahSiswaManual()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded text-xs transition mt-2 cursor-pointer">
                     Tambah Data Siswa
                 </button>
             </div>
@@ -135,7 +135,7 @@
                         </select>
                     </div>
                 </div>
-                <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition mt-2">
+                <button onclick="tambahUserBaru()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs transition mt-2 cursor-pointer">
                     Tambah User Petugas
                 </button>
             </div>
@@ -148,7 +148,6 @@
                         <span>Jadwal Presensi & Dispensasi</span>
                     </h3>
 
-                    <!-- JADWAL DEFAULT HARIAN -->
                     <div class="space-y-2 text-xs border-b border-amber-100 pb-2">
                         <p class="font-bold text-slate-700">1. Jadwal Default:</p>
                         <div class="grid grid-cols-3 gap-1">
@@ -167,7 +166,6 @@
                         </div>
                     </div>
 
-                    <!-- OVERRIDE PULANG LEBIH AWAL -->
                     <div class="space-y-2 text-xs bg-amber-100/60 p-2.5 rounded-lg border border-amber-300">
                         <div class="flex items-center justify-between border-b border-amber-200 pb-1.5">
                             <span class="font-bold text-amber-900 text-[11px] flex items-center space-x-1">
@@ -202,12 +200,12 @@
                     </div>
                 </div>
 
-                <button onclick="simpanSettingJadwalLengkap()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition shadow mt-2">
+                <button onclick="simpanSettingJadwalLengkap()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs transition shadow mt-2 cursor-pointer">
                     Simpan Pengaturan Jadwal
                 </button>
             </div>
 
-            <!-- 4. Pengaturan Lokasi GPS & Radius -->
+            <!-- 4. Pengaturan Lokasi GPS & Radius TERPERBAIKI -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3 flex flex-col justify-between">
                 <div class="space-y-3">
                     <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2 border-b pb-2">
@@ -233,7 +231,7 @@
                         </div>
                     </div>
                 </div>
-                <button onclick="simpanSettingLokasi()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs transition mt-2">
+                <button onclick="simpanSettingLokasi()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 rounded text-xs transition mt-2 cursor-pointer">
                     Simpan Lokasi GPS
                 </button>
             </div>
@@ -258,7 +256,7 @@
                         <input type="text" id="reset-pulang-nisn" placeholder="Masukkan NISN siswa terpencet..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500 font-mono">
                     </div>
                 </div>
-                <button onclick="batalkanStatusPulangSiswa()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow mt-2">
+                <button onclick="batalkanStatusPulangSiswa()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow mt-2 cursor-pointer">
                     <i class="fa-solid fa-check"></i>
                     <span>Batalkan Status Pulang Hari Ini</span>
                 </button>
@@ -272,7 +270,7 @@
                             <i class="fa-solid fa-mobile-screen-button text-amber-600"></i>
                             <span>Log HP Siswa (Multi-Akun)</span>
                         </h3>
-                        <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-[10px] px-2.5 py-1 rounded transition">
+                        <button onclick="muatLogPerangkatHP()" class="bg-amber-600 hover:bg-amber-700 text-white text-[10px] px-2.5 py-1 rounded transition cursor-pointer">
                             <i class="fa-solid fa-rotate"></i> Cek Log
                         </button>
                     </div>
@@ -298,7 +296,7 @@
 
         </div>
 
-        <!-- TABEL KELOLA DATA MASTER (SISWA & GURU/PETUGAS WITH TAB SWITCHING) -->
+        <!-- TABEL KELOLA DATA MASTER -->
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
             <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
                 <div>
@@ -307,19 +305,18 @@
                 </div>
 
                 <div class="flex items-center space-x-3">
-                    <!-- NAV TAB SWITCHER -->
                     <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
-                        <button id="btn-tab-siswa" onclick="switchMasterTab('siswa')" class="px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition">
+                        <button id="btn-tab-siswa" onclick="switchMasterTab('siswa')" class="px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition cursor-pointer">
                             <i class="fa-solid fa-user-graduate mr-1"></i> Data Siswa
                         </button>
-                        <button id="btn-tab-guru" onclick="switchMasterTab('guru')" class="px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition">
+                        <button id="btn-tab-guru" onclick="switchMasterTab('guru')" class="px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition cursor-pointer">
                             <i class="fa-solid fa-user-shield mr-1"></i> Data Guru / Petugas
                         </button>
                     </div>
 
                     <input type="text" id="search-input" onkeyup="filterMasterTable()" placeholder="Cari data..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
                     
-                    <button onclick="muatSemuaDataMaster()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg transition">
+                    <button onclick="muatSemuaDataMaster()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg transition cursor-pointer">
                         <i class="fa-solid fa-rotate"></i> Refresh Data
                     </button>
                 </div>
@@ -368,7 +365,7 @@
 
     <!-- FOOTER INTERNAL -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
-        <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
     <!-- JAVASCRIPT LOGIKA ADMIN (TURSO DRIVEN) -->
@@ -388,7 +385,6 @@
             window.location.href = 'index.html';
         }
 
-        // Tab Switching Data Siswa vs Data Guru
         function switchMasterTab(type) {
             const wrapSiswa = document.getElementById('wrapper-tabel-siswa');
             const wrapGuru = document.getElementById('wrapper-tabel-guru');
@@ -398,17 +394,16 @@
             if (type === 'siswa') {
                 wrapSiswa.classList.remove('hidden');
                 wrapGuru.classList.add('hidden');
-                btnSiswa.className = 'px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition';
-                btnGuru.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition';
+                btnSiswa.className = 'px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition cursor-pointer';
+                btnGuru.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition cursor-pointer';
             } else {
                 wrapGuru.classList.remove('hidden');
                 wrapSiswa.classList.add('hidden');
-                btnGuru.className = 'px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition';
-                btnSiswa.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition';
+                btnGuru.className = 'px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition cursor-pointer';
+                btnSiswa.className = 'px-3 py-1 text-xs font-bold rounded-md text-slate-600 hover:text-slate-900 transition cursor-pointer';
             }
         }
 
-        // Search Filter
         function filterMasterTable() {
             const input = document.getElementById('search-input').value.toLowerCase();
             const isSiswaActive = !document.getElementById('wrapper-tabel-siswa').classList.contains('hidden');
@@ -426,22 +421,28 @@
                 const rows = await queryTurso('SELECT * FROM setting_sekolah WHERE id = 1');
                 if (rows && rows.length > 0) {
                     const data = rows[0];
-                    if (data.latitude) document.getElementById('gps-lat').value = data.latitude;
-                    if (data.longitude) document.getElementById('gps-long').value = data.longitude;
-                    if (data.radius_meter) document.getElementById('gps-radius').value = data.radius_meter;
+                    if (data.latitude) document.getElementById('gps-lat').value = String(data.latitude);
+                    if (data.longitude) document.getElementById('gps-long').value = String(data.longitude);
+                    if (data.radius_meter) document.getElementById('gps-radius').value = String(data.radius_meter);
                 }
             } catch (e) {
                 console.log("Setting lokasi default digunakan.");
             }
         }
 
+        /* PERBAIKAN SIMPAN LOKASI GPS (KONVERSI KE STRING) */
         async function simpanSettingLokasi() {
-            const lat = parseFloat(document.getElementById('gps-lat').value);
-            const long = parseFloat(document.getElementById('gps-long').value);
-            const radius = parseInt(document.getElementById('gps-radius').value);
+            const lat = String(document.getElementById('gps-lat').value.trim());
+            const long = String(document.getElementById('gps-long').value.trim());
+            const radius = parseInt(document.getElementById('gps-radius').value) || 100;
+
+            if (!lat || !long) { alert("Koordinat GPS Lintang & Bujur wajib diisi!"); return; }
 
             try {
-                await queryTurso('INSERT OR REPLACE INTO setting_sekolah (id, latitude, longitude, radius_meter) VALUES (1, ?, ?, ?)', [lat, long, radius]);
+                await queryTurso(
+                    'INSERT OR REPLACE INTO setting_sekolah (id, latitude, longitude, radius_meter) VALUES (1, ?, ?, ?)', 
+                    [lat, long, radius]
+                );
                 alert("Pengaturan Lokasi GPS & Radius Berhasil Disimpan di Turso DB!");
             } catch (err) {
                 alert("Gagal menyimpan lokasi: " + err.message);
@@ -466,10 +467,10 @@
             const nisn = document.getElementById('reset-pulang-nisn').value.trim();
             if (!nisn) { alert("Masukkan NISN Siswa!"); return; }
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
             try {
-                const rows = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ?', [nisn, today]);
+                const rows = await queryTurso('SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ?', [nisn, today]);
                 if (!rows || rows.length === 0) {
                     alert(`Tidak ditemukan presensi hari ini untuk NISN: ${nisn}`);
                     return;
@@ -477,7 +478,7 @@
 
                 if (!confirm(`Batalkan status pulang NISN: ${nisn} untuk hari ini (${today})?`)) return;
 
-                await queryTurso('UPDATE presensi SET jam_pulang = NULL, status = ? WHERE nisn = ? AND tanggal = ?', ['Hadir', nisn, today]);
+                await queryTurso('UPDATE presensi SET jam_pulang = NULL, status = ? WHERE TRIM(nisn) = TRIM(?) AND tanggal = ?', ['Hadir', nisn, today]);
                 alert(`Status pulang NISN ${nisn} berhasil dibatalkan. Siswa kembali berstatus Hadir.`);
                 document.getElementById('reset-pulang-nisn').value = '';
             } catch (err) {
@@ -577,12 +578,12 @@
                         <td class="p-3 font-bold text-slate-800">${s.nama}</td>
                         <td class="p-3 font-mono text-slate-600">${s.kelas}</td>
                         <td class="p-3 text-center">
-                            <button onclick="resetPasswordSiswaDefault('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition">
+                            <button onclick="resetPasswordSiswaDefault('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition cursor-pointer">
                                 <i class="fa-solid fa-key"></i> Reset Pass
                             </button>
                         </td>
                         <td class="p-3 text-center">
-                            <button onclick="hapusSiswa('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition">
+                            <button onclick="hapusSiswa('${s.nisn}', '${s.nama.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer">
                                 <i class="fa-solid fa-trash"></i> Hapus
                             </button>
                         </td>
@@ -616,12 +617,12 @@
                             </span>
                         </td>
                         <td class="p-3 text-center">
-                            <button onclick="resetPasswordGuruDefault('${g.id}', '${g.username.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition">
+                            <button onclick="resetPasswordGuruDefault(${g.id}, '${g.username.replace(/'/g, "\\'")}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition cursor-pointer">
                                 <i class="fa-solid fa-key"></i> Reset Pass
                             </button>
                         </td>
                         <td class="p-3 text-center">
-                            <button onclick="hapusGuru('${g.id}', '${g.username.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition">
+                            <button onclick="hapusGuru(${g.id}, '${g.username.replace(/'/g, "\\'")}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer">
                                 <i class="fa-solid fa-trash"></i> Hapus
                             </button>
                         </td>
@@ -635,7 +636,7 @@
         async function resetPasswordSiswaDefault(nisn, nama) {
             if (!confirm(`Reset password "${nama}" (NISN: ${nisn}) kembali ke default "yhan123"?`)) return;
             try {
-                await queryTurso('UPDATE siswa SET password = ? WHERE nisn = ?', ['yhan123', nisn]);
+                await queryTurso('UPDATE siswa SET password = ? WHERE TRIM(nisn) = TRIM(?)', ['yhan123', nisn]);
                 alert(`Password "${nama}" berhasil direset ke "yhan123".`);
             } catch (err) {
                 alert("Gagal reset password: " + err.message);
@@ -645,7 +646,7 @@
         async function hapusSiswa(nisn, nama) {
             if (!confirm(`Apakah Anda yakin ingin menghapus siswa "${nama}" (NISN: ${nisn})?`)) return;
             try {
-                await queryTurso('DELETE FROM siswa WHERE nisn = ?', [nisn]);
+                await queryTurso('DELETE FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
                 alert(`Siswa "${nama}" berhasil dihapus.`);
                 muatDaftarSiswa();
             } catch (err) {
