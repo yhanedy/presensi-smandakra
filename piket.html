@@ -9,9 +9,39 @@
     <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Konfigurasi Turso Engine Direct API -->
-    <script src="js/config.js?v=piket_turso_v3"></script>
+    <script src="js/config.js?v=piket_turso_v5"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
+
+    <!-- VERIFIKASI HAK AKSES GURU PIKET SECURED -->
+    <script>
+        let currentUserSession = null;
+        const PORTAL_SSO_URL = "index.html";
+
+        (function verifikasiGuruPiket() {
+            const rawUser = localStorage.getItem('smada_user');
+            if (rawUser && rawUser !== "null" && rawUser !== "undefined") {
+                try {
+                    currentUserSession = JSON.parse(rawUser);
+                    const r = String(currentUserSession.role || '').toLowerCase().trim();
+                    
+                    const isAllowed = r.includes('piket') || r.includes('admin') || r.includes('superadmin') || r.includes('super_admin');
+
+                    if (!currentUserSession.username || !isAllowed) {
+                        alert("Akses Ditolak! Akun Anda tidak memiliki otoritas Guru Piket.");
+                        window.location.replace(PORTAL_SSO_URL);
+                        return;
+                    }
+                    return;
+                } catch (e) {
+                    localStorage.removeItem('smada_user');
+                }
+            }
+
+            alert("Akses Terbatas! Silakan login melalui Portal SSO.");
+            window.location.replace(PORTAL_SSO_URL);
+        })();
+    </script>
 
     <!-- HEADER / NAVBAR PIKET -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
@@ -36,14 +66,14 @@
         <!-- FORM INPUT PIKET -->
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200">
             <h2 class="text-xl font-bold text-slate-800 mb-1">Pos Guru Piket</h2>
-            <p class="text-xs text-slate-500 mb-6">Input presensi manual, pencatatan status Sakit/Izin/Alpa, dan Pulang Mendahului.</p>
+            <p class="text-xs text-slate-500 mb-6">Input presensi masuk/pulang susulan, pencatatan Sakit/Izin/Alpa, dan Izin Pulang Mendahului.</p>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <!-- Manual Hadir/Terlambat -->
-                <div class="border border-slate-200 rounded-lg p-4 space-y-4 bg-slate-50">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <!-- 1. Manual Masuk/Terlambat -->
+                <div class="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50">
                     <h3 class="font-bold text-slate-700 text-sm flex items-center space-x-2">
                         <i class="fa-solid fa-keyboard text-blue-600"></i>
-                        <span>Presensi Manual Siswa</span>
+                        <span>Presensi Masuk Siswa</span>
                     </h3>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
@@ -55,7 +85,24 @@
                     </div>
                 </div>
 
-                <!-- Input Sakit/Izin/Alpa -->
+                <!-- 2. FITUR BARU: Manual Pulang Susulan (Lupa Absen) -->
+                <div class="border border-emerald-200 bg-emerald-50/40 rounded-lg p-4 space-y-3">
+                    <h3 class="font-bold text-emerald-950 text-sm flex items-center space-x-2">
+                        <i class="fa-solid fa-person-walk-luggage text-emerald-600"></i>
+                        <span>Input Pulang Susulan (Lupa Absen)</span>
+                    </h3>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
+                        <input type="text" id="piket-pulang-lupa-nisn" placeholder="Masukkan NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
+                        <input type="text" id="piket-pulang-lupa-ket" placeholder="Misal: Lupa presensi di gerbang" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
+                    </div>
+                    <button onclick="simpanPulangSusulanPiket()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 rounded text-xs cursor-pointer">Simpan Jam Pulang</button>
+                </div>
+
+                <!-- 3. Input Sakit/Izin/Alpa -->
                 <div class="border border-blue-200 bg-blue-50/40 rounded-lg p-4 space-y-3">
                     <h3 class="font-bold text-blue-900 text-sm flex items-center space-x-2">
                         <i class="fa-solid fa-notes-medical text-blue-600"></i>
@@ -63,11 +110,11 @@
                     </h3>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                        <input type="text" id="piket-sakit-nisn" placeholder="Masukkan NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        <input type="text" id="piket-sakit-nisn" placeholder="Masukkan NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
-                        <select id="piket-sakit-status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        <select id="piket-sakit-status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
                             <option value="Sakit">Sakit</option>
                             <option value="Izin">Izin</option>
                             <option value="Alpa">Alpa</option>
@@ -76,12 +123,12 @@
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
-                        <input type="text" id="piket-sakit-ket" placeholder="Alasan / Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        <input type="text" id="piket-sakit-ket" placeholder="Alasan / Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
                     </div>
                     <button onclick="simpanKetidakhadiranPiket()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs cursor-pointer">Simpan Ketidakhadiran</button>
                 </div>
 
-                <!-- Pulang Mendahului -->
+                <!-- 4. Pulang Mendahului -->
                 <div class="border border-amber-200 bg-amber-50/50 rounded-lg p-4 space-y-3">
                     <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2">
                         <i class="fa-solid fa-person-walking-arrow-right text-amber-600"></i>
@@ -89,26 +136,26 @@
                     </h3>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                        <input type="text" id="pulang-nisn" placeholder="Ketik NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                        <input type="text" id="pulang-nisn" placeholder="Ketik NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
                     </div>
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Alasan Pulang</label>
-                        <textarea id="pulang-alasan" rows="2" placeholder="Contoh: Sakit perut / Urusan keluarga" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none"></textarea>
+                        <textarea id="pulang-alasan" rows="2" placeholder="Contoh: Sakit perut / Urusan keluarga" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white"></textarea>
                     </div>
                     <button onclick="simpanPresensiPiket('Pulang Mendahului')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs cursor-pointer">Simpan Izin Pulang</button>
                 </div>
             </div>
         </div>
 
-        <!-- TABEL REKAP IZIN / PULANG PER HARIAN (SUDAH DIVERIFIKASI) -->
+        <!-- TABEL REKAP IZIN / PULANG PER HARIAN -->
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
             <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
                 <div>
                     <h3 class="font-bold text-slate-800 text-base flex items-center space-x-2">
                         <i class="fa-solid fa-list-check text-blue-600"></i>
-                        <span>Daftar Siswa Izin Pulang Mendahului & Sakit/Izin/Alpa</span>
+                        <span>Daftar Presensi Manual & Ketidakhadiran Siswa</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Daftar riwayat ketidakhadiran & permohonan yang telah diverifikasi guru piket.</p>
+                    <p class="text-xs text-slate-500">Daftar riwayat ketidakhadiran, presensi susulan, & izin yang dicatat piket.</p>
                 </div>
                 <div class="flex items-center space-x-2">
                     <label class="text-xs font-bold text-slate-600">Pilih Tanggal:</label>
@@ -123,7 +170,7 @@
                 <table class="w-full text-xs text-left text-slate-600">
                     <thead class="bg-slate-100 uppercase font-semibold sticky top-0">
                         <tr>
-                            <th class="p-3">Tanggal / Waktu</th>
+                            <th class="p-3">Tanggal / Jam</th>
                             <th class="p-3">NISN</th>
                             <th class="p-3">Nama Siswa</th>
                             <th class="p-3 text-center">Kelas</th>
@@ -138,7 +185,7 @@
             </div>
         </div>
 
-        <!-- KOLOM PALING BAWAH: ANTREAN VERIFIKASI IZIN SISWA -->
+        <!-- ANTREAN VERIFIKASI IZIN SISWA -->
         <div class="bg-white rounded-xl shadow-md p-6 border-2 border-purple-200 space-y-4">
             <div class="flex justify-between items-center pb-3 border-b border-purple-100">
                 <div>
@@ -178,7 +225,7 @@
 
     <!-- FOOTER -->
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
-        <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
     <!-- SCRIPT LOGIKA UTAMA GURU PIKET (TURSO DB) -->
@@ -193,7 +240,7 @@
 
         function logout() {
             localStorage.removeItem('smada_user');
-            window.location.href = 'index.html';
+            window.location.href = PORTAL_SSO_URL;
         }
 
         window.onload = function() {
@@ -202,12 +249,14 @@
             muatAntreanIzinSiswa();
         };
 
-        /* 1. SIMPAN PRESENSI MANUAL HADIR / TERLAMBAT / PULANG */
+        /* 1. SIMPAN PRESENSI MANUAL MASUK & PULANG MENDANULUI */
         async function simpanPresensiPiket(status) {
-            const nisn = document.getElementById('piket-nisn').value.trim() || document.getElementById('pulang-nisn').value.trim();
+            const nisnInput = status === 'Pulang Mendahului' 
+                ? document.getElementById('pulang-nisn').value.trim() 
+                : document.getElementById('piket-nisn').value.trim();
             const alasan = document.getElementById('pulang-alasan').value.trim();
 
-            if (!nisn) { alert("NISN wajib diisi!"); return; }
+            if (!nisnInput) { alert("NISN wajib diisi!"); return; }
 
             const tglWIB = getTanggalWIB();
             const jamWIB = getJamWIB();
@@ -215,13 +264,13 @@
             try {
                 if (status === 'Pulang Mendahului') {
                     await queryTurso(
-                        'INSERT INTO presensi (nisn, tanggal, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                        [nisn, tglWIB, jamWIB, 'Pulang Mendahului', alasan || 'Izin Pulang Mendahului via Piket']
+                        "INSERT INTO presensi (nisn, tanggal, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?)",
+                        [nisnInput, tglWIB, jamWIB, 'Pulang Mendahului', alasan || 'Izin Pulang Mendahului via Piket']
                     );
                 } else {
                     await queryTurso(
-                        'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                        [nisn, tglWIB, jamWIB, status, `Presensi Manual Piket (${status})`]
+                        "INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)",
+                        [nisnInput, tglWIB, jamWIB, status, `Presensi Manual Piket (${status})`]
                     );
                 }
 
@@ -235,7 +284,47 @@
             }
         }
 
-        /* 2. SIMPAN KETIDAKHADIRAN (SAKIT/IZIN/ALPA/DISPEN) */
+        /* 2. FITUR BARU: SIMPAN PULANG SUSULAN (SISWA LUPA ABSEN PULANG) */
+        async function simpanPulangSusulanPiket() {
+            const nisn = document.getElementById('piket-pulang-lupa-nisn').value.trim();
+            const ket = document.getElementById('piket-pulang-lupa-ket').value.trim();
+
+            if (!nisn) { alert("NISN wajib diisi!"); return; }
+
+            const tglWIB = getTanggalWIB();
+            const jamWIB = getJamWIB();
+
+            try {
+                // Cek apakah data presensi hari ini sudah ada
+                const cekExist = await queryTurso(
+                    "SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? LIMIT 1",
+                    [nisn, tglWIB]
+                );
+
+                if (cekExist && cekExist.length > 0) {
+                    // Update jam_pulang pada record yang sudah ada
+                    await queryTurso(
+                        "UPDATE presensi SET jam_pulang = ?, keterangan = keterangan || ? WHERE id = ?",
+                        [jamWIB, ` | Pulang Susulan via Piket (${ket || 'Lupa Absen'})`, cekExist[0].id]
+                    );
+                } else {
+                    // Insert record baru jika siswa belum presensi masuk sama sekali
+                    await queryTurso(
+                        "INSERT INTO presensi (nisn, tanggal, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?)",
+                        [nisn, tglWIB, jamWIB, 'Hadir', `Presensi Pulang Susulan Piket (${ket || 'Lupa Absen'})`]
+                    );
+                }
+
+                alert("Jam pulang susulan berhasil disimpan!");
+                document.getElementById('piket-pulang-lupa-nisn').value = '';
+                document.getElementById('piket-pulang-lupa-ket').value = '';
+                muatRekapPiketHarian();
+            } catch (err) {
+                alert("Gagal menyimpan jam pulang susulan: " + err.message);
+            }
+        }
+
+        /* 3. SIMPAN KETIDAKHADIRAN (SAKIT/IZIN/ALPA/DISPEN) */
         async function simpanKetidakhadiranPiket() {
             const nisn = document.getElementById('piket-sakit-nisn').value.trim();
             const status = document.getElementById('piket-sakit-status').value;
@@ -245,7 +334,7 @@
 
             try {
                 await queryTurso(
-                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
+                    "INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)",
                     [nisn, getTanggalWIB(), getJamWIB(), status, ket || `Pencatatan Piket (${status})`]
                 );
 
@@ -258,7 +347,7 @@
             }
         }
 
-        /* 3. MUAT REKAP HARIAN (STATUS DIVERIFIKASI SELESAI) */
+        /* 4. MUAT REKAP HARIAN (KUERI REFACTOR BEBAS ERROR 400) */
         async function muatRekapPiketHarian() {
             const tgl = document.getElementById('filter-piket-tanggal').value;
             const tbody = document.getElementById('tabel-piket-rekap-body');
@@ -268,25 +357,17 @@
             tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data rekap...</td></tr>';
 
             try {
-                const data = await queryTurso(
-                    `SELECT p.*, 
-                            COALESCE(s.nama, 'Siswa') as nama_siswa, 
-                            COALESCE(s.kelas, '-') as kelas_siswa 
-                     FROM presensi p 
-                     LEFT JOIN siswa s ON (TRIM(LOWER(p.nisn)) = TRIM(LOWER(s.nisn)) OR TRIM(LOWER(p.nisn)) = TRIM(LOWER(s.username)))
-                     WHERE p.tanggal = ? AND p.status IN ('Sakit', 'Izin', 'Alpa', 'Dispensasi', 'Pulang Mendahului') 
-                     ORDER BY p.id DESC`,
-                    [tgl]
-                );
+                const sqlStr = "SELECT p.*, COALESCE(s.nama, 'Siswa') as nama_siswa, COALESCE(s.kelas, '-') as kelas_siswa FROM presensi p LEFT JOIN siswa s ON TRIM(p.nisn) = TRIM(s.nisn) WHERE p.tanggal = ? ORDER BY p.id DESC";
+                const data = await queryTurso(sqlStr, [tgl]);
 
                 if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada catatan izin/pulang mendahului pada tanggal ini.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada catatan presensi/izin pada tanggal ini.</td></tr>';
                     return;
                 }
 
                 tbody.innerHTML = data.map(p => `
                     <tr class="hover:bg-slate-50 border-b border-slate-100">
-                        <td class="p-3 font-mono text-slate-500">${p.tanggal} ${p.jam_masuk || p.jam_pulang || ''}</td>
+                        <td class="p-3 font-mono text-slate-500">${p.tanggal} <span class="font-bold text-blue-900">${p.jam_masuk || p.jam_pulang || ''}</span></td>
                         <td class="p-3 font-mono font-bold">${p.nisn}</td>
                         <td class="p-3 font-bold text-slate-900">${p.nama_siswa}</td>
                         <td class="p-3 font-bold text-blue-900 font-mono text-center">${p.kelas_siswa}</td>
@@ -296,6 +377,7 @@
                                 p.status === 'Sakit' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
                                 p.status === 'Izin' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
                                 p.status === 'Dispensasi' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                p.status === 'Hadir' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                                 'bg-red-100 text-red-800 border border-red-300'
                             }">
                                 ${p.status}
@@ -306,26 +388,18 @@
                 `).join('');
             } catch (err) {
                 console.error("Gagal muat rekap piket:", err);
-                tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-rose-500">Gagal mengambil data dari database.</td></tr>';
+                tbody.innerHTML = `<tr me-auto><td colspan="6" class="p-4 text-center text-rose-500 font-bold">Error DB: ${err.message}</td></tr>`;
             }
         }
 
-        /* 4. MUAT ANTREAN PERMOHONAN IZIN SISWA (DENGAN KOLOM KELAS SENDIRI) */
+        /* 5. MUAT ANTREAN PERMOHONAN IZIN SISWA */
         async function muatAntreanIzinSiswa() {
             const tbody = document.getElementById('tabel-antrean-izin-body');
             tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean permohonan...</td></tr>';
 
             try {
-                // Kueri fleksibel mengambil permohonan izin/sakit/dispen yang baru diajukan
-                const data = await queryTurso(
-                    `SELECT p.*, 
-                            COALESCE(s.nama, 'Siswa') as nama_siswa, 
-                            COALESCE(s.kelas, '-') as kelas_siswa 
-                     FROM presensi p 
-                     LEFT JOIN siswa s ON (TRIM(LOWER(p.nisn)) = TRIM(LOWER(s.nisn)) OR TRIM(LOWER(p.nisn)) = TRIM(LOWER(s.username)))
-                     WHERE p.status IN ('Izin', 'Sakit', 'Dispensasi') 
-                     ORDER BY p.id DESC LIMIT 25`
-                );
+                const sqlStr = "SELECT p.*, COALESCE(s.nama, 'Siswa') as nama_siswa, COALESCE(s.kelas, '-') as kelas_siswa FROM presensi p LEFT JOIN siswa s ON TRIM(p.nisn) = TRIM(s.nisn) WHERE p.status IN ('Izin', 'Sakit', 'Dispensasi') ORDER BY p.id DESC LIMIT 25";
+                const data = await queryTurso(sqlStr);
 
                 if (!data || data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400 font-bold">Tidak ada antrean permohonan izin siswa saat ini.</td></tr>';
@@ -333,7 +407,6 @@
                 }
 
                 tbody.innerHTML = data.map(p => {
-                    // Deteksi URL foto Google Drive dari teks keterangan
                     const urlMatch = p.keterangan ? p.keterangan.match(/https?:\/\/[^\s]+/) : null;
                     const driveUrl = urlMatch ? urlMatch[0] : null;
 
@@ -361,7 +434,6 @@
                                     <option value="Dispensasi" ${p.status === 'Dispensasi' ? 'selected' : ''}>Dispensasi</option>
                                 </select>
                                 
-                                <!-- INPUT TEXT KETERANGAN DISPENSASI -->
                                 <div id="box-dispen-txt-${p.id}" class="${p.status === 'Dispensasi' ? '' : 'hidden'}">
                                     <input type="text" id="verifikasi-dispen-txt-${p.id}" placeholder="Tuliskan nama kegiatan dispen..." class="w-full p-1.5 border border-emerald-400 bg-emerald-50 rounded-lg text-[11px] font-bold text-emerald-900 outline-none">
                                 </div>
@@ -376,11 +448,10 @@
                 }).join('');
             } catch (err) {
                 console.error("Gagal muat antrean izin:", err);
-                tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-rose-500">Gagal memuat antrean permohonan.</td></tr>';
+                tbody.innerHTML = `<tr me-auto><td colspan="8" class="p-4 text-center text-rose-500 font-bold">Error DB: ${err.message}</td></tr>`;
             }
         }
 
-        /* FUNGSI TOGGLE INPUT KETERANGAN DISPENSASI */
         function toggleInputDispen(id) {
             const statusVal = document.getElementById(`verifikasi-status-${id}`).value;
             const boxDispen = document.getElementById(`box-dispen-txt-${id}`);
@@ -391,7 +462,6 @@
             }
         }
 
-        /* 5. EKSEKUSI VERIFIKASI PERMOHONAN OLEH PIKET */
         async function eksekusiVerifikasiIzin(id, nisn) {
             const statusFinal = document.getElementById(`verifikasi-status-${id}`).value;
             const inputDispen = document.getElementById(`verifikasi-dispen-txt-${id}`).value.trim();
@@ -402,15 +472,13 @@
             }
 
             try {
-                // Perbarui status permohonan di Turso DB
                 await queryTurso(
-                    'UPDATE presensi SET status = ?, keterangan = ? WHERE id = ?',
+                    "UPDATE presensi SET status = ?, keterangan = ? WHERE id = ?",
                     [statusFinal, keteranganBaru, id]
                 );
 
                 alert(`Permohonan NISN ${nisn} berhasil diverifikasi sebagai [${statusFinal}]!`);
 
-                // Hapus baris permohonan dari antrean dan masukkan ke tabel rekap harian
                 const row = document.getElementById(`row-antrean-${id}`);
                 if (row) row.remove();
 
