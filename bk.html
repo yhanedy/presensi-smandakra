@@ -9,47 +9,46 @@
     <!-- SheetJS CDN untuk Ekspor Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- Konfigurasi Turso Engine Direct API -->
-    <script src="js/config.js?v=bk_turso_final"></script>
+    <script src="js/config.js?v=bk_turso_v6"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- PROTEKSI HAK AKSES GURU BK / STP2K / ADMIN -->
-<script>
-    (function verifikasiAksesModul() {
-        // 1. Ambil data sesi pengguna dari LocalStorage
-        const rawUser = localStorage.getItem('smada_user');
-        const activeRoleRaw = localStorage.getItem('smada_role');
+    <script>
+        let activeUser = null;
 
-        if (!rawUser) {
-            alert('Akses Ditolak! Silakan login terlebih dahulu.');
-            window.location.href = 'index.html';
-            return;
-        }
+        (function verifikasiAksesModul() {
+            const rawUser = localStorage.getItem('smada_user');
+            const activeRoleRaw = localStorage.getItem('smada_role');
 
-        try {
-            const activeUser = JSON.parse(rawUser);
-            // Gabungkan role dari object user dan item localstorage agar fleksibel
-            const userRole = String(activeUser.role || activeRoleRaw || '').toLowerCase();
-
-            // 2. Cek apakah pengguna memiliki role BK/STP2K, Admin, ATAU Super Admin
-            const MemilikiAkses = 
-                userRole.includes('bk') || 
-                userRole.includes('stp2k') || 
-                userRole.includes('admin') || 
-                userRole.includes('superadmin') || 
-                userRole.includes('super_admin');
-
-            if (!MemilikiAkses) {
-                alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
-                window.location.href = 'index.html';
+            if (!rawUser || rawUser === "null" || rawUser === "undefined") {
+                alert('Akses Ditolak! Silakan login terlebih dahulu.');
+                window.location.replace('index.html');
+                return;
             }
-        } catch (e) {
-            console.error("Gagal membaca data sesi login:", e);
-            localStorage.removeItem('smada_user');
-            window.location.href = 'index.html';
-        }
-    })();
-</script>
+
+            try {
+                activeUser = JSON.parse(rawUser);
+                const userRole = String(activeUser.role || activeRoleRaw || '').toLowerCase();
+
+                const MemilikiAkses = 
+                    userRole.includes('bk') || 
+                    userRole.includes('stp2k') || 
+                    userRole.includes('admin') || 
+                    userRole.includes('superadmin') || 
+                    userRole.includes('super_admin');
+
+                if (!MemilikiAkses) {
+                    alert('Akses Ditolak! Anda harus login sebagai Guru BK / STP2K atau Administrator.');
+                    window.location.replace('index.html');
+                }
+            } catch (e) {
+                console.error("Gagal membaca data sesi login:", e);
+                localStorage.removeItem('smada_user');
+                window.location.replace('index.html');
+            }
+        })();
+    </script>
 
     <!-- HEADER -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
@@ -65,7 +64,7 @@
                 <span class="text-xs bg-blue-950 px-3 py-1.5 rounded-lg font-mono text-blue-200">
                     <strong class="text-white" id="display-user-name">Guru BK</strong>
                 </span>
-                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1">
+                <button onclick="logout()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1 cursor-pointer">
                     <i class="fa-solid fa-power-off"></i>
                     <span>Logout</span>
                 </button>
@@ -91,7 +90,7 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Pelanggaran</label>
                     <textarea id="pelanggaran-catatan" rows="3" placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none"></textarea>
                 </div>
-                <button onclick="simpanPelanggaranBK()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition">Simpan Catatan Kedisiplinan</button>
+                <button onclick="simpanPelanggaranBK()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer">Simpan Catatan Kedisiplinan</button>
             </div>
 
             <!-- 2. Input Sakit / Izin / Alpa -->
@@ -116,11 +115,11 @@
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
                     <input type="text" id="bk-keterangan" placeholder="Contoh: Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
                 </div>
-                <button onclick="simpanPresensiBK()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition">Simpan Status Ketidakhadiran</button>
+                <button onclick="simpanPresensiBK()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer">Simpan Status Ketidakhadiran</button>
             </div>
         </div>
 
-        <!-- TABEL KEDISIPLINAN (15 DATA + LOAD MORE & EXPORT) -->
+        <!-- TABEL KEDISIPLINAN -->
         <div class="bg-white rounded-xl shadow-md p-6 border border-slate-200 space-y-4">
             <div class="flex flex-wrap justify-between items-center pb-3 border-b border-slate-100 gap-2">
                 <div>
@@ -128,9 +127,9 @@
                         <i class="fa-solid fa-shield-cat text-red-600"></i>
                         <span>Daftar Catatan Kedisiplinan & Pelanggaran Siswa</span>
                     </h3>
-                    <p class="text-xs text-slate-500">Menampilkan catatan kedisiplinan tersimpan di Turso DB.</p>
+                    <p class="text-xs text-slate-500">Menampilkan catatan kedisiplinan dan penanganan BK yang tersimpan di Turso DB.</p>
                 </div>
-                <button onclick="eksporExcelPelanggaranBK()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded-lg font-bold flex items-center space-x-1.5 shadow transition">
+                <button onclick="eksporExcelPelanggaranBK()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs px-3 py-2 rounded-lg font-bold flex items-center space-x-1.5 shadow transition cursor-pointer">
                     <i class="fa-solid fa-file-excel"></i>
                     <span>Ekspor Excel Pelanggaran</span>
                 </button>
@@ -145,17 +144,19 @@
                             <th class="p-3">Nama Siswa</th>
                             <th class="p-3">Kelas</th>
                             <th class="p-3">Catatan Pelanggaran</th>
+                            <th class="p-3">Penanganan BK / Tindak Lanjut</th>
                             <th class="p-3 text-center">Diinput Oleh</th>
+                            <th class="p-3 text-center">Aksi Penanganan</th>
                         </tr>
                     </thead>
                     <tbody id="tabel-pelanggaran-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>
+                        <tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>
                     </tbody>
                 </table>
             </div>
 
             <div class="text-center pt-2">
-                <button id="btn-load-more" onclick="muatPelanggaranBK(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-2 rounded-lg font-bold transition hidden">
+                <button id="btn-load-more" onclick="muatPelanggaranBK(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-2 rounded-lg font-bold transition hidden cursor-pointer">
                     Lihat Selengkapnya...
                 </button>
             </div>
@@ -163,12 +164,45 @@
 
     </main>
 
+    <!-- POP-UP MODAL PENANGANAN BK -->
+    <div id="modal-penanganan" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden space-y-4">
+            <div class="bg-blue-900 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-user-shield text-yellow-400"></i>
+                    <span>Form Penanganan BK / STP2K</span>
+                </h3>
+                <button onclick="tutupModalPenanganan()" class="text-slate-300 hover:text-white text-lg cursor-pointer">&times;</button>
+            </div>
+            
+            <div class="p-5 space-y-3 text-xs">
+                <input type="hidden" id="modal-pelanggaran-id">
+                
+                <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1">
+                    <p><strong>Nama Siswa:</strong> <span id="modal-nama-siswa" class="text-blue-900 font-bold">-</span></p>
+                    <p><strong>Pelanggaran:</strong> <span id="modal-catatan-pelanggaran" class="text-red-700">-</span></p>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Catatan Tindak Lanjut / Penanganan Guru BK</label>
+                    <textarea id="modal-catatan-penanganan" rows="4" placeholder="Tuliskan hasil pemanggilan siswa, konseling, atau bentuk hukuman pembinaan..." class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+            </div>
+
+            <div class="bg-slate-100 p-4 flex justify-end space-x-2">
+                <button onclick="tutupModalPenanganan()" class="px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded-lg font-bold text-xs cursor-pointer">Batal</button>
+                <button onclick="simpanPenangananBK()" class="px-4 py-2 bg-blue-900 hover:bg-blue-950 text-white rounded-lg font-bold text-xs shadow cursor-pointer flex items-center gap-1">
+                    <i class="fa-solid fa-floppy-disk"></i> Simpan Penanganan
+                </button>
+            </div>
+        </div>
+    </div>
+
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4">
-        <p>&copy; 2026 SMAN 2 Karanganyar. All rights reserved.</p>
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
     <!-- JAVASCRIPT LOGIKA BK (TURSO DRIVEN) -->
-    
     <script>
         let currentOffset = 0;
         const LIMIT = 15;
@@ -185,7 +219,7 @@
             localStorage.removeItem('smada_role');
             window.location.href = 'index.html';
         }
-   
+
         async function simpanPelanggaranBK() {
             const nisn = document.getElementById('pelanggaran-nisn').value.trim();
             const catatan = document.getElementById('pelanggaran-catatan').value.trim();
@@ -193,13 +227,13 @@
             if (!nisn || !catatan) { alert("NISN dan Catatan Wajib diisi!"); return; }
 
             try {
-                const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
+                const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
                 if (!sCheck || sCheck.length === 0) {
                     alert(`NISN ${nisn} tidak ditemukan di master data siswa!`);
                     return;
                 }
 
-                const diinputOleh = activeUser ? activeUser.nama : 'Guru BK';
+                const diinputOleh = activeUser ? (activeUser.nama || activeUser.username) : 'Guru BK';
 
                 await queryTurso(
                     'INSERT INTO kedisiplinan (nisn, catatan_pelanggaran, diinput_oleh) VALUES (?, ?, ?)',
@@ -224,18 +258,18 @@
 
             if (!nisn) { alert("NISN wajib diisi!"); return; }
 
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
             try {
-                const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
+                const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
                 if (!sCheck || sCheck.length === 0) {
                     alert(`NISN ${nisn} tidak ditemukan di master data siswa!`);
                     return;
                 }
 
                 await queryTurso(
-                    'INSERT OR REPLACE INTO presensi (nisn, tanggal, status, keterangan) VALUES (?, ?, ?, ?)',
-                    [nisn, today, status, ket || '-']
+                    'INSERT INTO presensi (nisn, tanggal, status, keterangan) VALUES (?, ?, ?, ?)',
+                    [nisn, today, status, ket || `Input BK (${status})`]
                 );
 
                 alert(`Status ketidakhadiran (${status}) untuk SISWA (${sCheck[0].nama}) berhasil dicatat!`);
@@ -257,18 +291,20 @@
             }
 
             try {
-                const sql = `
-                    SELECT k.id, k.created_at, k.nisn, k.catatan_pelanggaran, k.diinput_oleh, s.nama, s.kelas 
+                const sqlStr = `
+                    SELECT k.id, k.created_at, k.nisn, k.catatan_pelanggaran, k.penanganan_bk, k.diinput_oleh, 
+                           COALESCE(s.nama, 'Siswa') as nama, 
+                           COALESCE(s.kelas, '-') as kelas 
                     FROM kedisiplinan k 
-                    LEFT JOIN siswa s ON k.nisn = s.nisn 
+                    LEFT JOIN siswa s ON TRIM(k.nisn) = TRIM(s.nisn) 
                     ORDER BY k.id DESC 
                     LIMIT ${LIMIT} OFFSET ${currentOffset}
                 `;
 
-                const data = await queryTurso(sql);
+                const data = await queryTurso(sqlStr);
 
                 if (!data || data.length === 0) {
-                    if (!isLoadMore) tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>';
+                    if (!isLoadMore) tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>';
                     btnMore.classList.add('hidden');
                     return;
                 }
@@ -277,10 +313,18 @@
                     <tr class="hover:bg-slate-50 border-b border-slate-100">
                         <td class="p-3 font-mono text-slate-500">${p.created_at || '-'}</td>
                         <td class="p-3 font-mono font-bold text-slate-700">${p.nisn}</td>
-                        <td class="p-3 font-semibold text-slate-800">${p.nama || '-'}</td>
-                        <td class="p-3 font-mono text-slate-600">${p.kelas || '-'}</td>
+                        <td class="p-3 font-bold text-slate-900">${p.nama}</td>
+                        <td class="p-3 font-mono font-bold text-blue-900">${p.kelas}</td>
                         <td class="p-3 text-red-700 font-medium">${p.catatan_pelanggaran}</td>
+                        <td class="p-3 text-emerald-800 font-medium bg-emerald-50/50 rounded-lg">
+                            ${p.penanganan_bk ? `<i class="fa-solid fa-check text-emerald-600 mr-1"></i>${p.penanganan_bk}` : '<span class="text-slate-400 italic">Belum ada penanganan</span>'}
+                        </td>
                         <td class="p-3 text-center font-semibold text-slate-600">${p.diinput_oleh || 'BK'}</td>
+                        <td class="p-3 text-center">
+                            <button onclick="bukaModalPenanganan(${p.id}, '${p.nama.replace(/'/g, "\\'")}', '${p.catatan_pelanggaran.replace(/'/g, "\\'")}', '${(p.penanganan_bk || '').replace(/'/g, "\\'")}')" class="bg-blue-900 hover:bg-blue-950 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow transition cursor-pointer flex items-center justify-center gap-1 mx-auto">
+                                <i class="fa-solid fa-pen-to-square text-yellow-400"></i> Penanganan
+                            </button>
+                        </td>
                     </tr>
                 `).join('');
 
@@ -294,20 +338,57 @@
                 }
 
             } catch (err) {
-                tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500 font-bold">Gagal memuat catatan: ${err.message}</td></tr>`;
+                console.error("Gagal muat kedisiplinan:", err);
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500 font-bold">Gagal memuat data kedisiplinan: ${err.message}</td></tr>`;
+            }
+        }
+
+        /* MODAL KHUSUS PENANGANAN BK */
+        function bukaModalPenanganan(id, nama, pelanggaran, penangananExisting) {
+            document.getElementById('modal-pelanggaran-id').value = id;
+            document.getElementById('modal-nama-siswa').textContent = nama;
+            document.getElementById('modal-catatan-pelanggaran').textContent = pelanggaran;
+            document.getElementById('modal-catatan-penanganan').value = penangananExisting;
+            document.getElementById('modal-penanganan').classList.remove('hidden');
+        }
+
+        function tutupModalPenanganan() {
+            document.getElementById('modal-penanganan').classList.add('hidden');
+        }
+
+        async function simpanPenangananBK() {
+            const id = document.getElementById('modal-pelanggaran-id').value;
+            const penangananTxt = document.getElementById('modal-catatan-penanganan').value.trim();
+
+            if (!penangananTxt) { alert("Catatan penanganan wajib diisi!"); return; }
+
+            try {
+                await queryTurso(
+                    'UPDATE kedisiplinan SET penanganan_bk = ? WHERE id = ?',
+                    [penangananTxt, id]
+                );
+
+                alert("Catatan penanganan BK berhasil diperbarui!");
+                tutupModalPenanganan();
+                currentOffset = 0;
+                muatPelanggaranBK(false);
+            } catch (err) {
+                alert("Gagal menyimpan penanganan BK: " + err.message);
             }
         }
 
         async function eksporExcelPelanggaranBK() {
             try {
-                const sql = `
-                    SELECT k.created_at, k.nisn, k.catatan_pelanggaran, k.diinput_oleh, s.nama, s.kelas 
+                const sqlStr = `
+                    SELECT k.created_at, k.nisn, k.catatan_pelanggaran, k.penanganan_bk, k.diinput_oleh, 
+                           COALESCE(s.nama, '-') as nama, 
+                           COALESCE(s.kelas, '-') as kelas 
                     FROM kedisiplinan k 
-                    LEFT JOIN siswa s ON k.nisn = s.nisn 
+                    LEFT JOIN siswa s ON TRIM(k.nisn) = TRIM(s.nisn) 
                     ORDER BY k.id DESC
                 `;
 
-                const data = await queryTurso(sql);
+                const data = await queryTurso(sqlStr);
 
                 if (!data || data.length === 0) { alert("Tidak ada data kedisiplinan untuk diekspor!"); return; }
 
@@ -315,17 +396,18 @@
                     "No": idx + 1,
                     "Tanggal / Waktu": d.created_at || '-',
                     "NISN": d.nisn,
-                    "Nama Siswa": d.nama || '-',
-                    "Kelas": d.kelas || '-',
+                    "Nama Siswa": d.nama,
+                    "Kelas": d.kelas,
                     "Catatan Pelanggaran": d.catatan_pelanggaran,
+                    "Penanganan BK / Tindak Lanjut": d.penanganan_bk || 'Belum Ditangani',
                     "Diinput Oleh": d.diinput_oleh || '-'
                 }));
 
-                const today = new Date().toISOString().split('T')[0];
+                const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
                 const worksheet = XLSX.utils.json_to_sheet(listData);
                 const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Catatan Pelanggaran");
-                XLSX.writeFile(workbook, `Laporan_Pelanggaran_BK_${today}.xlsx`);
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Kedisiplinan & Penanganan BK");
+                XLSX.writeFile(workbook, `Laporan_Pelanggaran_Penanganan_BK_${today}.xlsx`);
 
             } catch (err) {
                 alert("Gagal ekspor Excel: " + err.message);
