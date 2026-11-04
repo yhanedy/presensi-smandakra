@@ -202,15 +202,17 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- JAVASCRIPT LOGIKA BK (TURSO DRIVEN) -->
+    <!-- JAVASCRIPT LOGIKA BK (TURSO DRIVEN & AUTO MIGRATION) -->
     <script>
         let currentOffset = 0;
         const LIMIT = 15;
 
-        window.onload = function() {
+        window.onload = async function() {
             if (activeUser) {
                 document.getElementById('display-user-name').textContent = activeUser.nama || activeUser.username;
             }
+            // Otomatis pastikan kolom penanganan_bk ada
+            await pastikanStrukturTabel();
             muatPelanggaranBK(false);
         };
 
@@ -218,6 +220,17 @@
             localStorage.removeItem('smada_user');
             localStorage.removeItem('smada_role');
             window.location.href = 'index.html';
+        }
+
+        async function pastikanStrukturTabel() {
+            try {
+                // Mencoba menambahkan kolom jika belum ada
+                await queryTurso('ALTER TABLE kedisiplinan ADD COLUMN penanganan_bk TEXT');
+                console.log("Kolom penanganan_bk berhasil ditambahkan.");
+            } catch (e) {
+                // Mengabaikan error jika kolom sudah ada sebelumnya
+                console.log("Struktur tabel kedisiplinan sudah up-to-date.");
+            }
         }
 
         async function simpanPelanggaranBK() {
@@ -321,7 +334,7 @@
                         </td>
                         <td class="p-3 text-center font-semibold text-slate-600">${p.diinput_oleh || 'BK'}</td>
                         <td class="p-3 text-center">
-                            <button onclick="bukaModalPenanganan(${p.id}, '${p.nama.replace(/'/g, "\\'")}', '${p.catatan_pelanggaran.replace(/'/g, "\\'")}', '${(p.penanganan_bk || '').replace(/'/g, "\\'")}')" class="bg-blue-900 hover:bg-blue-950 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow transition cursor-pointer flex items-center justify-center gap-1 mx-auto">
+                            <button onclick="bukaModalPenanganan(${p.id}, '${(p.nama || '').replace(/'/g, "\\'")}', '${(p.catatan_pelanggaran || '').replace(/'/g, "\\'")}', '${(p.penanganan_bk || '').replace(/'/g, "\\'")}')" class="bg-blue-900 hover:bg-blue-950 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow transition cursor-pointer flex items-center justify-center gap-1 mx-auto">
                                 <i class="fa-solid fa-pen-to-square text-yellow-400"></i> Penanganan
                             </button>
                         </td>
