@@ -454,7 +454,7 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-  <!-- SCRIPT LOGIKA UTAMA PORTAL SISWA (REVISED & REFACTORED VERSION) -->
+<!-- SCRIPT LOGIKA UTAMA PORTAL SISWA (FULL FINAL CODE) -->
 <script>
     const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbz4inApesetc3y14EJrgWUU-b_l9pKn8l0VVB6_mg2mJfjJS8XL4Gvjj45h29cvcggywA/exec";
 
@@ -462,7 +462,7 @@
     let siswaDistanceMeters = null;
     let latSekolah = -7.6005890;
     let longSekolah = 110.9783970;
-    let maxRadius = 100;
+    let maxRadius = 50;
 
     let isSudahPresensiMasuk = false;
     let modePresensiKameraDipilih = null;
@@ -472,6 +472,9 @@
     let fileDispenBase64 = null;
     let activeAnnouncementId = null;
 
+    /* =========================================================
+       1. FUNGSI FORMAT WAKTU & TANGGAL (WIB)
+       ========================================================= */
     function getTanggalWIB(d = new Date()) {
         return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
     }
@@ -493,6 +496,9 @@
         window.location.replace('index.html');
     }
 
+    /* =========================================================
+       2. INITIALIZATION WINDOW ONLOAD
+       ========================================================= */
     window.onload = function() {
         const savedSiswa = localStorage.getItem('smada_siswa');
         if (!savedSiswa) {
@@ -557,6 +563,9 @@
         muatRiwayatSiswa();
     }
 
+    /* =========================================================
+       3. FUNGSI PENGUMUMAN BROADCAST SISWA
+       ========================================================= */
     async function cekPengumumanKhususSiswa() {
         try {
             const data = await queryTurso(
@@ -591,14 +600,26 @@
         if (popModal) popModal.classList.add('hidden');
     }
 
-    /* --- FUNGSI MODAL PERMOHONAN IZIN & DISPEN --- */
+    /* =========================================================
+       4. FUNGSI MODAL PERMOHONAN IZIN & DISPEN (LOCK TOMBOL)
+       ========================================================= */
     function bukaModalIzinDispen() {
         fotoIzinBase64 = null;
         fileDispenBase64 = null;
 
+        const tglStr = getTanggalWIB();
+        const tglTodayElem = document.getElementById('ijinTanggalToday');
+        const dispenMulaiElem = document.getElementById('dispenTglMulai');
+        const dispenSelesaiElem = document.getElementById('dispenTglSelesai');
+
+        if (tglTodayElem) tglTodayElem.innerText = tglStr;
+        if (dispenMulaiElem) dispenMulaiElem.value = tglStr;
+        if (dispenSelesaiElem) dispenSelesaiElem.value = tglStr;
+
         const btnHarian = document.getElementById('btnKirimIjinHarian');
         const btnDispen = document.getElementById('btnKirimDispenDokter');
 
+        // Kunci tombol kirim di awal sampai siswa mefoto lampiran
         if (btnHarian) {
             btnHarian.disabled = true;
             btnHarian.classList.add('opacity-50', 'cursor-not-allowed');
@@ -608,11 +629,17 @@
             btnDispen.classList.add('opacity-50', 'cursor-not-allowed');
         }
 
+        const p1 = document.getElementById('ijinPreviewBox');
+        if (p1) p1.classList.add('hidden');
+        const p2 = document.getElementById('dispenFileNama');
+        if (p2) p2.classList.add('hidden');
+
+        switchTabIzinDispen('tab-ijin-harian');
+
         const modalIzin = document.getElementById('modal-permohonan-ijin');
         if (modalIzin) modalIzin.classList.remove('hidden');
     }
 
-    // FUNGSI PERBAIKAN 1: PENDEFINISIAN TUTUP MODAL & RESET PREVIEW FOTO
     function tutupModalIzinDispen() {
         const modalIzin = document.getElementById('modal-permohonan-ijin');
         if (modalIzin) modalIzin.classList.add('hidden');
@@ -626,7 +653,49 @@
         fileDispenBase64 = null;
     }
 
-    // FUNGSI PERBAIKAN 6: PREVIEW FOTO DENGAN HANDLING IMG ERROR
+    function switchTabIzinDispen(tabId) {
+        document.querySelectorAll('.tab-ijin-content').forEach(c => c.classList.add('hidden'));
+
+        const targetTab = document.getElementById(tabId);
+        if (targetTab) targetTab.classList.remove('hidden');
+
+        const btnTabHarian = document.getElementById('btn-tab-ijin-harian');
+        const btnTabDispen = document.getElementById('btn-tab-dispen');
+
+        if (btnTabHarian) btnTabHarian.className = "tab-ijin-btn py-2.5 px-4 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition cursor-pointer";
+        if (btnTabDispen) btnTabDispen.className = "tab-ijin-btn py-2.5 px-4 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition cursor-pointer";
+
+        if (tabId === 'tab-ijin-harian' && btnTabHarian) {
+            btnTabHarian.className = "tab-ijin-btn py-2.5 px-4 rounded-xl bg-purple-900 text-white font-black shadow transition cursor-pointer";
+        } else if (btnTabDispen) {
+            btnTabDispen.className = "tab-ijin-btn py-2.5 px-4 rounded-xl bg-blue-900 text-white font-black shadow transition cursor-pointer";
+        }
+    }
+
+    /* =========================================================
+       5. UPLOAD DRIVE & KOMPRESI FOTO OTOMATIS (~80KB)
+       ========================================================= */
+    async function uploadKeDriveGAS(base64Data, prefix) {
+        if (!base64Data) return "";
+        try {
+            const res = await fetch(GAS_UPLOAD_IJIN_URL, {
+                method: 'POST',
+                body: JSON.stringify({
+                    image: base64Data,
+                    mimeType: "image/jpeg",
+                    fileName: `${prefix}_${currentActiveUser.nisn || currentActiveUser.username}_${Date.now()}.jpg`,
+                    folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
+                })
+            });
+            const json = await res.json();
+            return json.status === 'success' ? json.url : "";
+        } catch (e) {
+            console.error("Gagal upload Drive:", e);
+            return "";
+        }
+    }
+    const uploadKeGAS = uploadKeDriveGAS;
+
     function previewFotoIzin(event, jenisForm = 'harian') {
         const file = event.target.files[0];
         const btnHarian = document.getElementById('btnKirimIjinHarian');
@@ -678,7 +747,10 @@
                 if (jenisForm === 'harian') {
                     fotoIzinBase64 = canvas.toDataURL('image/jpeg', 0.7);
                     const previewElem = document.getElementById('ijinFotoPreview');
+                    const previewBox = document.getElementById('ijinPreviewBox');
+
                     if (previewElem) previewElem.src = fotoIzinBase64;
+                    if (previewBox) previewBox.classList.remove('hidden');
                     
                     if (btnHarian) {
                         btnHarian.disabled = false;
@@ -686,8 +758,12 @@
                     }
                 } else {
                     fileDispenBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                    const previewElem = document.getElementById('dispenFotoPreview');
-                    if (previewElem) previewElem.src = fileDispenBase64;
+                    const previewBox = document.getElementById('dispenFileNama');
+                    
+                    if (previewBox) {
+                        previewBox.innerText = `File Terpilih: ${file.name}`;
+                        previewBox.classList.remove('hidden');
+                    }
 
                     if (btnDispen) {
                         btnDispen.disabled = false;
@@ -696,7 +772,7 @@
                 }
             };
             img.onerror = function() {
-                alert("File bukan format gambar yang valid!");
+                alert("File bukan berupa foto / gambar yang valid!");
                 event.target.value = '';
                 lockButtons();
             };
@@ -705,6 +781,9 @@
         reader.readAsDataURL(file);
     }
 
+    /* =========================================================
+       6. EKSEKUSI KIRIM IZIN HARIAN & DISPEN DOKTER
+       ========================================================= */
     async function kirimPermohonanIzinHarian() {
         const alasanEl = document.getElementById('ijin-alasan');
         const alasan = alasanEl ? alasanEl.value.trim() : '';
@@ -728,7 +807,6 @@
         try {
             const tglWIB = getTanggalWIB();
             const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
-            
             const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan");
 
             if (!driveUrl) {
@@ -739,12 +817,13 @@
 
             const ketLengkap = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
 
+            // MENYIMPAN KE KOLOM KETERANGAN DAN KOLOM FOTO
             await queryTurso(
                 'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
                 [nisnVal, tglWIB, getJamWIB(), 'Izin', ketLengkap, driveUrl]
             );
 
-            alert(`Permohonan Izin Harian berhasil dikirim beserta lampiran foto!`);
+            alert(`Permohonan Izin Harian berhasil dikirim ke Guru Piket!`);
             tutupModalIzinDispen();
             muatPresensiSiswaHariIni();
             muatRiwayatSiswa();
@@ -794,6 +873,7 @@
             const statusFinal = jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi';
             const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
 
+            // MENYIMPAN KE KOLOM KETERANGAN DAN KOLOM FOTO
             await queryTurso(
                 'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
                 [nisnVal, tglMulai, getJamWIB(), statusFinal, ketLengkap, driveUrl]
@@ -813,9 +893,11 @@
         }
     }
 
-    /* --- FUNGSI GEOLOKASI GPS PERBAIKAN --- */
+    /* =========================================================
+       7. FUNGSI GEOLOKASI GPS SISWA
+       ========================================================= */
     function cekSiswaGPS() {
-        siswaDistanceMeters = null; // RESET LOKASI AWAL (PERBAIKAN 13)
+        siswaDistanceMeters = null;
         const badgeText = document.getElementById('gps-status-badge');
         const radiusText = document.getElementById('siswa-status-radius-text');
         if (badgeText) badgeText.textContent = "Mendeteksi Lokasi...";
@@ -849,7 +931,6 @@
     function prosesHasilGPS(crd) {
         const badgeText = document.getElementById('gps-status-badge');
         
-        // PERBAIKAN 12: VALIDASI FAKE GPS AKURAT (HANYA REJECT JIKA TOTAL NULL)
         if (crd.accuracy === 0 && crd.latitude === 0 && crd.longitude === 0) {
             if (badgeText) badgeText.textContent = "Fake GPS Terdeteksi";
             return;
@@ -906,6 +987,9 @@
         return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
     }
 
+    /* =========================================================
+       8. LOAD & PROSES PRESENSI GPS
+       ========================================================= */
     async function muatPresensiSiswaHariIni() {
         if (!currentActiveUser) return;
 
@@ -975,12 +1059,10 @@
         }
     }
 
-    // FUNGSI PERBAIKAN 3: KUNCI TOMBOL DULUAN SEBELUM VALIDASI GPS (PREVENT DOUBLE CLICK)
     async function prosesPresensiSiswa(jenis) {
         const btnMasuk = document.getElementById('btn-siswa-masuk');
         const btnPulang = document.getElementById('btn-siswa-pulang');
 
-        // LOCK IMMEDIATE DEBOUNCE
         if (btnMasuk) btnMasuk.disabled = true;
         if (btnPulang) btnPulang.disabled = true;
 
@@ -1006,7 +1088,6 @@
                     return;
                 }
 
-                // PERBAIKAN 5: STATUS TERLAMBAT NUMERIK AMAN ( > 07:01:00 )
                 const isTerlambat = (jamStr) => {
                     const [h, m, s] = jamStr.split(':').map(Number);
                     return (h * 3600 + m * 60 + s) > (7 * 3600 + 1 * 60);
@@ -1030,10 +1111,13 @@
         } catch (err) {
             alert("Gagal memproses presensi: " + err.message);
         } finally {
-            muatPresensiSiswaHariIni(); // REFRESH UI & STATE TOMBOL DARI DB DATA
+            muatPresensiSiswaHariIni();
         }
     }
 
+    /* =========================================================
+       9. STREAM & PRESENSI KAMERA WAJAH
+       ========================================================= */
     function bukaModalOpsiKamera() {
         const modalOpsi = document.getElementById('modal-opsi-presensi');
         if (modalOpsi) modalOpsi.classList.remove('hidden');
@@ -1104,7 +1188,7 @@
                 }
             }
         } else {
-            alert("Gagal membuka kamera HP. Pastikan aplikasi lain (WhatsApp/TikTok) telah ditutup dan izin kamera di Chrome telah diberikan.");
+            alert("Gagal membuka kamera HP. Pastikan aplikasi lain (WhatsApp/TikTok) telah ditutup dan izin kamera di Chrome sudah diberikan.");
             tutupModalKamera();
         }
     }
@@ -1118,17 +1202,6 @@
         if (modalKam) modalKam.classList.add('hidden');
     }
 
-    // FUNGSI PERBAIKAN 8: AMBIL SNAPSHOT KANVAS ASLI DARI FRAME VIDEO KAMERA
-    async function ambilSnapshotVideo() {
-        const video = document.getElementById('video-preview');
-        if (!video || !video.videoWidth) return null;
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        return canvas.toDataURL('image/jpeg', 0.7);
-    }
-
     async function prosesAmbilFotoSiswa() {
         const btnFoto = document.getElementById('btn-ambil-foto');
 
@@ -1137,10 +1210,7 @@
             btnFoto.classList.add('opacity-50');
         }
 
-        // Ambil Snapshot Foto
-        const photoData = await ambilSnapshotVideo();
-
-        await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih, photoData);
+        await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih);
         
         if (btnFoto) {
             btnFoto.disabled = false;
@@ -1149,7 +1219,6 @@
         }
     }
 
-    // FUNGSI PERBAIKAN 4 & 8: CHECK GUARD ATOMIC + SNAPSHOT STREAM FOTO
     async function eksekusiPresensiOtomatisKamera(jenisPresensi, photoBase64) {
         const jamWIB = getJamWIB();
         const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
@@ -1157,7 +1226,6 @@
 
         try {
             if (jenisPresensi === 'Hadir') {
-                // GUARD: CEK DULU MENCEGAH DOUBLE RECORD
                 const cek = await queryTurso(
                     'SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
                     [nisnVal, tglWIB]
@@ -1175,6 +1243,7 @@
                 };
                 const statusKategori = isTerlambat(jamWIB) ? 'Terlambat' : 'Hadir';
 
+                // SIMPAN SNAPSHOT WAJAH / LINK KE KOLOM FOTO
                 await queryTurso(
                     'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
                     [nisnVal, tglWIB, jamWIB, statusKategori, 'Presensi Masuk Kamera (Liveness Valid)', photoBase64 || '']
@@ -1195,6 +1264,9 @@
         }
     }
 
+    /* =========================================================
+       10. FUNGSI RIWAYAT PRESENSI & GANTI PASSWORD
+       ========================================================= */
     async function muatRiwayatSiswa() {
         if (!currentActiveUser) return;
         const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
@@ -1232,7 +1304,6 @@
         }
     }
 
-    // FUNGSI PERBAIKAN 14: ENKRIPSI PASSWORD VIA SHA-256 (WEB CRYPTO API)
     async function hashSHA256(str) {
         const utf8 = new TextEncoder().encode(str);
         const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
