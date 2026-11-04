@@ -58,7 +58,7 @@
         })();
     </script>
 
-    <!-- HEADER DENGAN MENU PENCARIAN -->
+    <!-- HEADER DENGAN MENU PENCARIAN & PULANG MENDAHULUI -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
             <div class="flex items-center space-x-3">
@@ -69,7 +69,12 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <!-- TOMBOL PENCARIAN SISWA DI HEADER -->
+                <!-- BUTANG PULANG MENDAHULUI -->
+                <button onclick="bukaModalPulangMendahului()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 cursor-pointer shadow border border-amber-400">
+                    <i class="fa-solid fa-person-walking-arrow-right text-yellow-200"></i>
+                    <span>Pulang Mendahului</span>
+                </button>
+                <!-- BUTANG PENCARIAN SISWA -->
                 <button onclick="bukaModalCariSiswa()" class="bg-blue-700 hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 cursor-pointer shadow border border-blue-500">
                     <i class="fa-solid fa-magnifying-glass text-yellow-300"></i>
                     <span>Cari Siswa / Kelas</span>
@@ -89,16 +94,28 @@
         
         <!-- INPUT PELANGGARAN & SAKIT/IZIN -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 1. Input Catatan Kedisiplinan -->
+            <!-- 1. Input Catatan Kedisiplinan (DROPDOWN KELAS & NAMA SISWA) -->
             <div class="bg-white rounded-xl shadow-md p-5 border border-red-200 space-y-3">
                 <h2 class="text-base font-bold text-red-700 flex items-center space-x-2 border-b pb-2">
                     <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
                     <span>Input Catatan Kedisiplinan / Pelanggaran</span>
                 </h2>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                    <input type="text" id="pelanggaran-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none font-mono">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas</label>
+                        <select id="pelanggaran-kelas" onchange="muatSiswaBerdasarkanKelas('pelanggaran-kelas', 'pelanggaran-nisn')" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white font-bold text-slate-700">
+                            <option value="">-- Pilih Kelas --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Nama Siswa</label>
+                        <select id="pelanggaran-nisn" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white text-slate-800">
+                            <option value="">-- Pilih Kelas Terlebih Dahulu --</option>
+                        </select>
+                    </div>
                 </div>
+
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Pelanggaran</label>
                     <textarea id="pelanggaran-catatan" rows="3" placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none"></textarea>
@@ -113,7 +130,7 @@
                     <span>Input Status Sakit / Izin / Alpa</span>
                 </h2>
                 <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa / Nama</label>
                     <input type="text" id="bk-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none font-mono">
                 </div>
                 <div>
@@ -177,11 +194,52 @@
 
     </main>
 
+    <!-- POP-UP MODAL PULANG MENDAHULUI -->
+    <div id="modal-pulang-mendahului" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white w-full max-w-lg rounded-2xl shadow-2xl border border-slate-200 overflow-hidden space-y-4">
+            <div class="bg-amber-600 text-white p-4 flex justify-between items-center">
+                <h3 class="font-bold text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-person-walking-arrow-right text-yellow-300"></i>
+                    <span>Izin Pulang Mendahului / Lebih Awal</span>
+                </h3>
+                <button onclick="tutupModalPulangMendahului()" class="text-slate-200 hover:text-white text-lg cursor-pointer">&times;</button>
+            </div>
+            
+            <div class="p-5 space-y-3 text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Pilih Kelas</label>
+                        <select id="pulang-kelas" onchange="muatSiswaBerdasarkanKelas('pulang-kelas', 'pulang-nisn')" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none font-bold text-slate-700">
+                            <option value="">-- Pilih Kelas --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block font-bold text-slate-700 mb-1">Pilih Nama Siswa</label>
+                        <select id="pulang-nisn" class="w-full border border-slate-300 rounded-lg p-2.5 outline-none font-bold text-slate-800">
+                            <option value="">-- Pilih Kelas Terlebih Dahulu --</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-slate-700 mb-1">Alasan Pulang Lebih Awal</label>
+                    <textarea id="pulang-alasan" rows="3" placeholder="Contoh: Sakit mendadak / Demam di kelas, Penjemputan Orang Tua..." class="w-full border border-slate-300 rounded-lg p-2.5 outline-none focus:ring-2 focus:ring-amber-500"></textarea>
+                </div>
+            </div>
+
+            <div class="bg-slate-100 p-4 flex justify-end space-x-2">
+                <button onclick="tutupModalPulangMendahului()" class="px-4 py-2 bg-slate-300 hover:bg-slate-400 text-slate-800 rounded-lg font-bold text-xs cursor-pointer">Batal</button>
+                <button onclick="simpanPulangMendahului()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-xs shadow cursor-pointer flex items-center gap-1">
+                    <i class="fa-solid fa-paper-plane"></i> Simpan & Izinkan Pulang
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- POP-UP MODAL PENCARIAN SISWA & HASIL PELANGGARAN (PRINTABLE PDF) -->
     <div id="modal-cari-siswa" class="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
         <div class="bg-white w-full max-w-4xl rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
             
-            <!-- Header Modal -->
             <div class="bg-blue-900 text-white p-4 flex justify-between items-center no-print">
                 <h3 class="font-bold text-sm flex items-center gap-2">
                     <i class="fa-solid fa-user-gear text-yellow-400"></i>
@@ -190,10 +248,8 @@
                 <button onclick="tutupModalCariSiswa()" class="text-slate-300 hover:text-white text-lg cursor-pointer">&times;</button>
             </div>
             
-            <!-- Body Modal -->
             <div class="p-5 space-y-4 text-xs overflow-y-auto flex-grow" id="area-cetak-pdf">
                 
-                <!-- KOP LAPORAN KHUSUS UNTUK CETAK PDF -->
                 <div class="hidden print:block text-center border-b-2 border-black pb-3 mb-4 space-y-1">
                     <h2 class="font-bold text-base uppercase">PEMERINTAH KABUPATEN KARANGANYAR</h2>
                     <h1 class="font-black text-xl uppercase">SMA NEGERI 2 KARANGANYAR</h1>
@@ -201,7 +257,6 @@
                     <p class="text-xs font-bold underline pt-2">LAPORAN REKAPITULASI CATATAN KEDISIPLINAN SISWA</p>
                 </div>
 
-                <!-- Form Filter Pencarian (Hidden saat print) -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200 no-print">
                     <div>
                         <label class="block font-bold text-slate-700 mb-1">Cari Nama Siswa / NISN</label>
@@ -219,14 +274,12 @@
                     </div>
                 </div>
 
-                <!-- Hasil Tabel Pencarian -->
                 <div class="space-y-2">
                     <div class="flex justify-between items-center border-b pb-2">
                         <h4 class="font-bold text-slate-800 text-sm flex items-center gap-2">
                             <i class="fa-solid fa-list-check text-blue-700"></i>
                             <span>Hasil Riwayat Pelanggaran & Penanganan BK</span>
                         </h4>
-                        <!-- TOMBOL PRINT PDF -->
                         <button onclick="cetakPDFLaporanBK()" class="bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 shadow transition cursor-pointer no-print">
                             <i class="fa-solid fa-print"></i>
                             <span>Cetak PDF</span>
@@ -255,7 +308,6 @@
 
             </div>
 
-            <!-- Footer Modal -->
             <div class="bg-slate-100 p-3.5 flex justify-end no-print">
                 <button onclick="tutupModalCariSiswa()" class="px-4 py-2 bg-slate-400 hover:bg-slate-500 text-white rounded-lg font-bold text-xs cursor-pointer">Tutup</button>
             </div>
@@ -300,7 +352,7 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- JAVASCRIPT LOGIKA BK (TURSO DRIVEN & AUTO MIGRATION) -->
+    <!-- JAVASCRIPT LOGIKA BK -->
     <script>
         let currentOffset = 0;
         const LIMIT = 15;
@@ -309,8 +361,8 @@
             if (activeUser) {
                 document.getElementById('display-user-name').textContent = activeUser.nama || activeUser.username;
             }
-            // Otomatis pastikan kolom penanganan_bk ada di DB
             await pastikanStrukturTabel();
+            await muatDaftarKelasSiswa();
             muatPelanggaranBK(false);
         };
 
@@ -329,19 +381,110 @@
             }
         }
 
-        async function simpanPelanggaranBK() {
-            const nisn = document.getElementById('pelanggaran-nisn').value.trim();
-            const catatan = document.getElementById('pelanggaran-catatan').value.trim();
+        /* FUNGSI DROPDOWN KELAS DAN SISWA DYNAMIC */
+        async function muatDaftarKelasSiswa() {
+            const selectKelas1 = document.getElementById('pelanggaran-kelas');
+            const selectKelas2 = document.getElementById('pulang-kelas');
+            try {
+                const res = await queryTurso('SELECT DISTINCT kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != "" ORDER BY kelas ASC');
+                if (res && res.length > 0) {
+                    const options = '<option value="">-- Pilih Kelas --</option>' + 
+                        res.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
+                    if (selectKelas1) selectKelas1.innerHTML = options;
+                    if (selectKelas2) selectKelas2.innerHTML = options;
+                } else {
+                    if (selectKelas1) selectKelas1.innerHTML = '<option value="">-- Tidak Ada Data Kelas --</option>';
+                    if (selectKelas2) selectKelas2.innerHTML = '<option value="">-- Tidak Ada Data Kelas --</option>';
+                }
+            } catch (e) {
+                console.error("Gagal muat daftar kelas:", e);
+            }
+        }
 
-            if (!nisn || !catatan) { alert("NISN dan Catatan Wajib diisi!"); return; }
+        async function muatSiswaBerdasarkanKelas(idSelectKelas, idSelectSiswa) {
+            const kelasSelected = document.getElementById(idSelectKelas).value;
+            const selectSiswa = document.getElementById(idSelectSiswa);
+
+            if (!kelasSelected) {
+                selectSiswa.innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
+                return;
+            }
+
+            selectSiswa.innerHTML = '<option value="">Memuat nama siswa...</option>';
+
+            try {
+                const res = await queryTurso('SELECT nisn, nama FROM siswa WHERE LOWER(kelas) = LOWER(?) ORDER BY nama ASC', [kelasSelected]);
+                if (res && res.length > 0) {
+                    selectSiswa.innerHTML = '<option value="">-- Pilih Nama Siswa --</option>' + 
+                        res.map(s => `<option value="${s.nisn}">${s.nama} (${s.nisn})</option>`).join('');
+                } else {
+                    selectSiswa.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
+                }
+            } catch (e) {
+                console.error("Gagal muat siswa:", e);
+                selectSiswa.innerHTML = '<option value="">Gagal memuat daftar siswa</option>';
+            }
+        }
+
+        /* FUNGSI MODAL PULANG MENDAHULUI */
+        function bukaModalPulangMendahului() {
+            document.getElementById('modal-pulang-mendahului').classList.remove('hidden');
+        }
+
+        function tutupModalPulangMendahului() {
+            document.getElementById('modal-pulang-mendahului').classList.add('hidden');
+        }
+
+        async function simpanPulangMendahului() {
+            const nisn = document.getElementById('pulang-nisn').value;
+            const alasan = document.getElementById('pulang-alasan').value.trim();
+
+            if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
+            if (!alasan) { alert("Alasan pulang mendahului wajib diisi!"); return; }
+
+            const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
+            const jamNow = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date()).replace(/\./g, ':');
 
             try {
                 const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
-                if (!sCheck || sCheck.length === 0) {
-                    alert(`NISN ${nisn} tidak ditemukan di master data siswa!`);
-                    return;
+                const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
+
+                // Semak sama ada rekod presensi hari ini sudah ada
+                const pCek = await queryTurso('SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? LIMIT 1', [nisn, today]);
+
+                if (pCek && pCek.length > 0) {
+                    await queryTurso(
+                        'UPDATE presensi SET jam_pulang = ?, status = ?, keterangan = ? WHERE id = ?',
+                        [jamNow, 'Izin', `Pulang Mendahului: ${alasan}`, pCek[0].id]
+                    );
+                } else {
+                    await queryTurso(
+                        'INSERT INTO presensi (nisn, tanggal, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?)',
+                        [nisn, today, jamNow, 'Izin', `Pulang Mendahului: ${alasan}`]
+                    );
                 }
 
+                alert(`Izin Pulang Mendahului untuk SISWA (${namaSiswa}) berhasil dicatat pada jam ${jamNow}!`);
+                document.getElementById('pulang-kelas').value = '';
+                document.getElementById('pulang-nisn').innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
+                document.getElementById('pulang-alasan').value = '';
+                tutupModalPulangMendahului();
+
+            } catch (err) {
+                alert("Gagal mencatat izin pulang mendahului: " + err.message);
+            }
+        }
+
+        async function simpanPelanggaranBK() {
+            const nisn = document.getElementById('pelanggaran-nisn').value;
+            const catatan = document.getElementById('pelanggaran-catatan').value.trim();
+
+            if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
+            if (!catatan) { alert("Catatan Pelanggaran Wajib diisi!"); return; }
+
+            try {
+                const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
+                const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
                 const diinputOleh = activeUser ? (activeUser.nama || activeUser.username) : 'Guru BK';
 
                 await queryTurso(
@@ -349,9 +492,11 @@
                     [nisn, catatan, diinputOleh]
                 );
 
-                alert(`Catatan kedisiplinan untuk SISWA (${sCheck[0].nama}) berhasil disimpan!`);
-                document.getElementById('pelanggaran-nisn').value = '';
+                alert(`Catatan kedisiplinan untuk SISWA (${namaSiswa}) berhasil disimpan!`);
+                document.getElementById('pelanggaran-kelas').value = '';
+                document.getElementById('pelanggaran-nisn').innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
                 document.getElementById('pelanggaran-catatan').value = '';
+                
                 currentOffset = 0;
                 muatPelanggaranBK(false);
 
@@ -560,7 +705,6 @@
                 alert("Catatan penanganan BK berhasil diperbarui!");
                 tutupModalPenanganan();
                 
-                // Refresh data di tabel utama & tabel pencarian jika terbuka
                 currentOffset = 0;
                 muatPelanggaranBK(false);
                 if (!document.getElementById('modal-cari-siswa').classList.contains('hidden')) {
