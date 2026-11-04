@@ -314,6 +314,22 @@
                     <i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket
                 </button>
             </div>
+            <!-- TAB 1: IZIN TULIS TANGAN (REVISI KECIL KOTAK PREVIEW) -->
+<div class="bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-purple-300 text-center space-y-2">
+    <span class="block font-black text-slate-800 text-[11px]">Foto Surat Izin Tulis Tangan (WAJIB)</span>
+    
+    <input type="file" id="ijinFotoInput" accept="image/*" capture="environment" onchange="previewFotoIzin(event)" class="hidden">
+    
+    <button type="button" onclick="document.getElementById('ijinFotoInput').click()" class="bg-purple-900 hover:bg-purple-950 text-white font-black px-4 py-2 rounded-xl text-xs shadow cursor-pointer">
+        <i class="fa-solid fa-camera text-yellow-300 mr-1"></i> Foto Surat
+    </button>
+
+    <!-- BOX PREVIEW FOTO SURAT -->
+    <div id="ijinPreviewBox" class="hidden space-y-1">
+        <span class="block text-[10px] font-bold text-emerald-600">✓ Foto Berhasil Diambil & Dikompresi</span>
+        <img id="ijinFotoPreview" src="#" class="h-28 mx-auto rounded-xl border-2 border-purple-400 object-cover">
+    </div>
+</div>
 
             <!-- TAB 2: SURAT DOKTER & DISPEN (RENTANG TANGGAL) -->
             <div id="tab-dispen" class="tab-ijin-content hidden space-y-3 text-xs">
@@ -331,6 +347,22 @@
                         <option value="Dispensasi">Dispensasi / Tugas Luar Sekolah</option>
                     </select>
                 </div>
+                <!-- TAB 2: SURAT DOKTER & DISPEN (REVISI KECIL KOTAK PREVIEW) -->
+<div class="bg-slate-50 p-3 rounded-2xl border-2 border-dashed border-blue-300 text-center space-y-2">
+    <span class="block font-black text-slate-800 text-[11px]">Upload Surat Dokter / Surat Tugas (PDF / Foto)</span>
+    
+    <input type="file" id="dispenFileInput" accept="image/*,.pdf" onchange="previewFileDispen(event)" class="hidden">
+    
+    <button type="button" onclick="document.getElementById('dispenFileInput').click()" class="bg-blue-900 hover:bg-blue-950 text-white font-black px-4 py-2 rounded-xl text-xs shadow cursor-pointer">
+        <i class="fa-solid fa-file-arrow-up text-yellow-300 mr-1"></i> Upload Surat Dokter / Dispen
+    </button>
+    
+    <!-- PREVIEW TAMPILAN FILE/FOTO DISPEN -->
+    <div id="dispenPreviewBox" class="space-y-1">
+        <p id="dispenFileNama" class="text-[11px] font-bold text-blue-900 hidden"></p>
+        <img id="dispenFotoPreview" src="#" class="h-28 mx-auto rounded-xl border-2 border-blue-400 object-cover hidden">
+    </div>
+</div>
 
                 <!-- RENTANG TANGGAL -->
                 <div class="grid grid-cols-2 gap-2">
@@ -672,233 +704,305 @@
         }
     }
 
-    /* =========================================================
-       5. UPLOAD DRIVE PERBAIKAN & KOMPRESI FOTO
-       ========================================================= */
-    async function uploadKeDriveGAS(base64Data, prefix) {
-        if (!base64Data) return "";
-        try {
-            // Bersihkan header Base64 ("data:image/jpeg;base64,")
-            const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-            const nisnVal = currentActiveUser ? String(currentActiveUser.nisn || currentActiveUser.username) : 'siswa';
+  async function kirimPermohonanIzinHarian() {
+    const alasanEl = document.getElementById('ijin-alasan');
+    const alasan = alasanEl ? alasanEl.value.trim() : '';
+    const btn = document.getElementById('btnKirimIjinHarian');
 
-            const payload = {
-                image: cleanBase64,
-                mimeType: "image/jpeg",
-                fileName: `${prefix}_${nisnVal}_${Date.now()}.jpg`,
-                folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
-            };
-
-            const res = await fetch(GAS_UPLOAD_IJIN_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
-
-            const json = await res.json();
-            return (json && json.status === 'success') ? json.url : "";
-        } catch (e) {
-            console.error("Gagal upload Drive via GAS:", e);
-            return "";
+    // 1. Validasi Keberadaan Foto & Alasan
+    if (!fotoIzinBase64) { 
+        alert("Wajib mengambil foto Surat Izin Tulis Tangan sebelum mengirim!"); 
+        if (btn) {
+            btn.disabled = true;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
+        return; 
     }
-    const uploadKeGAS = uploadKeDriveGAS;
+    if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
 
-    function previewFotoIzin(event, jenisForm = 'harian') {
-        const file = event.target.files[0];
-        const btnHarian = document.getElementById('btnKirimIjinHarian');
-        const btnDispen = document.getElementById('btnKirimDispenDokter');
+    // 2. Lock Tombol & Indikator Loading
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah Foto ke Drive...`;
+    }
 
-        const lockButtons = () => {
-            if (jenisForm === 'harian' && btnHarian) {
-                btnHarian.disabled = true;
-                btnHarian.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-            if (jenisForm === 'dispen' && btnDispen) {
-                btnDispen.disabled = true;
-                btnDispen.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-        };
+    try {
+        const tglWIB = getTanggalWIB();
+        const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+        
+        // 3. Upload Foto ke Drive
+        const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan");
 
-        if (!file) {
-            lockButtons();
+        if (!driveUrl) {
+            alert("Gagal mengunggah foto ke Google Drive. Silakan coba foto ulang!");
+            if (btn) btn.disabled = false;
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const img = new Image();
-            img.onload = function() {
-                const maxWidth = 800;
-                const maxHeight = 800;
-                let width = img.width;
-                let height = img.height;
+        const ketLengkap = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
 
-                if (width > height) {
-                    if (width > maxWidth) {
-                        height = Math.round((height * maxWidth) / width);
-                        width = maxWidth;
-                    }
-                } else {
-                    if (height > maxHeight) {
-                        width = Math.round((width * maxHeight) / height);
-                        height = maxHeight;
-                    }
-                }
+        // 4. Simpan ke Database Turso
+        await queryTurso(
+            'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
+            [nisnVal, tglWIB, getJamWIB(), 'Izin', ketLengkap, driveUrl]
+        );
 
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(img, 0, 0, width, height);
+        // 5. Notifikasi & Refresh Tampilan
+        alert(`Permohonan Izin Harian berhasil dikirim ke Guru Piket!`);
+        tutupModalIzinDispen();
+        muatPresensiSiswaHariIni();
+        muatRiwayatSiswa();
+    } catch (err) {
+        alert("Gagal mengirim izin: " + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket`;
+        }
+    }
+}
+ /* =========================================================
+   1. FUNGSI UPLOAD GOOGLE DRIVE (ANTI-CORS & CLEAN BASE64)
+   ========================================================= */
+async function uploadKeDriveGAS(base64Data, prefix) {
+    if (!base64Data) return "";
+    try {
+        // Hapus header Data URL jika ada (ambil murni string Base64)
+        const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+        const nisnVal = currentActiveUser ? String(currentActiveUser.nisn || currentActiveUser.username) : 'siswa';
 
-                if (jenisForm === 'harian') {
-                    fotoIzinBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                    const previewElem = document.getElementById('ijinFotoPreview');
-                    const previewBox = document.getElementById('ijinPreviewBox');
-
-                    if (previewElem) previewElem.src = fotoIzinBase64;
-                    if (previewBox) previewBox.classList.remove('hidden');
-                    
-                    if (btnHarian) {
-                        btnHarian.disabled = false;
-                        btnHarian.classList.remove('opacity-50', 'cursor-not-allowed');
-                    }
-                } else {
-                    fileDispenBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                    const previewBox = document.getElementById('dispenFileNama');
-                    
-                    if (previewBox) {
-                        previewBox.innerText = `File Terpilih: ${file.name}`;
-                        previewBox.classList.remove('hidden');
-                    }
-
-                    if (btnDispen) {
-                        btnDispen.disabled = false;
-                        btnDispen.classList.remove('opacity-50', 'cursor-not-allowed');
-                    }
-                }
-            };
-            img.onerror = function() {
-                alert("File bukan berupa foto / gambar yang valid!");
-                event.target.value = '';
-                lockButtons();
-            };
-            img.src = e.target.result;
+        const payload = {
+            image: cleanBase64,
+            mimeType: "image/jpeg",
+            fileName: `${prefix}_${nisnVal}_${Date.now()}.jpg`,
+            folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
         };
-        reader.readAsDataURL(file);
+
+        // Gunakan text/plain untuk bypass preflight CORS di Google Apps Script
+        const res = await fetch(GAS_UPLOAD_IJIN_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+        return (json && json.status === 'success') ? json.url : "";
+    } catch (e) {
+        console.error("Gagal upload Drive via GAS:", e);
+        return "";
+    }
+}
+const uploadKeGAS = uploadKeDriveGAS;
+
+/* =========================================================
+   2. FUNGSI PREVIEW FOTO IZIN HARIAN (MATCH WITH TAB 1 HTML)
+   ========================================================= */
+function previewFotoIzin(event) {
+    const file = event.target.files[0];
+    const btnHarian = document.getElementById('btnKirimIjinHarian');
+
+    if (!file) {
+        fotoIzinBase64 = null;
+        if (btnHarian) {
+            btnHarian.disabled = true;
+            btnHarian.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        return;
     }
 
-    /* =========================================================
-       6. EKSEKUSI KIRIM IZIN HARIAN & DISPEN DOKTER
-       ========================================================= */
-    async function kirimPermohonanIzinHarian() {
-        const alasanEl = document.getElementById('ijin-alasan');
-        const alasan = alasanEl ? alasanEl.value.trim() : '';
-        const btn = document.getElementById('btnKirimIjinHarian');
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Kompresi Gambar Maksimal Lebar/Tinggi 800px (~80KB)
+            const maxWidth = 800;
+            const maxHeight = 800;
+            let width = img.width;
+            let height = img.height;
 
-        if (!fotoIzinBase64) { 
-            alert("Wajib mengambil foto Surat Izin Tulis Tangan sebelum mengirim!"); 
-            if (btn) {
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            if (width > height) {
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width = Math.round((width * maxHeight) / height);
+                    height = maxHeight;
+                }
             }
-            return; 
-        }
-        if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
 
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            fotoIzinBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+            const previewImg = document.getElementById('ijinFotoPreview');
+            const previewBox = document.getElementById('ijinPreviewBox');
+
+            if (previewImg) previewImg.src = fotoIzinBase64;
+            if (previewBox) previewBox.classList.remove('hidden');
+
+            // Buka Kunci Tombol Kirim Harian
+            if (btnHarian) {
+                btnHarian.disabled = false;
+                btnHarian.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        img.onerror = function() {
+            alert("File yang dipilih bukan berupa foto valid!");
+            if (btnHarian) {
+                btnHarian.disabled = true;
+                btnHarian.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+        };
+        img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+/* =========================================================
+   3. FUNGSI PREVIEW FILE DISPEN (MATCH WITH TAB 2 HTML)
+   ========================================================= */
+function previewFileDispen(event) {
+    const file = event.target.files[0];
+    const btnDispen = document.getElementById('btnKirimDispenDokter');
+
+    if (!file) {
+        fileDispenBase64 = null;
+        if (btnDispen) {
+            btnDispen.disabled = true;
+            btnDispen.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+            // Kompresi Gambar Maksimal 800px
+            const maxWidth = 800;
+            const maxHeight = 800;
+            let width = img.width;
+            let height = img.height;
+
+            if (width > height) {
+                if (width > maxWidth) {
+                    height = Math.round((height * maxWidth) / width);
+                    width = maxWidth;
+                }
+            } else {
+                if (height > maxHeight) {
+                    width = Math.round((width * maxHeight) / height);
+                    height = maxHeight;
+                }
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            fileDispenBase64 = canvas.toDataURL('image/jpeg', 0.7);
+
+            const dispenNamaElem = document.getElementById('dispenFileNama');
+            if (dispenNamaElem) {
+                dispenNamaElem.innerText = `File Terpilih: ${file.name}`;
+                dispenNamaElem.classList.remove('hidden');
+            }
+
+            // Buka Kunci Tombol Kirim Dispen
+            if (btnDispen) {
+                btnDispen.disabled = false;
+                btnDispen.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        };
+
+        // Jika upload berkas berupa PDF (bukan image)
+        if (file.type === "application/pdf") {
+            fileDispenBase64 = e.target.result;
+            const dispenNamaElem = document.getElementById('dispenFileNama');
+            if (dispenNamaElem) {
+                dispenNamaElem.innerText = `Dokumen PDF Terpilih: ${file.name}`;
+                dispenNamaElem.classList.remove('hidden');
+            }
+            if (btnDispen) {
+                btnDispen.disabled = false;
+                btnDispen.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
+        } else {
+            img.src = e.target.result;
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+/* =========================================================
+   4. FUNGSI KIRIM DISPEN / SURAT DOKTER
+   ========================================================= */
+async function kirimPermohonanDispenDokter() {
+    const jenisKategoriElem = document.getElementById('dispenKategori');
+    const tglMulaiElem = document.getElementById('dispenTglMulai');
+    const tglSelesaiElem = document.getElementById('dispenTglSelesai');
+    const ketElem = document.getElementById('dispenKeterangan');
+    const btn = document.getElementById('btnKirimDispenDokter');
+
+    const jenisKategori = jenisKategoriElem ? jenisKategoriElem.value : 'Dispensasi';
+    const tglMulai = tglMulaiElem ? tglMulaiElem.value : getTanggalWIB();
+    const tglSelesai = tglSelesaiElem ? tglSelesaiElem.value : getTanggalWIB();
+    const keterangan = ketElem ? ketElem.value.trim() : '';
+
+    if (!fileDispenBase64) { 
+        alert("Wajib melampirkan foto Surat Dokter / Surat Tugas Dispensasi!"); 
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah Foto ke Drive...`;
+            btn.classList.add('opacity-50', 'cursor-not-allowed');
         }
+        return; 
+    }
+    if (!keterangan) { alert("Tuliskan keterangan surat dokter / kegiatan dispen!"); return; }
 
-        try {
-            const tglWIB = getTanggalWIB();
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
-            const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan");
-
-            if (!driveUrl) {
-                alert("Gagal mengunggah foto ke Google Drive. Silakan coba foto ulang!");
-                if (btn) btn.disabled = false;
-                return;
-            }
-
-            const ketLengkap = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
-
-            await queryTurso(
-                'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-                [nisnVal, tglWIB, getJamWIB(), 'Izin', ketLengkap, driveUrl]
-            );
-
-            alert(`Permohonan Izin Harian berhasil dikirim ke Guru Piket!`);
-            tutupModalIzinDispen();
-            muatPresensiSiswaHariIni();
-            muatRiwayatSiswa();
-        } catch (err) {
-            alert("Gagal mengirim izin: " + err.message);
-        } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket`;
-            }
-        }
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses & Mengunggah...`;
     }
 
-    async function kirimPermohonanDispenDokter() {
-        const jenisKategori = document.getElementById('dispenKategori').value;
-        const tglMulai = document.getElementById('dispenTglMulai').value;
-        const tglSelesai = document.getElementById('dispenTglSelesai').value;
-        const keterangan = document.getElementById('dispenKeterangan').value.trim();
-        const btn = document.getElementById('btnKirimDispenDokter');
+    try {
+        const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+        const driveUrl = await uploadKeDriveGAS(fileDispenBase64, "dispen_dokter");
 
-        if (!fileDispenBase64) { 
-            alert("Wajib melampirkan foto Surat Dokter / Surat Tugas Dispensasi!"); 
-            if (btn) {
-                btn.disabled = true;
-                btn.classList.add('opacity-50', 'cursor-not-allowed');
-            }
-            return; 
+        if (!driveUrl) {
+            alert("Gagal mengunggah foto ke Google Drive. Silakan coba upload ulang!");
+            if (btn) btn.disabled = false;
+            return;
         }
-        if (!keterangan) { alert("Tuliskan keterangan surat dokter / kegiatan dispen!"); return; }
-        if (!tglMulai || !tglSelesai) { alert("Pilih rentang tanggal pelaksanaan!"); return; }
 
+        const statusFinal = jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi';
+        const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
+
+        await queryTurso(
+            'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
+            [nisnVal, tglMulai, getJamWIB(), statusFinal, ketLengkap, driveUrl]
+        );
+
+        alert(`Permohonan ${jenisKategori} berhasil dikirim ke Guru Piket!`);
+        tutupModalIzinDispen();
+        muatPresensiSiswaHariIni();
+        muatRiwayatSiswa();
+    } catch (err) {
+        alert("Gagal mengirim pengajuan: " + err.message);
+    } finally {
         if (btn) {
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
-        }
-
-        try {
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
-            const driveUrl = await uploadKeDriveGAS(fileDispenBase64, "dispen_dokter");
-
-            if (!driveUrl) {
-                alert("Gagal mengunggah foto ke Google Drive. Silakan foto ulang!");
-                if (btn) btn.disabled = false;
-                return;
-            }
-
-            const statusFinal = jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi';
-            const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
-
-            await queryTurso(
-                'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-                [nisnVal, tglMulai, getJamWIB(), statusFinal, ketLengkap, driveUrl]
-            );
-
-            alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil dikirim!`);
-            tutupModalIzinDispen();
-            muatPresensiSiswaHariIni();
-            muatRiwayatSiswa();
-        } catch (err) {
-            alert("Gagal mengirim pengajuan: " + err.message);
-        } finally {
-            if (btn) {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan Ke Piket`;
-            }
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan Ke Piket`;
         }
     }
-
+}
     /* =========================================================
        7. FUNGSI GEOLOKASI GPS SISWA
        ========================================================= */
