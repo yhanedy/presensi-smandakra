@@ -69,12 +69,12 @@
                 </div>
             </div>
             <div class="flex items-center space-x-2">
-                <!-- BUTANG PULANG MENDAHULUI -->
+                <!-- TOMBOL PULANG MENDAHULUI -->
                 <button onclick="bukaModalPulangMendahului()" class="bg-amber-600 hover:bg-amber-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 cursor-pointer shadow border border-amber-400">
                     <i class="fa-solid fa-person-walking-arrow-right text-yellow-200"></i>
                     <span>Pulang Mendahului</span>
                 </button>
-                <!-- BUTANG PENCARIAN SISWA -->
+                <!-- TOMBOL PENCARIAN SISWA -->
                 <button onclick="bukaModalCariSiswa()" class="bg-blue-700 hover:bg-blue-800 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 cursor-pointer shadow border border-blue-500">
                     <i class="fa-solid fa-magnifying-glass text-yellow-300"></i>
                     <span>Cari Siswa / Kelas</span>
@@ -94,7 +94,8 @@
         
         <!-- INPUT PELANGGARAN & SAKIT/IZIN -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- 1. Input Catatan Kedisiplinan (DROPDOWN KELAS & NAMA SISWA) -->
+            
+            <!-- 1. Input Catatan Kedisiplinan -->
             <div class="bg-white rounded-xl shadow-md p-5 border border-red-200 space-y-3">
                 <h2 class="text-base font-bold text-red-700 flex items-center space-x-2 border-b pb-2">
                     <i class="fa-solid fa-triangle-exclamation text-red-600"></i>
@@ -123,19 +124,31 @@
                 <button onclick="simpanPelanggaranBK()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer">Simpan Catatan Kedisiplinan</button>
             </div>
 
-            <!-- 2. Input Sakit / Izin / Alpa -->
+            <!-- 2. Input Sakit / Izin / Alpa (LISTBOX KELAS & NAMA SISWA) -->
             <div class="bg-white rounded-xl shadow-md p-5 border border-slate-200 space-y-3">
                 <h2 class="text-base font-bold text-slate-800 flex items-center space-x-2 border-b pb-2">
                     <i class="fa-solid fa-notes-medical text-blue-600"></i>
                     <span>Input Status Sakit / Izin / Alpa</span>
                 </h2>
-                <div>
-                    <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa / Nama</label>
-                    <input type="text" id="bk-nisn" placeholder="Masukkan NISN Siswa..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none font-mono">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas</label>
+                        <select id="bk-kelas" onchange="muatSiswaBerdasarkanKelas('bk-kelas', 'bk-nisn')" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white font-bold text-slate-700">
+                            <option value="">-- Pilih Kelas --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Nama Siswa</label>
+                        <select id="bk-nisn" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white text-slate-800 font-bold">
+                            <option value="">-- Pilih Kelas Terlebih Dahulu --</option>
+                        </select>
+                    </div>
                 </div>
+
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Status Kehadiran</label>
-                    <select id="bk-status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                    <select id="bk-status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none font-bold text-blue-900 bg-white">
                         <option value="Sakit">Sakit</option>
                         <option value="Izin">Izin</option>
                         <option value="Alpa">Alpa</option>
@@ -143,10 +156,11 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
-                    <input type="text" id="bk-keterangan" placeholder="Contoh: Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                    <input type="text" id="bk-keterangan" placeholder="Contoh: Surat Dokter / Acara Keluarga" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
                 </div>
                 <button onclick="simpanPresensiBK()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer">Simpan Status Ketidakhadiran</button>
             </div>
+
         </div>
 
         <!-- TABEL KEDISIPLINAN -->
@@ -381,10 +395,11 @@
             }
         }
 
-        /* FUNGSI DROPDOWN KELAS DAN SISWA DYNAMIC */
+        /* FUNGSI DROPDOWN KELAS DAN SISWA DYNAMIC UNTUK SEMUA FORM */
         async function muatDaftarKelasSiswa() {
             const selectKelas1 = document.getElementById('pelanggaran-kelas');
-            const selectKelas2 = document.getElementById('pulang-kelas');
+            const selectKelas2 = document.getElementById('bk-kelas');
+            const selectKelas3 = document.getElementById('pulang-kelas');
             try {
                 const res = await queryTurso('SELECT DISTINCT kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != "" ORDER BY kelas ASC');
                 if (res && res.length > 0) {
@@ -392,9 +407,12 @@
                         res.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
                     if (selectKelas1) selectKelas1.innerHTML = options;
                     if (selectKelas2) selectKelas2.innerHTML = options;
+                    if (selectKelas3) selectKelas3.innerHTML = options;
                 } else {
-                    if (selectKelas1) selectKelas1.innerHTML = '<option value="">-- Tidak Ada Data Kelas --</option>';
-                    if (selectKelas2) selectKelas2.innerHTML = '<option value="">-- Tidak Ada Data Kelas --</option>';
+                    const noOption = '<option value="">-- Tidak Ada Data Kelas --</option>';
+                    if (selectKelas1) selectKelas1.innerHTML = noOption;
+                    if (selectKelas2) selectKelas2.innerHTML = noOption;
+                    if (selectKelas3) selectKelas3.innerHTML = noOption;
                 }
             } catch (e) {
                 console.error("Gagal muat daftar kelas:", e);
@@ -449,7 +467,6 @@
                 const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
                 const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
 
-                // Semak sama ada rekod presensi hari ini sudah ada
                 const pCek = await queryTurso('SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? LIMIT 1', [nisn, today]);
 
                 if (pCek && pCek.length > 0) {
@@ -506,18 +523,18 @@
         }
 
         async function simpanPresensiBK() {
-            const nisn = document.getElementById('bk-nisn').value.trim();
+            const nisn = document.getElementById('bk-nisn').value;
             const status = document.getElementById('bk-status').value;
             const ket = document.getElementById('bk-keterangan').value.trim();
 
-            if (!nisn) { alert("NISN wajib diisi!"); return; }
+            if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
 
             const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
             try {
                 const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
                 if (!sCheck || sCheck.length === 0) {
-                    alert(`NISN ${nisn} tidak ditemukan di master data siswa!`);
+                    alert(`Data siswa tidak ditemukan!`);
                     return;
                 }
 
@@ -527,7 +544,8 @@
                 );
 
                 alert(`Status ketidakhadiran (${status}) untuk SISWA (${sCheck[0].nama}) berhasil dicatat!`);
-                document.getElementById('bk-nisn').value = '';
+                document.getElementById('bk-kelas').value = '';
+                document.getElementById('bk-nisn').innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
                 document.getElementById('bk-keterangan').value = '';
 
             } catch (err) {
