@@ -392,7 +392,7 @@
             }
         }
 
-       /* PERBAIKAN PENGAMBILAN LINK FOTO / SURAT IZIN SISWA */
+  /* KODE PERBAIKAN ANTREAN IZIN DENGAN DUKUNGAN INPUT FOTO MANUAL UNTUK PIKET */
 async function muatAntreanIzinSiswa() {
     const tbody = document.getElementById('tabel-antrean-izin-body');
     tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean permohonan...</td></tr>';
@@ -415,14 +415,15 @@ async function muatAntreanIzinSiswa() {
         }
 
         tbody.innerHTML = data.map(p => {
-            // 1. Cek dari kolom khusus foto/bukti (jika ada di DB) ATAU cari URL di kolom keterangan
+            // 1. Cari URL/Link Foto dari kolom database atau dari dalam teks keterangan
             let driveUrl = p.foto || p.file_surat || p.url_bukti || null;
 
             if (!driveUrl && p.keterangan) {
-                // Ekstrak URL (termasuk drive.google.com, docs.google.com, r2, dll.)
-                const urlMatch = p.keterangan.match(/https?:\/\/[^\s\)\>]+/i);
+                const urlMatch = p.keterangan.match(/(https?:\/\/[^\s\)\>]+)/i);
                 if (urlMatch) driveUrl = urlMatch[0];
             }
+
+            const adaFotoValid = driveUrl && (driveUrl.startsWith('http://') || driveUrl.startsWith('https://') || driveUrl.startsWith('data:image'));
 
             return `
                 <tr class="hover:bg-purple-50/50 border-b border-slate-100" id="row-antrean-${p.id}">
@@ -431,15 +432,22 @@ async function muatAntreanIzinSiswa() {
                     <td class="p-3 font-black text-slate-900">${p.nama_siswa}</td>
                     <td class="p-3 text-center font-black text-blue-900 font-mono">${p.kelas_siswa}</td>
                     <td class="p-3 text-slate-700 font-medium">${p.keterangan || '-'}</td>
+                    
+                    <!-- KOLOM FOTO / SURAT DENGAN INPUT MANUAL JIKA KOSONG -->
                     <td class="p-3 text-center">
-                        ${driveUrl ? `
-                            <a href="${driveUrl}" target="_blank" class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-900 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-blue-300 transition">
+                        ${adaFotoValid ? `
+                            <a href="${driveUrl}" target="_blank" class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-900 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-blue-300 transition shadow-sm">
                                 <i class="fa-solid fa-image text-blue-600"></i> Lihat Surat
                             </a>
                         ` : `
-                            <span class="text-[10px] text-slate-400 font-bold italic">Tanpa Foto</span>
+                            <div class="space-y-1">
+                                <span class="text-[10px] text-amber-600 font-bold block">Tanpa Foto</span>
+                                <input type="text" id="manual-link-${p.id}" placeholder="Tempel Link Foto..." class="w-28 p-1 border border-slate-300 rounded text-[10px] outline-none bg-slate-50 focus:bg-white">
+                            </div>
                         `}
                     </td>
+
+                    <!-- FORM PILIH STATUS FINAL -->
                     <td class="p-3 space-y-1.5">
                         <select id="verifikasi-status-${p.id}" onchange="toggleInputDispen(${p.id})" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white outline-none">
                             <option value="Izin" ${p.status === 'Izin' ? 'selected' : ''}>Izin</option>
@@ -451,6 +459,8 @@ async function muatAntreanIzinSiswa() {
                             <input type="text" id="verifikasi-dispen-txt-${p.id}" placeholder="Tuliskan nama kegiatan dispen..." class="w-full p-1.5 border border-emerald-400 bg-emerald-50 rounded-lg text-[11px] font-bold text-emerald-900 outline-none">
                         </div>
                     </td>
+
+                    <!-- TOMBOL VERIFIKASI -->
                     <td class="p-3 text-center">
                         <button onclick="eksekusiVerifikasiIzin(${p.id}, '${p.nisn}')" class="bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black px-3 py-2 rounded-xl text-xs shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1 mx-auto">
                             <i class="fa-solid fa-circle-check"></i> Verifikasi
@@ -464,41 +474,48 @@ async function muatAntreanIzinSiswa() {
         tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-rose-500 font-bold">Gagal memuat antrean: ${err.message}</td></tr>`;
     }
 }
-        function toggleInputDispen(id) {
-            const statusVal = document.getElementById(`verifikasi-status-${id}`).value;
-            const boxDispen = document.getElementById(`box-dispen-txt-${id}`);
-            if (statusVal === 'Dispensasi') {
-                boxDispen.classList.remove('hidden');
-            } else {
-                boxDispen.classList.add('hidden');
-            }
+
+/* KODE PERBAIKAN EKSEKUSI VERIFIKASI (MENYIMPAN LINK MANUAL JIKA ADA) */
+async function eksekusiVerifikasiIzin(id, nisn) {
+    const statusFinal = document.getElementById(`verifikasi-status-${id}`).value;
+    const inputDispen = document.getElementById(`verifikasi-dispen-txt-${id}`).value.trim();
+    const manualLinkInput = document.getElementById(`manual-link-${id}`);
+    const linkManual = manualLinkInput ? manualLinkInput.value.trim() : "";
+
+    let keteranganBaru = `Diverifikasi Piket (${statusFinal})`;
+    if (statusFinal === 'Dispensasi' && inputDispen) {
+        keteranganBaru = `Dispensasi: ${inputDispen} (Verifikasi Piket)`;
+    }
+
+    // Jika Guru Piket menempelkan link foto manual
+    if (linkManual) {
+        keteranganBaru += ` - Link Surat: ${linkManual}`;
+    }
+
+    try {
+        if (linkManual) {
+            // Update status, keterangan, sekaligus foto jika dimasukkan link manual
+            await queryTurso(
+                "UPDATE presensi SET status = ?, keterangan = ?, foto = ? WHERE id = ?",
+                [statusFinal, keteranganBaru, linkManual, id]
+            );
+        } else {
+            // Update status dan keterangan standar
+            await queryTurso(
+                "UPDATE presensi SET status = ?, keterangan = ? WHERE id = ?",
+                [statusFinal, keteranganBaru, id]
+            );
         }
 
-        async function eksekusiVerifikasiIzin(id, nisn) {
-            const statusFinal = document.getElementById(`verifikasi-status-${id}`).value;
-            const inputDispen = document.getElementById(`verifikasi-dispen-txt-${id}`).value.trim();
+        alert(`Permohonan NISN ${nisn} berhasil diverifikasi sebagai [${statusFinal}]!`);
 
-            let keteranganBaru = `Diverifikasi Piket (${statusFinal})`;
-            if (statusFinal === 'Dispensasi' && inputDispen) {
-                keteranganBaru = `Dispensasi: ${inputDispen} (Verifikasi Piket)`;
-            }
+        const row = document.getElementById(`row-antrean-${id}`);
+        if (row) row.remove();
 
-            try {
-                await queryTurso(
-                    "UPDATE presensi SET status = ?, keterangan = ? WHERE id = ?",
-                    [statusFinal, keteranganBaru, id]
-                );
-
-                alert(`Permohonan NISN ${nisn} berhasil diverifikasi sebagai [${statusFinal}]!`);
-
-                const row = document.getElementById(`row-antrean-${id}`);
-                if (row) row.remove();
-
-                muatRekapPiketHarian();
-            } catch (err) {
-                alert("Gagal memverifikasi permohonan: " + err.message);
-            }
-        }
-    </script>
+        muatRekapPiketHarian();
+    } catch (err) {
+        alert("Gagal memverifikasi permohonan: " + err.message);
+    }
+}    </script>
 </body>
 </html>
