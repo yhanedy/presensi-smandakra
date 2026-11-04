@@ -454,9 +454,10 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-<!-- SCRIPT LOGIKA UTAMA PORTAL SISWA (FULL FINAL CODE) -->
+
 <script>
-    const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbz4inApesetc3y14EJrgWUU-b_l9pKn8l0VVB6_mg2mJfjJS8XL4Gvjj45h29cvcggywA/exec";
+    // URL WEB APP GOOGLE APPS SCRIPT TERBARU
+    const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbyhmXSVFRAcS5iA5I8iSvvx2jUF0l_yIiWT6ldv690LBH-HLhC8W9ICYDLBZYE7pNMlJg/exec";
 
     let currentActiveUser = null;
     let siswaDistanceMeters = null;
@@ -601,7 +602,7 @@
     }
 
     /* =========================================================
-       4. FUNGSI MODAL PERMOHONAN IZIN & DISPEN (LOCK TOMBOL)
+       4. FUNGSI MODAL PERMOHONAN IZIN & DISPEN
        ========================================================= */
     function bukaModalIzinDispen() {
         fotoIzinBase64 = null;
@@ -619,7 +620,6 @@
         const btnHarian = document.getElementById('btnKirimIjinHarian');
         const btnDispen = document.getElementById('btnKirimDispenDokter');
 
-        // Kunci tombol kirim di awal sampai siswa mefoto lampiran
         if (btnHarian) {
             btnHarian.disabled = true;
             btnHarian.classList.add('opacity-50', 'cursor-not-allowed');
@@ -673,24 +673,32 @@
     }
 
     /* =========================================================
-       5. UPLOAD DRIVE & KOMPRESI FOTO OTOMATIS (~80KB)
+       5. UPLOAD DRIVE PERBAIKAN & KOMPRESI FOTO
        ========================================================= */
     async function uploadKeDriveGAS(base64Data, prefix) {
         if (!base64Data) return "";
         try {
+            // Bersihkan header Base64 ("data:image/jpeg;base64,")
+            const cleanBase64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+            const nisnVal = currentActiveUser ? String(currentActiveUser.nisn || currentActiveUser.username) : 'siswa';
+
+            const payload = {
+                image: cleanBase64,
+                mimeType: "image/jpeg",
+                fileName: `${prefix}_${nisnVal}_${Date.now()}.jpg`,
+                folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
+            };
+
             const res = await fetch(GAS_UPLOAD_IJIN_URL, {
                 method: 'POST',
-                body: JSON.stringify({
-                    image: base64Data,
-                    mimeType: "image/jpeg",
-                    fileName: `${prefix}_${currentActiveUser.nisn || currentActiveUser.username}_${Date.now()}.jpg`,
-                    folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
-                })
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
             });
+
             const json = await res.json();
-            return json.status === 'success' ? json.url : "";
+            return (json && json.status === 'success') ? json.url : "";
         } catch (e) {
-            console.error("Gagal upload Drive:", e);
+            console.error("Gagal upload Drive via GAS:", e);
             return "";
         }
     }
@@ -817,7 +825,6 @@
 
             const ketLengkap = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
 
-            // MENYIMPAN KE KOLOM KETERANGAN DAN KOLOM FOTO
             await queryTurso(
                 'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
                 [nisnVal, tglWIB, getJamWIB(), 'Izin', ketLengkap, driveUrl]
@@ -873,7 +880,6 @@
             const statusFinal = jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi';
             const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
 
-            // MENYIMPAN KE KOLOM KETERANGAN DAN KOLOM FOTO
             await queryTurso(
                 'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
                 [nisnVal, tglMulai, getJamWIB(), statusFinal, ketLengkap, driveUrl]
@@ -1243,7 +1249,6 @@
                 };
                 const statusKategori = isTerlambat(jamWIB) ? 'Terlambat' : 'Hadir';
 
-                // SIMPAN SNAPSHOT WAJAH / LINK KE KOLOM FOTO
                 await queryTurso(
                     'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
                     [nisnVal, tglWIB, jamWIB, statusKategori, 'Presensi Masuk Kamera (Liveness Valid)', photoBase64 || '']
