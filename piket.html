@@ -68,82 +68,117 @@
             <h2 class="text-xl font-bold text-slate-800 mb-1">Pos Guru Piket</h2>
             <p class="text-xs text-slate-500 mb-6">Input presensi masuk/pulang susulan, pencatatan Sakit/Izin/Alpa, dan Izin Pulang Mendahului.</p>
 
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <!-- 1. Manual Masuk/Terlambat -->
-                <div class="border border-slate-200 rounded-lg p-4 space-y-3 bg-slate-50">
-                    <h3 class="font-bold text-slate-700 text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-keyboard text-blue-600"></i>
-                        <span>Presensi Masuk Siswa</span>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                
+                <!-- 1. GABUNGAN BOX GMB 1: Presensi Masuk & Pulang Susulan -->
+                <div class="border border-emerald-300 bg-emerald-50/30 rounded-xl p-4 space-y-3">
+                    <h3 class="font-bold text-emerald-900 text-sm flex items-center space-x-2 border-b border-emerald-200 pb-2">
+                        <i class="fa-solid fa-clock-rotate-left text-emerald-600"></i>
+                        <span>Presensi Masuk & Pulang Susulan</span>
                     </h3>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                        <input type="text" id="piket-nisn" placeholder="Contoh: 0095993053" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas</label>
+                            <select id="piket-masuk-kelas" onchange="muatSiswaBerdasarkanKelas('piket-masuk-kelas', 'piket-masuk-nisn')" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none bg-white font-bold text-slate-700">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Nama Siswa</label>
+                            <select id="piket-masuk-nisn" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none bg-white text-slate-800">
+                                <option value="">-- Pilih Kelas Dahulu --</option>
+                            </select>
+                        </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button onclick="simpanPresensiPiket('Hadir')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded text-xs cursor-pointer">Set Hadir</button>
-                        <button onclick="simpanPresensiPiket('Terlambat')" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs cursor-pointer">Set Terlambat</button>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan / Keterangan (Opsional)</label>
+                        <input type="text" id="piket-masuk-ket" placeholder="Misal: Lupa presensi di gerbang" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white">
+                    </div>
+
+                    <div class="space-y-2 pt-1">
+                        <div class="flex space-x-2">
+                            <button onclick="simpanPresensiPiket('Hadir')" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 rounded-lg text-xs cursor-pointer shadow">Set Hadir Masuk</button>
+                            <button onclick="simpanPresensiPiket('Terlambat')" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs cursor-pointer shadow">Set Terlambat</button>
+                        </div>
+                        <button onclick="simpanPulangSusulanPiket()" class="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 rounded-lg text-xs cursor-pointer shadow flex items-center justify-center gap-1">
+                            <i class="fa-solid fa-person-walk-luggage"></i>
+                            <span>Simpan Jam Pulang Susulan</span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- 2. FITUR BARU: Manual Pulang Susulan (Lupa Absen) -->
-                <div class="border border-emerald-200 bg-emerald-50/40 rounded-lg p-4 space-y-3">
-                    <h3 class="font-bold text-emerald-950 text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-person-walk-luggage text-emerald-600"></i>
-                        <span>Input Pulang Susulan (Lupa Absen)</span>
-                    </h3>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                        <input type="text" id="piket-pulang-lupa-nisn" placeholder="Masukkan NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan</label>
-                        <input type="text" id="piket-pulang-lupa-ket" placeholder="Misal: Lupa presensi di gerbang" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
-                    </div>
-                    <button onclick="simpanPulangSusulanPiket()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2 rounded text-xs cursor-pointer">Simpan Jam Pulang</button>
-                </div>
-
-                <!-- 3. Input Sakit/Izin/Alpa -->
-                <div class="border border-blue-200 bg-blue-50/40 rounded-lg p-4 space-y-3">
-                    <h3 class="font-bold text-blue-900 text-sm flex items-center space-x-2">
+                <!-- 2. GMB 2 (KIRI): Input Sakit/Izin/Alpa (WITH LISTBOX KELAS & SISWA) -->
+                <div class="border border-blue-200 bg-blue-50/40 rounded-xl p-4 space-y-3">
+                    <h3 class="font-bold text-blue-900 text-sm flex items-center space-x-2 border-b border-blue-200 pb-2">
                         <i class="fa-solid fa-notes-medical text-blue-600"></i>
                         <span>Input Sakit / Izin / Alpa</span>
                     </h3>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                        <input type="text" id="piket-sakit-nisn" placeholder="Masukkan NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas</label>
+                            <select id="piket-sakit-kelas" onchange="muatSiswaBerdasarkanKelas('piket-sakit-kelas', 'piket-sakit-nisn')" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none bg-white font-bold text-slate-700">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Nama Siswa</label>
+                            <select id="piket-sakit-nisn" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none bg-white text-slate-800 font-bold">
+                                <option value="">-- Pilih Kelas Dahulu --</option>
+                            </select>
+                        </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Status</label>
-                        <select id="piket-sakit-status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
+                        <select id="piket-sakit-status" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white font-bold text-blue-950">
                             <option value="Sakit">Sakit</option>
                             <option value="Izin">Izin</option>
                             <option value="Alpa">Alpa</option>
                             <option value="Dispensasi">Dispensasi</option>
                         </select>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Keterangan</label>
-                        <input type="text" id="piket-sakit-ket" placeholder="Alasan / Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
+                        <input type="text" id="piket-sakit-ket" placeholder="Alasan / Surat Dokter" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white">
                     </div>
-                    <button onclick="simpanKetidakhadiranPiket()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded text-xs cursor-pointer">Simpan Ketidakhadiran</button>
+
+                    <button onclick="simpanKetidakhadiranPiket()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg text-xs cursor-pointer shadow">Simpan Ketidakhadiran</button>
                 </div>
 
-                <!-- 4. Pulang Mendahului -->
-                <div class="border border-amber-200 bg-amber-50/50 rounded-lg p-4 space-y-3">
-                    <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2">
+                <!-- 3. GMB 2 (KANAN): Pulang Mendahului (WITH LISTBOX KELAS & SISWA) -->
+                <div class="border border-amber-200 bg-amber-50/50 rounded-xl p-4 space-y-3">
+                    <h3 class="font-bold text-amber-900 text-sm flex items-center space-x-2 border-b border-amber-200 pb-2">
                         <i class="fa-solid fa-person-walking-arrow-right text-amber-600"></i>
                         <span>Input Pulang Mendahului</span>
                     </h3>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-1">NISN Siswa</label>
-                        <input type="text" id="pulang-nisn" placeholder="Ketik NISN..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white">
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Kelas</label>
+                            <select id="pulang-kelas" onchange="muatSiswaBerdasarkanKelas('pulang-kelas', 'pulang-nisn')" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none bg-white font-bold text-slate-700">
+                                <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Pilih Nama Siswa</label>
+                            <select id="pulang-nisn" class="w-full border border-slate-300 rounded-lg px-2.5 py-1.5 text-xs outline-none bg-white text-slate-800 font-bold">
+                                <option value="">-- Pilih Kelas Dahulu --</option>
+                            </select>
+                        </div>
                     </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Alasan Pulang</label>
-                        <textarea id="pulang-alasan" rows="2" placeholder="Contoh: Sakit perut / Urusan keluarga" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none bg-white"></textarea>
+                        <textarea id="pulang-alasan" rows="2" placeholder="Contoh: Sakit perut / Urusan keluarga" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none bg-white"></textarea>
                     </div>
-                    <button onclick="simpanPresensiPiket('Pulang Mendahului')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded text-xs cursor-pointer">Simpan Izin Pulang</button>
+
+                    <button onclick="simpanPresensiPiket('Pulang Mendahului')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs cursor-pointer shadow">Simpan Izin Pulang</button>
                 </div>
+
             </div>
         </div>
 
@@ -243,20 +278,68 @@
             window.location.href = PORTAL_SSO_URL;
         }
 
-        window.onload = function() {
+        window.onload = async function() {
             document.getElementById('filter-piket-tanggal').value = getTanggalWIB();
+            await muatDaftarKelasSiswa();
             muatRekapPiketHarian();
             muatAntreanIzinSiswa();
         };
 
-        /* 1. SIMPAN PRESENSI MANUAL MASUK & PULANG MENDANULUI */
+        /* FUNGSI KELAS DAN SISWA DINAMIS UNTUK SEMUA FORM */
+        async function muatDaftarKelasSiswa() {
+            const selectKelas1 = document.getElementById('piket-masuk-kelas');
+            const selectKelas2 = document.getElementById('piket-sakit-kelas');
+            const selectKelas3 = document.getElementById('pulang-kelas');
+            try {
+                const res = await queryTurso('SELECT DISTINCT kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != "" ORDER BY kelas ASC');
+                if (res && res.length > 0) {
+                    const options = '<option value="">-- Pilih Kelas --</option>' + 
+                        res.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
+                    if (selectKelas1) selectKelas1.innerHTML = options;
+                    if (selectKelas2) selectKelas2.innerHTML = options;
+                    if (selectKelas3) selectKelas3.innerHTML = options;
+                }
+            } catch (e) {
+                console.error("Gagal muat daftar kelas:", e);
+            }
+        }
+
+        async function muatSiswaBerdasarkanKelas(idSelectKelas, idSelectSiswa) {
+            const kelasSelected = document.getElementById(idSelectKelas).value;
+            const selectSiswa = document.getElementById(idSelectSiswa);
+
+            if (!kelasSelected) {
+                selectSiswa.innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
+                return;
+            }
+
+            selectSiswa.innerHTML = '<option value="">Memuat nama siswa...</option>';
+
+            try {
+                const res = await queryTurso('SELECT nisn, nama FROM siswa WHERE LOWER(kelas) = LOWER(?) ORDER BY nama ASC', [kelasSelected]);
+                if (res && res.length > 0) {
+                    selectSiswa.innerHTML = '<option value="">-- Pilih Nama Siswa --</option>' + 
+                        res.map(s => `<option value="${s.nisn}">${s.nama} (${s.nisn})</option>`).join('');
+                } else {
+                    selectSiswa.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
+                }
+            } catch (e) {
+                console.error("Gagal muat siswa:", e);
+                selectSiswa.innerHTML = '<option value="">Gagal memuat daftar siswa</option>';
+            }
+        }
+
+        /* 1. SIMPAN PRESENSI MANUAL MASUK & PULANG MENDAHULUI */
         async function simpanPresensiPiket(status) {
             const nisnInput = status === 'Pulang Mendahului' 
                 ? document.getElementById('pulang-nisn').value.trim() 
-                : document.getElementById('piket-nisn').value.trim();
-            const alasan = document.getElementById('pulang-alasan').value.trim();
+                : document.getElementById('piket-masuk-nisn').value.trim();
+                
+            const alasan = status === 'Pulang Mendahului' 
+                ? document.getElementById('pulang-alasan').value.trim() 
+                : document.getElementById('piket-masuk-ket').value.trim();
 
-            if (!nisnInput) { alert("NISN wajib diisi!"); return; }
+            if (!nisnInput) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
 
             const tglWIB = getTanggalWIB();
             const jamWIB = getJamWIB();
@@ -270,45 +353,47 @@
                 } else {
                     await queryTurso(
                         "INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)",
-                        [nisnInput, tglWIB, jamWIB, status, `Presensi Manual Piket (${status})`]
+                        [nisnInput, tglWIB, jamWIB, status, alasan || `Presensi Manual Piket (${status})`]
                     );
                 }
 
                 alert("Presensi berhasil disimpan!");
-                document.getElementById('piket-nisn').value = '';
-                document.getElementById('pulang-nisn').value = '';
+                document.getElementById('piket-masuk-kelas').value = '';
+                document.getElementById('piket-masuk-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
+                document.getElementById('piket-masuk-ket').value = '';
+                
+                document.getElementById('pulang-kelas').value = '';
+                document.getElementById('pulang-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
                 document.getElementById('pulang-alasan').value = '';
+                
                 muatRekapPiketHarian();
             } catch (err) {
                 alert("Gagal menyimpan presensi: " + err.message);
             }
         }
 
-        /* 2. FITUR BARU: SIMPAN PULANG SUSULAN (SISWA LUPA ABSEN PULANG) */
+        /* 2. SIMPAN PULANG SUSULAN (SISWA LUPA ABSEN PULANG) */
         async function simpanPulangSusulanPiket() {
-            const nisn = document.getElementById('piket-pulang-lupa-nisn').value.trim();
-            const ket = document.getElementById('piket-pulang-lupa-ket').value.trim();
+            const nisn = document.getElementById('piket-masuk-nisn').value.trim();
+            const ket = document.getElementById('piket-masuk-ket').value.trim();
 
-            if (!nisn) { alert("NISN wajib diisi!"); return; }
+            if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
 
             const tglWIB = getTanggalWIB();
             const jamWIB = getJamWIB();
 
             try {
-                // Cek apakah data presensi hari ini sudah ada
                 const cekExist = await queryTurso(
                     "SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? LIMIT 1",
                     [nisn, tglWIB]
                 );
 
                 if (cekExist && cekExist.length > 0) {
-                    // Update jam_pulang pada record yang sudah ada
                     await queryTurso(
                         "UPDATE presensi SET jam_pulang = ?, keterangan = keterangan || ? WHERE id = ?",
                         [jamWIB, ` | Pulang Susulan via Piket (${ket || 'Lupa Absen'})`, cekExist[0].id]
                     );
                 } else {
-                    // Insert record baru jika siswa belum presensi masuk sama sekali
                     await queryTurso(
                         "INSERT INTO presensi (nisn, tanggal, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?)",
                         [nisn, tglWIB, jamWIB, 'Hadir', `Presensi Pulang Susulan Piket (${ket || 'Lupa Absen'})`]
@@ -316,8 +401,9 @@
                 }
 
                 alert("Jam pulang susulan berhasil disimpan!");
-                document.getElementById('piket-pulang-lupa-nisn').value = '';
-                document.getElementById('piket-pulang-lupa-ket').value = '';
+                document.getElementById('piket-masuk-kelas').value = '';
+                document.getElementById('piket-masuk-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
+                document.getElementById('piket-masuk-ket').value = '';
                 muatRekapPiketHarian();
             } catch (err) {
                 alert("Gagal menyimpan jam pulang susulan: " + err.message);
@@ -330,7 +416,7 @@
             const status = document.getElementById('piket-sakit-status').value;
             const ket = document.getElementById('piket-sakit-ket').value.trim();
 
-            if (!nisn) { alert("NISN wajib diisi!"); return; }
+            if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
 
             try {
                 await queryTurso(
@@ -339,7 +425,8 @@
                 );
 
                 alert("Ketidakhadiran berhasil disimpan!");
-                document.getElementById('piket-sakit-nisn').value = '';
+                document.getElementById('piket-sakit-kelas').value = '';
+                document.getElementById('piket-sakit-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
                 document.getElementById('piket-sakit-ket').value = '';
                 muatRekapPiketHarian();
             } catch (err) {
@@ -347,7 +434,7 @@
             }
         }
 
-        /* 4. MUAT REKAP HARIAN (KUERI REFACTOR BEBAS ERROR 400) */
+        /* 4. MUAT REKAP HARIAN */
         async function muatRekapPiketHarian() {
             const tgl = document.getElementById('filter-piket-tanggal').value;
             const tbody = document.getElementById('tabel-piket-rekap-body');
@@ -392,130 +479,116 @@
             }
         }
 
-  /* KODE PERBAIKAN ANTREAN IZIN DENGAN DUKUNGAN INPUT FOTO MANUAL UNTUK PIKET */
-async function muatAntreanIzinSiswa() {
-    const tbody = document.getElementById('tabel-antrean-izin-body');
-    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean permohonan...</td></tr>';
+        /* 5. ANTREAN VERIFIKASI IZIN */
+        async function muatAntreanIzinSiswa() {
+            const tbody = document.getElementById('tabel-antrean-izin-body');
+            tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean permohonan...</td></tr>';
 
-    try {
-        const sqlStr = `
-            SELECT p.*, 
-                   COALESCE(s.nama, 'Siswa') as nama_siswa, 
-                   COALESCE(s.kelas, '-') as kelas_siswa 
-            FROM presensi p 
-            LEFT JOIN siswa s ON TRIM(p.nisn) = TRIM(s.nisn) 
-            WHERE p.status IN ('Izin', 'Sakit', 'Dispensasi') 
-            ORDER BY p.id DESC LIMIT 25
-        `;
-        const data = await queryTurso(sqlStr);
+            try {
+                const sqlStr = `
+                    SELECT p.*, 
+                           COALESCE(s.nama, 'Siswa') as nama_siswa, 
+                           COALESCE(s.kelas, '-') as kelas_siswa 
+                    FROM presensi p 
+                    LEFT JOIN siswa s ON TRIM(p.nisn) = TRIM(s.nisn) 
+                    WHERE p.status IN ('Izin', 'Sakit', 'Dispensasi') 
+                    ORDER BY p.id DESC LIMIT 25
+                `;
+                const data = await queryTurso(sqlStr);
 
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400 font-bold">Tidak ada antrean permohonan izin siswa saat ini.</td></tr>';
-            return;
+                if (!data || data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400 font-bold">Tidak ada antrean permohonan izin siswa saat ini.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = data.map(p => {
+                    let driveUrl = p.foto || p.file_surat || p.url_bukti || null;
+
+                    if (!driveUrl && p.keterangan) {
+                        const urlMatch = p.keterangan.match(/(https?:\/\/[^\s\)\>]+)/i);
+                        if (urlMatch) driveUrl = urlMatch[0];
+                    }
+
+                    const adaFotoValid = driveUrl && (driveUrl.startsWith('http://') || driveUrl.startsWith('https://') || driveUrl.startsWith('data:image'));
+
+                    return `
+                        <tr class="hover:bg-purple-50/50 border-b border-slate-100" id="row-antrean-${p.id}">
+                            <td class="p-3 font-mono text-slate-500 text-[11px]">${p.tanggal}<br><span class="text-blue-600 font-bold">${p.jam_masuk || ''}</span></td>
+                            <td class="p-3 font-mono font-bold text-slate-800">${p.nisn}</td>
+                            <td class="p-3 font-black text-slate-900">${p.nama_siswa}</td>
+                            <td class="p-3 text-center font-black text-blue-900 font-mono">${p.kelas_siswa}</td>
+                            <td class="p-3 text-slate-700 font-medium">${p.keterangan || '-'}</td>
+                            
+                            <td class="p-3 text-center">
+                                ${adaFotoValid ? `
+                                    <a href="${driveUrl}" target="_blank" class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-900 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-blue-300 transition shadow-sm">
+                                        <i class="fa-solid fa-image text-blue-600"></i> Lihat Surat
+                                    </a>
+                                ` : `
+                                    <div class="space-y-1">
+                                        <span class="text-[10px] text-amber-600 font-bold block">Tanpa Foto</span>
+                                        <input type="text" id="manual-link-${p.id}" placeholder="Tempel Link Foto..." class="w-28 p-1 border border-slate-300 rounded text-[10px] outline-none bg-slate-50 focus:bg-white">
+                                    </div>
+                                `}
+                            </td>
+
+                            <td class="p-3 space-y-1.5">
+                                <select id="verifikasi-status-${p.id}" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white outline-none">
+                                    <option value="Izin" ${p.status === 'Izin' ? 'selected' : ''}>Izin</option>
+                                    <option value="Sakit" ${p.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
+                                    <option value="Alpa">Alpa</option>
+                                    <option value="Dispensasi" ${p.status === 'Dispensasi' ? 'selected' : ''}>Dispensasi</option>
+                                </select>
+                            </td>
+
+                            <td class="p-3 text-center">
+                                <button onclick="eksekusiVerifikasiIzin(${p.id}, '${p.nisn}')" class="bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black px-3 py-2 rounded-xl text-xs shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1 mx-auto">
+                                    <i class="fa-solid fa-circle-check"></i> Verifikasi
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                console.error("Gagal muat antrean izin:", err);
+                tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-rose-500 font-bold">Gagal memuat antrean: ${err.message}</td></tr>`;
+            }
         }
 
-        tbody.innerHTML = data.map(p => {
-            // 1. Cari URL/Link Foto dari kolom database atau dari dalam teks keterangan
-            let driveUrl = p.foto || p.file_surat || p.url_bukti || null;
+        async function eksekusiVerifikasiIzin(id, nisn) {
+            const statusFinal = document.getElementById(`verifikasi-status-${id}`).value;
+            const manualLinkInput = document.getElementById(`manual-link-${id}`);
+            const linkManual = manualLinkInput ? manualLinkInput.value.trim() : "";
 
-            if (!driveUrl && p.keterangan) {
-                const urlMatch = p.keterangan.match(/(https?:\/\/[^\s\)\>]+)/i);
-                if (urlMatch) driveUrl = urlMatch[0];
+            let keteranganBaru = `Diverifikasi Piket (${statusFinal})`;
+
+            if (linkManual) {
+                keteranganBaru += ` - Link Surat: ${linkManual}`;
             }
 
-            const adaFotoValid = driveUrl && (driveUrl.startsWith('http://') || driveUrl.startsWith('https://') || driveUrl.startsWith('data:image'));
+            try {
+                if (linkManual) {
+                    await queryTurso(
+                        "UPDATE presensi SET status = ?, keterangan = ?, foto = ? WHERE id = ?",
+                        [statusFinal, keteranganBaru, linkManual, id]
+                    );
+                } else {
+                    await queryTurso(
+                        "UPDATE presensi SET status = ?, keterangan = ? WHERE id = ?",
+                        [statusFinal, keteranganBaru, id]
+                    );
+                }
 
-            return `
-                <tr class="hover:bg-purple-50/50 border-b border-slate-100" id="row-antrean-${p.id}">
-                    <td class="p-3 font-mono text-slate-500 text-[11px]">${p.tanggal}<br><span class="text-blue-600 font-bold">${p.jam_masuk || ''}</span></td>
-                    <td class="p-3 font-mono font-bold text-slate-800">${p.nisn}</td>
-                    <td class="p-3 font-black text-slate-900">${p.nama_siswa}</td>
-                    <td class="p-3 text-center font-black text-blue-900 font-mono">${p.kelas_siswa}</td>
-                    <td class="p-3 text-slate-700 font-medium">${p.keterangan || '-'}</td>
-                    
-                    <!-- KOLOM FOTO / SURAT DENGAN INPUT MANUAL JIKA KOSONG -->
-                    <td class="p-3 text-center">
-                        ${adaFotoValid ? `
-                            <a href="${driveUrl}" target="_blank" class="inline-flex items-center gap-1 bg-blue-100 hover:bg-blue-200 text-blue-900 px-2.5 py-1 rounded-lg text-[11px] font-bold border border-blue-300 transition shadow-sm">
-                                <i class="fa-solid fa-image text-blue-600"></i> Lihat Surat
-                            </a>
-                        ` : `
-                            <div class="space-y-1">
-                                <span class="text-[10px] text-amber-600 font-bold block">Tanpa Foto</span>
-                                <input type="text" id="manual-link-${p.id}" placeholder="Tempel Link Foto..." class="w-28 p-1 border border-slate-300 rounded text-[10px] outline-none bg-slate-50 focus:bg-white">
-                            </div>
-                        `}
-                    </td>
+                alert(`Permohonan NISN ${nisn} berhasil diverifikasi sebagai [${statusFinal}]!`);
 
-                    <!-- FORM PILIH STATUS FINAL -->
-                    <td class="p-3 space-y-1.5">
-                        <select id="verifikasi-status-${p.id}" onchange="toggleInputDispen(${p.id})" class="w-full p-1.5 border border-slate-300 rounded-lg text-xs font-bold bg-white outline-none">
-                            <option value="Izin" ${p.status === 'Izin' ? 'selected' : ''}>Izin</option>
-                            <option value="Sakit" ${p.status === 'Sakit' ? 'selected' : ''}>Sakit</option>
-                            <option value="Alpa">Alpa</option>
-                            <option value="Dispensasi" ${p.status === 'Dispensasi' ? 'selected' : ''}>Dispensasi</option>
-                        </select>
-                        <div id="box-dispen-txt-${p.id}" class="${p.status === 'Dispensasi' ? '' : 'hidden'}">
-                            <input type="text" id="verifikasi-dispen-txt-${p.id}" placeholder="Tuliskan nama kegiatan dispen..." class="w-full p-1.5 border border-emerald-400 bg-emerald-50 rounded-lg text-[11px] font-bold text-emerald-900 outline-none">
-                        </div>
-                    </td>
+                const row = document.getElementById(`row-antrean-${id}`);
+                if (row) row.remove();
 
-                    <!-- TOMBOL VERIFIKASI -->
-                    <td class="p-3 text-center">
-                        <button onclick="eksekusiVerifikasiIzin(${p.id}, '${p.nisn}')" class="bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black px-3 py-2 rounded-xl text-xs shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1 mx-auto">
-                            <i class="fa-solid fa-circle-check"></i> Verifikasi
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    } catch (err) {
-        console.error("Gagal muat antrean izin:", err);
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-rose-500 font-bold">Gagal memuat antrean: ${err.message}</td></tr>`;
-    }
-}
-
-/* KODE PERBAIKAN EKSEKUSI VERIFIKASI (MENYIMPAN LINK MANUAL JIKA ADA) */
-async function eksekusiVerifikasiIzin(id, nisn) {
-    const statusFinal = document.getElementById(`verifikasi-status-${id}`).value;
-    const inputDispen = document.getElementById(`verifikasi-dispen-txt-${id}`).value.trim();
-    const manualLinkInput = document.getElementById(`manual-link-${id}`);
-    const linkManual = manualLinkInput ? manualLinkInput.value.trim() : "";
-
-    let keteranganBaru = `Diverifikasi Piket (${statusFinal})`;
-    if (statusFinal === 'Dispensasi' && inputDispen) {
-        keteranganBaru = `Dispensasi: ${inputDispen} (Verifikasi Piket)`;
-    }
-
-    // Jika Guru Piket menempelkan link foto manual
-    if (linkManual) {
-        keteranganBaru += ` - Link Surat: ${linkManual}`;
-    }
-
-    try {
-        if (linkManual) {
-            // Update status, keterangan, sekaligus foto jika dimasukkan link manual
-            await queryTurso(
-                "UPDATE presensi SET status = ?, keterangan = ?, foto = ? WHERE id = ?",
-                [statusFinal, keteranganBaru, linkManual, id]
-            );
-        } else {
-            // Update status dan keterangan standar
-            await queryTurso(
-                "UPDATE presensi SET status = ?, keterangan = ? WHERE id = ?",
-                [statusFinal, keteranganBaru, id]
-            );
+                muatRekapPiketHarian();
+            } catch (err) {
+                alert("Gagal memverifikasi permohonan: " + err.message);
+            }
         }
-
-        alert(`Permohonan NISN ${nisn} berhasil diverifikasi sebagai [${statusFinal}]!`);
-
-        const row = document.getElementById(`row-antrean-${id}`);
-        if (row) row.remove();
-
-        muatRekapPiketHarian();
-    } catch (err) {
-        alert("Gagal memverifikasi permohonan: " + err.message);
-    }
-}    </script>
+    </script>
 </body>
 </html>
