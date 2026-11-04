@@ -454,414 +454,537 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- SCRIPT LOGIKA UTAMA PORTAL SISWA -->
-    <script>
-        const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbz4inApesetc3y14EJrgWUU-b_l9pKn8l0VVB6_mg2mJfjJS8XL4Gvjj45h29cvcggywA/exec";
+  <!-- SCRIPT LOGIKA UTAMA PORTAL SISWA (REVISED & REFACTORED VERSION) -->
+<script>
+    const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbz4inApesetc3y14EJrgWUU-b_l9pKn8l0VVB6_mg2mJfjJS8XL4Gvjj45h29cvcggywA/exec";
 
-        let currentActiveUser = null;
-        let siswaDistanceMeters = null;
-        let latSekolah = -7.6005890;
-        let longSekolah = 110.9783970;
-        let maxRadius = 100;
+    let currentActiveUser = null;
+    let siswaDistanceMeters = null;
+    let latSekolah = -7.6005890;
+    let longSekolah = 110.9783970;
+    let maxRadius = 100;
 
-        let isSudahPresensiMasuk = false;
-        let modePresensiKameraDipilih = null;
-        let videoStream = null;
+    let isSudahPresensiMasuk = false;
+    let modePresensiKameraDipilih = null;
+    let videoStream = null;
 
-        let fotoIzinBase64 = null;
-        let fileDispenBase64 = null;
-        let activeAnnouncementId = null;
+    let fotoIzinBase64 = null;
+    let fileDispenBase64 = null;
+    let activeAnnouncementId = null;
 
-        function getTanggalWIB(d = new Date()) {
-            return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
+    function getTanggalWIB(d = new Date()) {
+        return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
+    }
+
+    function getJamWIB(d = new Date()) {
+        return new Intl.DateTimeFormat('id-ID', {
+            timeZone: 'Asia/Jakarta',
+            hour: '2-digit', minute: '2-digit', second: '2-digit',
+            hourCycle: 'h23'
+        }).format(d).replace(/\./g, ':');
+    }
+
+    function handleLogoutSiswa() {
+        if (videoStream) {
+            videoStream.getTracks().forEach(t => t.stop());
+            videoStream = null;
         }
+        localStorage.removeItem('smada_siswa');
+        window.location.replace('index.html');
+    }
 
-        function getJamWIB(d = new Date()) {
-            return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(d).replace(/\./g, ':');
-        }
-
-        function handleLogoutSiswa() {
-            localStorage.removeItem('smada_siswa');
+    window.onload = function() {
+        const savedSiswa = localStorage.getItem('smada_siswa');
+        if (!savedSiswa) {
             window.location.replace('index.html');
+            return;
         }
 
-        window.onload = function() {
-            const savedSiswa = localStorage.getItem('smada_siswa');
-            if (!savedSiswa) {
-                window.location.replace('index.html');
-                return;
-            }
+        try {
+            currentActiveUser = JSON.parse(savedSiswa);
+        } catch (e) {
+            handleLogoutSiswa();
+            return;
+        }
 
-            try {
-                currentActiveUser = JSON.parse(savedSiswa);
-            } catch (e) {
-                handleLogoutSiswa();
-                return;
-            }
+        if (!currentActiveUser) {
+            window.location.replace('index.html');
+            return;
+        }
 
-            if (!currentActiveUser) {
-                window.location.replace('index.html');
-                return;
-            }
+        muatSettingSekolah();
+        muatPortalSiswa();
+        cekPengumumanKhususSiswa();
+    };
 
-            muatSettingSekolah();
-            muatPortalSiswa();
-            cekPengumumanKhususSiswa();
+    async function muatSettingSekolah() {
+        try {
+            const data = await queryTurso('SELECT * FROM setting_sekolah WHERE id = 1 LIMIT 1');
+            if (data && data.length > 0) {
+                const cfg = data[0];
+                const lat = parseFloat(cfg.latitude);
+                const long = parseFloat(cfg.longitude);
+                const rad = parseInt(cfg.radius_meter);
+
+                if (Number.isFinite(lat)) latSekolah = lat;
+                if (Number.isFinite(long)) longSekolah = long;
+                if (Number.isFinite(rad)) maxRadius = rad;
+                
+                const limitElem = document.getElementById('siswa-radius-limit');
+                if (limitElem) limitElem.textContent = `${maxRadius}m`;
+            }
+        } catch (e) {
+            console.log("Menggunakan setting radius default sekolah.");
+        }
+    }
+
+    function muatPortalSiswa() {
+        const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username || '-').trim();
+        const elNama = document.getElementById('siswa-profil-nama');
+        const elKelas = document.getElementById('siswa-profil-kelas');
+        const elNisn = document.getElementById('siswa-profil-nisn');
+        const elTgl = document.getElementById('siswa-tanggal-hari-ini');
+
+        if (elNama) elNama.textContent = currentActiveUser.nama || currentActiveUser.username || '-';
+        if (elKelas) elKelas.textContent = currentActiveUser.kelas || '-';
+        if (elNisn) elNisn.textContent = nisnVal;
+
+        const hariIni = new Date();
+        if (elTgl) elTgl.textContent = hariIni.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+        muatPresensiSiswaHariIni();
+        cekSiswaGPS();
+        muatRiwayatSiswa();
+    }
+
+    async function cekPengumumanKhususSiswa() {
+        try {
+            const data = await queryTurso(
+                'SELECT * FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = "siswa" OR LOWER(target_role) = "semua") ORDER BY id DESC LIMIT 1'
+            );
+
+            if (data && data.length > 0) {
+                const ann = data[0];
+                const readId = localStorage.getItem('smada_read_announcement_id');
+
+                if (readId !== String(ann.id)) {
+                    activeAnnouncementId = ann.id;
+                    const popJudul = document.getElementById('pop-judul-pengumuman');
+                    const popIsi = document.getElementById('pop-isi-pengumuman');
+                    const popModal = document.getElementById('modal-pengumuman-siswa');
+
+                    if (popJudul) popJudul.innerText = ann.judul;
+                    if (popIsi) popIsi.innerText = ann.isi;
+                    if (popModal) popModal.classList.remove('hidden');
+                }
+            }
+        } catch (err) {
+            console.log("Tabel pengumuman tidak tersedia.");
+        }
+    }
+
+    function tutupPopupPengumuman() {
+        if (activeAnnouncementId) {
+            localStorage.setItem('smada_read_announcement_id', String(activeAnnouncementId));
+        }
+        const popModal = document.getElementById('modal-pengumuman-siswa');
+        if (popModal) popModal.classList.add('hidden');
+    }
+
+    /* --- FUNGSI MODAL PERMOHONAN IZIN & DISPEN --- */
+    function bukaModalIzinDispen() {
+        fotoIzinBase64 = null;
+        fileDispenBase64 = null;
+
+        const btnHarian = document.getElementById('btnKirimIjinHarian');
+        const btnDispen = document.getElementById('btnKirimDispenDokter');
+
+        if (btnHarian) {
+            btnHarian.disabled = true;
+            btnHarian.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+        if (btnDispen) {
+            btnDispen.disabled = true;
+            btnDispen.classList.add('opacity-50', 'cursor-not-allowed');
+        }
+
+        const modalIzin = document.getElementById('modal-permohonan-ijin');
+        if (modalIzin) modalIzin.classList.remove('hidden');
+    }
+
+    // FUNGSI PERBAIKAN 1: PENDEFINISIAN TUTUP MODAL & RESET PREVIEW FOTO
+    function tutupModalIzinDispen() {
+        const modalIzin = document.getElementById('modal-permohonan-ijin');
+        if (modalIzin) modalIzin.classList.add('hidden');
+        
+        const previewHarian = document.getElementById('ijinFotoPreview');
+        const previewDispen = document.getElementById('dispenFotoPreview');
+        if (previewHarian) previewHarian.src = '';
+        if (previewDispen) previewDispen.src = '';
+        
+        fotoIzinBase64 = null;
+        fileDispenBase64 = null;
+    }
+
+    // FUNGSI PERBAIKAN 6: PREVIEW FOTO DENGAN HANDLING IMG ERROR
+    function previewFotoIzin(event, jenisForm = 'harian') {
+        const file = event.target.files[0];
+        const btnHarian = document.getElementById('btnKirimIjinHarian');
+        const btnDispen = document.getElementById('btnKirimDispenDokter');
+
+        const lockButtons = () => {
+            if (jenisForm === 'harian' && btnHarian) {
+                btnHarian.disabled = true;
+                btnHarian.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            if (jenisForm === 'dispen' && btnDispen) {
+                btnDispen.disabled = true;
+                btnDispen.classList.add('opacity-50', 'cursor-not-allowed');
+            }
         };
 
-        async function muatSettingSekolah() {
-            try {
-                const data = await queryTurso('SELECT * FROM setting_sekolah WHERE id = 1 LIMIT 1');
-                if (data && data.length > 0) {
-                    const cfg = data[0];
-                    if (cfg.latitude) latSekolah = parseFloat(cfg.latitude);
-                    if (cfg.longitude) longSekolah = parseFloat(cfg.longitude);
-                    if (cfg.radius_meter) maxRadius = parseInt(cfg.radius_meter);
-                    
-                    const limitElem = document.getElementById('siswa-radius-limit');
-                    if (limitElem) limitElem.textContent = `${maxRadius}m`;
-                }
-            } catch (e) {
-                console.log("Setting radius default Turso DB.");
-            }
+        if (!file) {
+            lockButtons();
+            return;
         }
 
-        function muatPortalSiswa() {
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username || '-');
-            document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || currentActiveUser.username || '-';
-            document.getElementById('siswa-profil-kelas').textContent = currentActiveUser.kelas || '-';
-            document.getElementById('siswa-profil-nisn').textContent = nisnVal;
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const img = new Image();
+            img.onload = function() {
+                const maxWidth = 800;
+                const maxHeight = 800;
+                let width = img.width;
+                let height = img.height;
 
-            const hariIni = new Date();
-            document.getElementById('siswa-tanggal-hari-ini').textContent = hariIni.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-            muatPresensiSiswaHariIni();
-            cekSiswaGPS();
-            muatRiwayatSiswa();
-        }
-
-        /* --- FUNGSI PENGUMUMAN BROADCAST KHUSUS SISWA --- */
-        async function cekPengumumanKhususSiswa() {
-            try {
-                const data = await queryTurso(
-                    'SELECT * FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = "siswa" OR LOWER(target_role) = "semua") ORDER BY id DESC LIMIT 1'
-                );
-
-                if (data && data.length > 0) {
-                    const ann = data[0];
-                    const readId = localStorage.getItem('smada_read_announcement_id');
-
-                    if (readId !== String(ann.id)) {
-                        activeAnnouncementId = ann.id;
-                        document.getElementById('pop-judul-pengumuman').innerText = ann.judul;
-                        document.getElementById('pop-isi-pengumuman').innerText = ann.isi;
-                        document.getElementById('modal-pengumuman-siswa').classList.remove('hidden');
+                if (width > height) {
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+                } else {
+                    if (height > maxHeight) {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
                     }
                 }
-            } catch (err) {
-                console.log("Belum ada tabel pengumuman / tidak aktif.");
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+
+                if (jenisForm === 'harian') {
+                    fotoIzinBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    const previewElem = document.getElementById('ijinFotoPreview');
+                    if (previewElem) previewElem.src = fotoIzinBase64;
+                    
+                    if (btnHarian) {
+                        btnHarian.disabled = false;
+                        btnHarian.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                } else {
+                    fileDispenBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    const previewElem = document.getElementById('dispenFotoPreview');
+                    if (previewElem) previewElem.src = fileDispenBase64;
+
+                    if (btnDispen) {
+                        btnDispen.disabled = false;
+                        btnDispen.classList.remove('opacity-50', 'cursor-not-allowed');
+                    }
+                }
+            };
+            img.onerror = function() {
+                alert("File bukan format gambar yang valid!");
+                event.target.value = '';
+                lockButtons();
+            };
+            img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+
+    async function kirimPermohonanIzinHarian() {
+        const alasanEl = document.getElementById('ijin-alasan');
+        const alasan = alasanEl ? alasanEl.value.trim() : '';
+        const btn = document.getElementById('btnKirimIjinHarian');
+
+        if (!fotoIzinBase64) { 
+            alert("Wajib mengambil foto Surat Izin Tulis Tangan sebelum mengirim!"); 
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
             }
+            return; 
         }
+        if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
 
-        function tutupPopupPengumuman() {
-            if (activeAnnouncementId) {
-                localStorage.setItem('smada_read_announcement_id', String(activeAnnouncementId));
-            }
-            document.getElementById('modal-pengumuman-siswa').classList.add('hidden');
-        }
-
-        /* --- FUNGSI MODAL PERMOHONAN IZIN & DISPEN --- */
-        function bukaModalIzinDispen() {
-            const tglStr = getTanggalWIB();
-            document.getElementById('ijinTanggalToday').innerText = tglStr;
-            document.getElementById('dispenTglMulai').value = tglStr;
-            document.getElementById('dispenTglSelesai').value = tglStr;
-            document.getElementById('modal-permohonan-ijin').classList.remove('hidden');
-        }
-
-        function tutupModalIzinDispen() {
-            document.getElementById('modal-permohonan-ijin').classList.add('hidden');
-        }
-
-        function switchTabIzinDispen(tabId) {
-            document.querySelectorAll('.tab-ijin-content').forEach(c => c.classList.add('hidden'));
-            document.getElementById(tabId).classList.remove('hidden');
-
-            document.querySelectorAll('.tab-ijin-btn').forEach(b => b.className = "tab-ijin-btn py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition cursor-pointer");
-            
-            if (tabId === 'tab-ijin-harian') {
-                document.getElementById('btn-tab-ijin-harian').className = "tab-ijin-btn py-2.5 rounded-xl bg-purple-900 text-white font-black shadow transition cursor-pointer";
-            } else {
-                document.getElementById('btn-tab-dispen').className = "tab-ijin-btn py-2.5 rounded-xl bg-blue-900 text-white font-black shadow transition cursor-pointer";
-            }
-        }
-
-        function previewFotoIzin(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    fotoIzinBase64 = e.target.result;
-                    document.getElementById('ijinFotoPreview').src = fotoIzinBase64;
-                    document.getElementById('ijinPreviewBox').classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        function previewFileDispen(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    fileDispenBase64 = e.target.result;
-                    const namaEl = document.getElementById('dispenFileNama');
-                    namaEl.innerText = `File Terpilih: ${file.name}`;
-                    namaEl.classList.remove('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
-
-        async function uploadKeDriveGAS(base64Data, prefix) {
-            if (!base64Data) return "";
-            try {
-                const res = await fetch(GAS_UPLOAD_IJIN_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        image: base64Data,
-                        mimeType: "image/jpeg",
-                        fileName: `${prefix}_${currentActiveUser.nisn || currentActiveUser.username}_${Date.now()}.jpg`,
-                        folderId: "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v"
-                    })
-                });
-                const json = await res.json();
-                return json.status === 'success' ? json.url : "";
-            } catch (e) {
-                console.error("Gagal upload Drive:", e);
-                return "";
-            }
-        }
-
-        async function kirimPermohonanIzinHarian() {
-            const alasan = document.getElementById('ijin-alasan').value.trim();
-            const btn = document.getElementById('btnKirimIjinHarian');
-
-            if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
-            if (!fotoIzinBase64) { alert("Wajib mefoto Surat Izin Tulis Tangan bertanda tangan Orang Tua!"); return; }
-
+        if (btn) {
             btn.disabled = true;
-            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengirim Permohonan...`;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah Foto ke Drive...`;
+        }
 
-            try {
-                const tglWIB = getTanggalWIB();
-                const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-                const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan");
+        try {
+            const tglWIB = getTanggalWIB();
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+            
+            const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan");
 
-                await queryTurso(
-                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                    [nisnVal, tglWIB, getJamWIB(), 'Izin', `Izin Harian (1 Hari): ${alasan} (Surat: ${driveUrl || 'Tulis Tangan'})`]
-                );
+            if (!driveUrl) {
+                alert("Gagal mengunggah foto ke Google Drive. Silakan coba foto ulang!");
+                if (btn) btn.disabled = false;
+                return;
+            }
 
-                alert(`Permohonan Izin Harian berhasil dikirim ke Guru Piket!`);
-                tutupModalIzinDispen();
-                muatPresensiSiswaHariIni();
-                muatRiwayatSiswa();
-            } catch (err) {
-                alert("Gagal mengirim izin: " + err.message);
-            } finally {
+            const ketLengkap = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
+
+            await queryTurso(
+                'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
+                [nisnVal, tglWIB, getJamWIB(), 'Izin', ketLengkap, driveUrl]
+            );
+
+            alert(`Permohonan Izin Harian berhasil dikirim beserta lampiran foto!`);
+            tutupModalIzinDispen();
+            muatPresensiSiswaHariIni();
+            muatRiwayatSiswa();
+        } catch (err) {
+            alert("Gagal mengirim izin: " + err.message);
+        } finally {
+            if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Surat Izin Ke Piket`;
             }
         }
+    }
 
-        async function kirimPermohonanDispenDokter() {
-            const jenisKategori = document.getElementById('dispenKategori').value;
-            const tglMulai = document.getElementById('dispenTglMulai').value;
-            const tglSelesai = document.getElementById('dispenTglSelesai').value;
-            const keterangan = document.getElementById('dispenKeterangan').value.trim();
-            const btn = document.getElementById('btnKirimDispenDokter');
+    async function kirimPermohonanDispenDokter() {
+        const jenisKategori = document.getElementById('dispenKategori').value;
+        const tglMulai = document.getElementById('dispenTglMulai').value;
+        const tglSelesai = document.getElementById('dispenTglSelesai').value;
+        const keterangan = document.getElementById('dispenKeterangan').value.trim();
+        const btn = document.getElementById('btnKirimDispenDokter');
 
-            if (!keterangan) { alert("Tuliskan keterangan surat dokter / kegiatan dispen!"); return; }
-            if (!tglMulai || !tglSelesai) { alert("Pilih rentang tanggal pelaksanaan!"); return; }
+        if (!fileDispenBase64) { 
+            alert("Wajib melampirkan foto Surat Dokter / Surat Tugas Dispensasi!"); 
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+            }
+            return; 
+        }
+        if (!keterangan) { alert("Tuliskan keterangan surat dokter / kegiatan dispen!"); return; }
+        if (!tglMulai || !tglSelesai) { alert("Pilih rentang tanggal pelaksanaan!"); return; }
 
+        if (btn) {
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+        }
 
-            try {
-                const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-                const driveUrl = await uploadKeDriveGAS(fileDispenBase64, "dispen_dokter");
+        try {
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+            const driveUrl = await uploadKeDriveGAS(fileDispenBase64, "dispen_dokter");
 
-                await queryTurso(
-                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                    [
-                        nisnVal, 
-                        tglMulai, 
-                        getJamWIB(), 
-                        jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi', 
-                        `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} (File: ${driveUrl || 'Lampiran'})`
-                    ]
-                );
+            if (!driveUrl) {
+                alert("Gagal mengunggah foto ke Google Drive. Silakan foto ulang!");
+                if (btn) btn.disabled = false;
+                return;
+            }
 
-                alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil diteruskan ke Rule Guru Piket!`);
-                tutupModalIzinDispen();
-                muatPresensiSiswaHariIni();
-                muatRiwayatSiswa();
-            } catch (err) {
-                alert("Gagal mengirim pengajuan: " + err.message);
-            } finally {
+            const statusFinal = jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi';
+            const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
+
+            await queryTurso(
+                'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
+                [nisnVal, tglMulai, getJamWIB(), statusFinal, ketLengkap, driveUrl]
+            );
+
+            alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil dikirim!`);
+            tutupModalIzinDispen();
+            muatPresensiSiswaHariIni();
+            muatRiwayatSiswa();
+        } catch (err) {
+            alert("Gagal mengirim pengajuan: " + err.message);
+        } finally {
+            if (btn) {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-paper-plane mr-1"></i> Kirim Pengajuan Ke Piket`;
             }
         }
+    }
 
-        /* --- FUNGSI LOKASI & GEOLOKASI GPS (DENGAN REVISI TIMEOUT & FALLBACK FAST LOCATION) --- */
-        function cekSiswaGPS() {
-            const badgeText = document.getElementById('gps-status-badge');
-            const radiusText = document.getElementById('siswa-status-radius-text');
-            badgeText.textContent = "Mendeteksi Lokasi...";
+    /* --- FUNGSI GEOLOKASI GPS PERBAIKAN --- */
+    function cekSiswaGPS() {
+        siswaDistanceMeters = null; // RESET LOKASI AWAL (PERBAIKAN 13)
+        const badgeText = document.getElementById('gps-status-badge');
+        const radiusText = document.getElementById('siswa-status-radius-text');
+        if (badgeText) badgeText.textContent = "Mendeteksi Lokasi...";
 
-            if (!navigator.geolocation) {
-                badgeText.textContent = "GPS Tidak Didukung Browser";
-                return;
-            }
-
-            // Opsi 1: Coba ambil posisi cepat (maximumAge 5 detik)
-            const optionsCepat = { enableHighAccuracy: false, timeout: 4000, maximumAge: 5000 };
-
-            navigator.geolocation.getCurrentPosition(
-                (pos) => { prosesHasilGPS(pos.coords); },
-                (err) => {
-                    // Opsi 2: Fallback Akurasi Tinggi jika opsi cepat timeout/gagal
-                    navigator.geolocation.getCurrentPosition(
-                        (posAcc) => prosesHasilGPS(posAcc.coords),
-                        (errAcc) => {
-                            badgeText.textContent = "GPS HP Lambat / Terkendala";
-                            if (radiusText) {
-                                radiusText.innerHTML = `<span>Silakan gunakan <b>Presensi Kamera</b></span>`;
-                                radiusText.className = "text-xs font-bold text-amber-400 flex items-center justify-start";
-                            }
-                        },
-                        { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
-                    );
-                },
-                optionsCepat
-            );
+        if (!navigator.geolocation) {
+            if (badgeText) badgeText.textContent = "GPS Tidak Didukung Browser";
+            return;
         }
 
-        function prosesHasilGPS(crd) {
-            const badgeText = document.getElementById('gps-status-badge');
-            if (crd.accuracy === 0) {
-                badgeText.textContent = "Fake GPS Terdeteksi";
-                return;
-            }
+        const optionsCepat = { enableHighAccuracy: false, timeout: 4000, maximumAge: 5000 };
 
-            const dist = hitungJarakHaversine(crd.latitude, crd.longitude, latSekolah, longSekolah);
-            siswaDistanceMeters = Math.round(dist);
-            perbaruiTampilanGPS(siswaDistanceMeters, maxRadius);
+        navigator.geolocation.getCurrentPosition(
+            (pos) => { prosesHasilGPS(pos.coords); },
+            (err) => {
+                navigator.geolocation.getCurrentPosition(
+                    (posAcc) => prosesHasilGPS(posAcc.coords),
+                    (errAcc) => {
+                        if (badgeText) badgeText.textContent = "GPS HP Lambat / Terkendala";
+                        if (radiusText) {
+                            radiusText.innerHTML = `<span>Silakan gunakan <b>Presensi Kamera</b></span>`;
+                            radiusText.className = "text-xs font-bold text-amber-400 flex items-center justify-start";
+                        }
+                    },
+                    { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
+                );
+            },
+            optionsCepat
+        );
+    }
+
+    function prosesHasilGPS(crd) {
+        const badgeText = document.getElementById('gps-status-badge');
+        
+        // PERBAIKAN 12: VALIDASI FAKE GPS AKURAT (HANYA REJECT JIKA TOTAL NULL)
+        if (crd.accuracy === 0 && crd.latitude === 0 && crd.longitude === 0) {
+            if (badgeText) badgeText.textContent = "Fake GPS Terdeteksi";
+            return;
         }
 
-        function perbaruiTampilanGPS(jarakMeter, limitRadius) {
-            const statusPill = document.getElementById('gps-status-pill');
-            const pulsePing = document.getElementById('gps-pulse-ping');
-            const pulseDot = document.getElementById('gps-pulse-dot');
-            const badgeText = document.getElementById('gps-status-badge');
-            const radiusText = document.getElementById('siswa-status-radius-text');
-            const jarakElem = document.getElementById('siswa-jarak');
+        const dist = hitungJarakHaversine(crd.latitude, crd.longitude, latSekolah, longSekolah);
+        siswaDistanceMeters = Math.round(dist);
+        perbaruiTampilanGPS(siswaDistanceMeters, maxRadius);
+    }
 
-            if (jarakElem) jarakElem.textContent = `${jarakMeter} Meter`;
+    function perbaruiTampilanGPS(jarakMeter, limitRadius) {
+        const statusPill = document.getElementById('gps-status-pill');
+        const pulsePing = document.getElementById('gps-pulse-ping');
+        const pulseDot = document.getElementById('gps-pulse-dot');
+        const badgeText = document.getElementById('gps-status-badge');
+        const radiusText = document.getElementById('siswa-status-radius-text');
+        const jarakElem = document.getElementById('siswa-jarak');
 
-            if (jarakMeter <= limitRadius) {
-                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
-                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
-                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
-                badgeText.textContent = "GPS Terverifikasi";
+        if (jarakElem) jarakElem.textContent = `${jarakMeter} Meter`;
 
+        if (jarakMeter <= limitRadius) {
+            if (statusPill) statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30";
+            if (pulsePing) pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+            if (pulseDot) pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
+            if (badgeText) badgeText.textContent = "GPS Terverifikasi";
+
+            if (radiusText) {
                 radiusText.innerHTML = `<span>Di Dalam Radius Sekolah</span> <i class="fa-solid fa-circle-check text-emerald-400 ml-1"></i>`;
                 radiusText.className = "text-sm font-black tracking-wide text-emerald-400 flex items-center justify-start space-x-1.5";
-            } else {
-                statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30";
-                pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
-                pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
-                badgeText.textContent = "Di Luar Jangkauan";
+            }
+        } else {
+            if (statusPill) statusPill.className = "flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30";
+            if (pulsePing) pulsePing.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75";
+            if (pulseDot) pulseDot.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500";
+            if (badgeText) badgeText.textContent = "Di Luar Jangkauan";
 
+            if (radiusText) {
                 radiusText.innerHTML = `<span>Di Luar Radius Sekolah</span> <i class="fa-solid fa-circle-xmark text-rose-400 ml-1"></i>`;
                 radiusText.className = "text-sm font-black tracking-wide text-rose-400 flex items-center justify-start space-x-1.5";
             }
         }
+    }
 
-        function hitungJarakHaversine(lat1, lon1, lat2, lon2) {
-            const R = 6371e3;
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
+    function hitungJarakHaversine(lat1, lon1, lat2, lon2) {
+        const R = 6371e3;
+        const φ1 = lat1 * Math.PI/180;
+        const φ2 = lat2 * Math.PI/180;
+        const Δφ = (lat2-lat1) * Math.PI/180;
+        const Δλ = (lon2-lon1) * Math.PI/180;
 
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
-        }
+        const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                  Math.cos(φ1) * Math.cos(φ2) *
+                  Math.sin(Δλ/2) * Math.sin(Δλ/2);
+        return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
+    }
 
-        async function muatPresensiSiswaHariIni() {
-            if (!currentActiveUser) return;
+    async function muatPresensiSiswaHariIni() {
+        if (!currentActiveUser) return;
 
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-            const tglWIB = getTanggalWIB();
+        const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+        const tglWIB = getTanggalWIB();
 
-            try {
-                const data = await queryTurso('SELECT * FROM presensi WHERE nisn = ? AND tanggal = ?', [nisnVal, tglWIB]);
+        try {
+            const data = await queryTurso('SELECT * FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ?', [nisnVal, tglWIB]);
 
-                const recordMasuk = data ? data.find(p => p.jam_masuk) : null;
-                const recordPulang = data ? data.find(p => p.jam_pulang) : null;
+            const recordMasuk = data ? data.find(p => p.jam_masuk) : null;
+            const recordPulang = data ? data.find(p => p.jam_pulang) : null;
 
-                const btnMasuk = document.getElementById('btn-siswa-masuk');
-                const btnPulang = document.getElementById('btn-siswa-pulang');
-
-                if (recordMasuk) {
-                    isSudahPresensiMasuk = true;
-                    document.getElementById('siswa-jam-masuk').textContent = recordMasuk.jam_masuk;
-
-                    btnMasuk.disabled = true;
-                    btnMasuk.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
-
-                    if (!recordPulang) {
-                        btnPulang.disabled = false;
-                        btnPulang.className = "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow cursor-pointer";
-                        
-                        document.getElementById('siswa-catatan-status').textContent = "Anda sudah presensi masuk. Silakan lakukan presensi pulang saat jam pulang tiba.";
-                        document.getElementById('siswa-badge-status').textContent = "Sudah Masuk";
-                        document.getElementById('siswa-badge-status').className = "px-3 py-1 rounded-full text-xs font-bold border bg-teal-100 text-teal-800 border-teal-300";
-                    } else {
-                        document.getElementById('siswa-jam-pulang').textContent = recordPulang.jam_pulang;
-                        
-                        btnPulang.disabled = true;
-                        btnPulang.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
-
-                        document.getElementById('siswa-catatan-status').textContent = "Presensi hari ini lengkap (Masuk & Pulang).";
-                        document.getElementById('siswa-badge-status').textContent = "Selesai Presensi";
-                        document.getElementById('siswa-badge-status').className = "px-3 py-1 rounded-full text-xs font-bold border bg-emerald-100 text-emerald-800 border-emerald-300";
-                    }
-                } else {
-                    isSudahPresensiMasuk = false;
-                    
-                    btnMasuk.disabled = false;
-                    btnMasuk.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow cursor-pointer";
-
-                    btnPulang.disabled = true;
-                    btnPulang.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
-
-                    document.getElementById('siswa-catatan-status').textContent = "Silakan lakukan presensi masuk saat tiba di sekolah.";
-                }
-            } catch (err) {
-                console.error("Gagal memuat presensi hari ini:", err);
-            }
-        }
-
-        async function prosesPresensiSiswa(jenis) {
             const btnMasuk = document.getElementById('btn-siswa-masuk');
             const btnPulang = document.getElementById('btn-siswa-pulang');
+            const jamMasukElem = document.getElementById('siswa-jam-masuk');
+            const jamPulangElem = document.getElementById('siswa-jam-pulang');
+            const catStatusElem = document.getElementById('siswa-catatan-status');
+            const badgeStatusElem = document.getElementById('siswa-badge-status');
 
+            if (recordMasuk) {
+                isSudahPresensiMasuk = true;
+                if (jamMasukElem) jamMasukElem.textContent = recordMasuk.jam_masuk;
+
+                if (btnMasuk) {
+                    btnMasuk.disabled = true;
+                    btnMasuk.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
+                }
+
+                if (!recordPulang) {
+                    if (btnPulang) {
+                        btnPulang.disabled = false;
+                        btnPulang.className = "bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow cursor-pointer";
+                    }
+                    if (catStatusElem) catStatusElem.textContent = "Anda sudah presensi masuk. Silakan lakukan presensi pulang saat jam pulang tiba.";
+                    if (badgeStatusElem) {
+                        badgeStatusElem.textContent = "Sudah Masuk";
+                        badgeStatusElem.className = "px-3 py-1 rounded-full text-xs font-bold border bg-teal-100 text-teal-800 border-teal-300";
+                    }
+                } else {
+                    if (jamPulangElem) jamPulangElem.textContent = recordPulang.jam_pulang;
+                    
+                    if (btnPulang) {
+                        btnPulang.disabled = true;
+                        btnPulang.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
+                    }
+                    if (catStatusElem) catStatusElem.textContent = "Presensi hari ini lengkap (Masuk & Pulang).";
+                    if (badgeStatusElem) {
+                        badgeStatusElem.textContent = "Selesai Presensi";
+                        badgeStatusElem.className = "px-3 py-1 rounded-full text-xs font-bold border bg-emerald-100 text-emerald-800 border-emerald-300";
+                    }
+                }
+            } else {
+                isSudahPresensiMasuk = false;
+                
+                if (btnMasuk) {
+                    btnMasuk.disabled = false;
+                    btnMasuk.className = "bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-sm transition flex items-center justify-center space-x-2 shadow cursor-pointer";
+                }
+                if (btnPulang) {
+                    btnPulang.disabled = true;
+                    btnPulang.className = "bg-slate-700 text-slate-400 font-bold py-3 rounded-xl text-sm cursor-not-allowed flex items-center justify-center space-x-2 shadow";
+                }
+                if (catStatusElem) catStatusElem.textContent = "Silakan lakukan presensi masuk saat tiba di sekolah.";
+            }
+        } catch (err) {
+            console.error("Gagal memuat presensi hari ini:", err);
+        }
+    }
+
+    // FUNGSI PERBAIKAN 3: KUNCI TOMBOL DULUAN SEBELUM VALIDASI GPS (PREVENT DOUBLE CLICK)
+    async function prosesPresensiSiswa(jenis) {
+        const btnMasuk = document.getElementById('btn-siswa-masuk');
+        const btnPulang = document.getElementById('btn-siswa-pulang');
+
+        // LOCK IMMEDIATE DEBOUNCE
+        if (btnMasuk) btnMasuk.disabled = true;
+        if (btnPulang) btnPulang.disabled = true;
+
+        try {
             if (siswaDistanceMeters === null) {
                 alert("Sedang mendeteksi GPS. Jika lama, silakan gunakan tombol 'GPS Bermasalah? Presensi Kamera'.");
                 return;
@@ -872,235 +995,276 @@
                 return;
             }
 
-            // KUNCI TOMBOL SEGERA (LOCK DEBOUNCE) MENCEGAH INPUT DOUBLE DATA
-            if (btnMasuk) btnMasuk.disabled = true;
-            if (btnPulang) btnPulang.disabled = true;
-
             const jamWIB = getJamWIB();
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
+            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
             const tglWIB = getTanggalWIB();
 
+            if (jenis === 'Hadir') {
+                const dataCek = await queryTurso('SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1', [nisnVal, tglWIB]);
+                if (dataCek && dataCek.length > 0) {
+                    alert("Anda sudah mencatat presensi masuk hari ini!");
+                    return;
+                }
+
+                // PERBAIKAN 5: STATUS TERLAMBAT NUMERIK AMAN ( > 07:01:00 )
+                const isTerlambat = (jamStr) => {
+                    const [h, m, s] = jamStr.split(':').map(Number);
+                    return (h * 3600 + m * 60 + s) > (7 * 3600 + 1 * 60);
+                };
+
+                const statusKategori = isTerlambat(jamWIB) ? 'Terlambat' : 'Hadir';
+                await queryTurso(
+                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
+                    [nisnVal, tglWIB, jamWIB, statusKategori, `Presensi Masuk GPS (${siswaDistanceMeters}m)`]
+                );
+            } else {
+                await queryTurso(
+                    'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_pulang IS NULL',
+                    [jamWIB, `Presensi Pulang GPS (${siswaDistanceMeters}m)`, nisnVal, tglWIB]
+                );
+            }
+
+            alert(`Presensi ${jenis} berhasil dicatat!`);
+            muatPresensiSiswaHariIni();
+            muatRiwayatSiswa();
+        } catch (err) {
+            alert("Gagal memproses presensi: " + err.message);
+        } finally {
+            muatPresensiSiswaHariIni(); // REFRESH UI & STATE TOMBOL DARI DB DATA
+        }
+    }
+
+    function bukaModalOpsiKamera() {
+        const modalOpsi = document.getElementById('modal-opsi-presensi');
+        if (modalOpsi) modalOpsi.classList.remove('hidden');
+    }
+
+    function tutupModalOpsiPresensi() {
+        const modalOpsi = document.getElementById('modal-opsi-presensi');
+        if (modalOpsi) modalOpsi.classList.add('hidden');
+    }
+
+    function pilihModeKamera(jenis) {
+        if (jenis === 'Hadir' && isSudahPresensiMasuk) {
+            alert("Anda sudah melakukan presensi masuk hari ini!");
+            return;
+        }
+        if (jenis === 'Pulang' && !isSudahPresensiMasuk) {
+            alert("Anda belum melakukan presensi masuk hari ini!");
+            return;
+        }
+
+        modePresensiKameraDipilih = jenis;
+        tutupModalOpsiPresensi();
+
+        const titleElem = document.getElementById('kamera-modal-title');
+        if (titleElem) titleElem.textContent = `Verifikasi Wajah Presensi ${jenis}`;
+        bukaModalKameraStream();
+    }
+
+    async function bukaModalKameraStream() {
+        const boxWarn = document.getElementById('box-peringatan-gagal');
+        const modalKam = document.getElementById('modal-kamera');
+        if (boxWarn) boxWarn.classList.add('hidden');
+        if (modalKam) modalKam.classList.remove('hidden');
+
+        const video = document.getElementById('video-preview');
+
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
+        }
+
+        const constraintsList = [
+            { video: { facingMode: { exact: "user" }, width: { ideal: 640 }, height: { ideal: 480 } } },
+            { video: { facingMode: "user" } },
+            { video: { facingMode: "environment" } },
+            { video: true }
+        ];
+
+        let successStream = null;
+
+        for (const constraints of constraintsList) {
             try {
-                if (jenis === 'Hadir') {
-                    // Cek ketersediaan presensi hari ini
-                    const dataCek = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1', [nisnVal, tglWIB]);
-                    if (dataCek && dataCek.length > 0) {
-                        alert("Anda sudah mencatat presensi masuk hari ini!");
-                        muatPresensiSiswaHariIni();
-                        return;
-                    }
-
-                    const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
-                    await queryTurso(
-                        'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                        [nisnVal, tglWIB, jamWIB, statusKategori, `Presensi Masuk GPS (${siswaDistanceMeters}m)`]
-                    );
-                } else {
-                    await queryTurso(
-                        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ?',
-                        [jamWIB, `Presensi Pulang GPS (${siswaDistanceMeters}m)`, nisnVal, tglWIB]
-                    );
-                }
-
-                alert(`Presensi ${jenis} berhasil dicatat!`);
-                muatPresensiSiswaHariIni();
-                muatRiwayatSiswa();
+                successStream = await navigator.mediaDevices.getUserMedia(constraints);
+                if (successStream) break;
             } catch (err) {
-                alert("Gagal memproses presensi: " + err.message);
-                if (btnMasuk) btnMasuk.disabled = false;
-                if (btnPulang) btnPulang.disabled = false;
+                console.warn("Mencoba constraint kamera berikutnya...", err);
             }
         }
 
-        function bukaModalOpsiKamera() {
-            document.getElementById('modal-opsi-presensi').classList.remove('hidden');
-        }
-
-        function tutupModalOpsiPresensi() {
-            document.getElementById('modal-opsi-presensi').classList.add('hidden');
-        }
-
-        function pilihModeKamera(jenis) {
-            if (jenis === 'Hadir' && isSudahPresensiMasuk) {
-                alert("Anda sudah melakukan presensi masuk hari ini!");
-                return;
-            }
-            if (jenis === 'Pulang' && !isSudahPresensiMasuk) {
-                alert("Anda belum melakukan presensi masuk hari ini!");
-                return;
-            }
-
-            modePresensiKameraDipilih = jenis;
-            tutupModalOpsiPresensi();
-
-            document.getElementById('kamera-modal-title').textContent = `Verifikasi Wajah Presensi ${jenis}`;
-            bukaModalKameraStream();
-        }
-
-        /* --- FUNGSI STREAM KAMERA WAJAH (PERBAIKAN LAYAR HITAM / BLACK SCREEN FALLBACK) --- */
-        async function bukaModalKameraStream() {
-            document.getElementById('box-peringatan-gagal').classList.add('hidden');
-            document.getElementById('modal-kamera').classList.remove('hidden');
-            const video = document.getElementById('video-preview');
-
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-
-            // Opsi Fallback Constraints Kamera dari yang paling spesifik ke generic
-            const constraintsList = [
-                { video: { facingMode: { exact: "user" }, width: { ideal: 640 }, height: { ideal: 480 } } },
-                { video: { facingMode: "user" } },
-                { video: { facingMode: "environment" } },
-                { video: true } // Fallback terakhir: buka kamera apa saja yang tersedia
-            ];
-
-            let successStream = null;
-
-            for (const constraints of constraintsList) {
-                try {
-                    successStream = await navigator.mediaDevices.getUserMedia(constraints);
-                    if (successStream) break;
-                } catch (err) {
-                    console.warn("Mencoba constraint kamera berikutnya...", err);
-                }
-            }
-
-            if (successStream) {
-                videoStream = successStream;
+        if (successStream) {
+            videoStream = successStream;
+            if (video) {
                 video.srcObject = successStream;
                 try {
                     await video.play();
                 } catch (e) {
                     console.log("Auto-play terhambat:", e);
                 }
-            } else {
-                alert("Gagal membuka kamera HP. Pastikan aplikasi lain (WhatsApp/TikTok) sudah ditutup dan izin kamera di Chrome telah diizinkan.");
-                tutupModalKamera();
             }
+        } else {
+            alert("Gagal membuka kamera HP. Pastikan aplikasi lain (WhatsApp/TikTok) telah ditutup dan izin kamera di Chrome telah diberikan.");
+            tutupModalKamera();
         }
+    }
 
-        function tutupModalKamera() {
-            if (videoStream) {
-                videoStream.getTracks().forEach(track => track.stop());
-                videoStream = null;
-            }
-            document.getElementById('modal-kamera').classList.add('hidden');
+    function tutupModalKamera() {
+        if (videoStream) {
+            videoStream.getTracks().forEach(track => track.stop());
+            videoStream = null;
         }
+        const modalKam = document.getElementById('modal-kamera');
+        if (modalKam) modalKam.classList.add('hidden');
+    }
 
-        async function prosesAmbilFotoSiswa() {
-            let count = parseInt(localStorage.getItem('smada_camera_click_count') || '0') + 1;
-            localStorage.setItem('smada_camera_click_count', count.toString());
+    // FUNGSI PERBAIKAN 8: AMBIL SNAPSHOT KANVAS ASLI DARI FRAME VIDEO KAMERA
+    async function ambilSnapshotVideo() {
+        const video = document.getElementById('video-preview');
+        if (!video || !video.videoWidth) return null;
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        canvas.getContext('2d').drawImage(video, 0, 0);
+        return canvas.toDataURL('image/jpeg', 0.7);
+    }
 
-            const btnFoto = document.getElementById('btn-ambil-foto');
-            const boxWarning = document.getElementById('box-peringatan-gagal');
+    async function prosesAmbilFotoSiswa() {
+        const btnFoto = document.getElementById('btn-ambil-foto');
 
+        if (btnFoto) {
             btnFoto.disabled = true;
             btnFoto.classList.add('opacity-50');
+        }
 
-            if (count % 13 === 0) {
-                boxWarning.classList.remove('hidden');
-                btnFoto.disabled = false;
-                btnFoto.classList.remove('opacity-50');
-                btnFoto.innerHTML = `<span>🔄 Coba Lagi / Foto Ulang</span>`;
-                return;
-            }
+        // Ambil Snapshot Foto
+        const photoData = await ambilSnapshotVideo();
 
-            await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih);
+        await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih, photoData);
+        
+        if (btnFoto) {
             btnFoto.disabled = false;
             btnFoto.classList.remove('opacity-50');
             btnFoto.innerHTML = `<i class="fa-solid fa-circle-dot text-amber-400 text-sm"></i> <span>📸 Ambil Foto & Presensi</span>`;
         }
+    }
 
-        async function eksekusiPresensiOtomatisKamera(jenisPresensi) {
-            const jamWIB = getJamWIB();
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-            const tglWIB = getTanggalWIB();
+    // FUNGSI PERBAIKAN 4 & 8: CHECK GUARD ATOMIC + SNAPSHOT STREAM FOTO
+    async function eksekusiPresensiOtomatisKamera(jenisPresensi, photoBase64) {
+        const jamWIB = getJamWIB();
+        const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+        const tglWIB = getTanggalWIB();
 
-            try {
-                if (jenisPresensi === 'Hadir') {
-                    const statusKategori = (jamWIB > '07:01:00') ? 'Terlambat' : 'Hadir';
-                    await queryTurso(
-                        'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-                        [nisnVal, tglWIB, jamWIB, statusKategori, 'Presensi Masuk Kamera (Liveness Valid)']
-                    );
-                } else {
-                    await queryTurso(
-                        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ?',
-                        [jamWIB, 'Presensi Pulang Kamera (Liveness Valid)', nisnVal, tglWIB]
-                    );
-                }
+        try {
+            if (jenisPresensi === 'Hadir') {
+                // GUARD: CEK DULU MENCEGAH DOUBLE RECORD
+                const cek = await queryTurso(
+                    'SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
+                    [nisnVal, tglWIB]
+                );
 
-                alert(`Presensi ${jenisPresensi} via Kamera Berhasil!`);
-                tutupModalKamera();
-                muatPresensiSiswaHariIni();
-                muatRiwayatSiswa();
-            } catch (err) {
-                alert("Gagal presensi via kamera: " + err.message);
-            }
-        }
-
-        async function muatRiwayatSiswa() {
-            if (!currentActiveUser) return;
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-            const tbody = document.getElementById('tabel-riwayat-siswa');
-
-            try {
-                const data = await queryTurso('SELECT * FROM presensi WHERE nisn = ? ORDER BY id DESC LIMIT 10', [nisnVal]);
-
-                if (!data || data.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
+                if (cek && cek.length > 0) {
+                    alert("Anda sudah melakukan presensi masuk hari ini!");
+                    tutupModalKamera();
                     return;
                 }
 
-                tbody.innerHTML = data.map(r => {
-                    let badgeClass = "bg-slate-100 text-slate-800";
-                    if (r.status === 'Hadir') badgeClass = "bg-emerald-100 text-emerald-800";
-                    else if (r.status === 'Terlambat') badgeClass = "bg-amber-100 text-amber-800";
-                    else if (r.status === 'Sakit' || r.status === 'Izin') badgeClass = "bg-purple-100 text-purple-800";
-                    else if (r.status === 'Dispensasi') badgeClass = "bg-blue-100 text-blue-800";
-                    else if (r.status === 'Alpa' || r.status === 'Alpha') badgeClass = "bg-red-100 text-red-800";
+                const isTerlambat = (jamStr) => {
+                    const [h, m, s] = jamStr.split(':').map(Number);
+                    return (h * 3600 + m * 60 + s) > (7 * 3600 + 1 * 60);
+                };
+                const statusKategori = isTerlambat(jamWIB) ? 'Terlambat' : 'Hadir';
 
-                    return `
-                        <tr class="hover:bg-slate-50 border-b border-slate-100">
-                            <td class="p-3 font-mono text-left">${r.tanggal || r.created_at || '-'}</td>
-                            <td class="p-3 text-center font-semibold text-emerald-700">${r.jam_masuk || '-'}</td>
-                            <td class="p-3 text-center font-semibold text-blue-700">${r.jam_pulang || '-'}</td>
-                            <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${r.status || 'Hadir'}</span></td>
-                            <td class="p-3 text-slate-500 text-left">${r.keterangan || '-'}</td>
-                        </tr>
-                    `;
-                }).join('');
-            } catch (err) {
-                console.error("Gagal muat riwayat:", err);
+                await queryTurso(
+                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
+                    [nisnVal, tglWIB, jamWIB, statusKategori, 'Presensi Masuk Kamera (Liveness Valid)', photoBase64 || '']
+                );
+            } else {
+                await queryTurso(
+                    'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_pulang IS NULL',
+                    [jamWIB, 'Presensi Pulang Kamera (Liveness Valid)', nisnVal, tglWIB]
+                );
             }
+
+            alert(`Presensi ${jenisPresensi} via Kamera Berhasil!`);
+            tutupModalKamera();
+            muatPresensiSiswaHariIni();
+            muatRiwayatSiswa();
+        } catch (err) {
+            alert("Gagal presensi via kamera: " + err.message);
         }
+    }
 
-        async function gantiPasswordSiswa() {
-            const passBaru = document.getElementById('siswa-pass-baru').value.trim();
-            const passKonfirm = document.getElementById('siswa-pass-konfirm').value.trim();
+    async function muatRiwayatSiswa() {
+        if (!currentActiveUser) return;
+        const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+        const tbody = document.getElementById('tabel-riwayat-siswa');
+        if (!tbody) return;
 
-            if (!passBaru || !passKonfirm) {
-                alert("Password baru dan konfirmasi wajib diisi!");
+        try {
+            const data = await queryTurso('SELECT * FROM presensi WHERE TRIM(nisn) = TRIM(?) ORDER BY id DESC LIMIT 10', [nisnVal]);
+
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
                 return;
             }
 
-            if (passBaru !== passKonfirm) {
-                alert("Konfirmasi password tidak cocok!");
-                return;
-            }
+            tbody.innerHTML = data.map(r => {
+                let badgeClass = "bg-slate-100 text-slate-800";
+                if (r.status === 'Hadir') badgeClass = "bg-emerald-100 text-emerald-800";
+                else if (r.status === 'Terlambat') badgeClass = "bg-amber-100 text-amber-800";
+                else if (r.status === 'Sakit' || r.status === 'Izin') badgeClass = "bg-purple-100 text-purple-800";
+                else if (r.status === 'Dispensasi') badgeClass = "bg-blue-100 text-blue-800";
+                else if (r.status === 'Alpa' || r.status === 'Alpha') badgeClass = "bg-red-100 text-red-800";
 
-            const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username);
-            try {
-                await queryTurso('UPDATE siswa SET password = ? WHERE nisn = ?', [passBaru, nisnVal]);
-                alert("Password Anda berhasil diperbarui!");
-                document.getElementById('siswa-pass-baru').value = '';
-                document.getElementById('siswa-pass-konfirm').value = '';
-            } catch (err) {
-                alert("Gagal memperbarui password: " + err.message);
-            }
+                return `
+                    <tr class="hover:bg-slate-50 border-b border-slate-100">
+                        <td class="p-3 font-mono text-left">${r.tanggal || r.created_at || '-'}</td>
+                        <td class="p-3 text-center font-semibold text-emerald-700">${r.jam_masuk || '-'}</td>
+                        <td class="p-3 text-center font-semibold text-blue-700">${r.jam_pulang || '-'}</td>
+                        <td class="p-3 text-center"><span class="px-2 py-0.5 rounded text-[11px] font-bold ${badgeClass}">${r.status || 'Hadir'}</span></td>
+                        <td class="p-3 text-slate-500 text-left">${r.keterangan || '-'}</td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (err) {
+            console.error("Gagal muat riwayat:", err);
         }
-    </script>
-</body>
-</html>
+    }
+
+    // FUNGSI PERBAIKAN 14: ENKRIPSI PASSWORD VIA SHA-256 (WEB CRYPTO API)
+    async function hashSHA256(str) {
+        const utf8 = new TextEncoder().encode(str);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', utf8);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function gantiPasswordSiswa() {
+        const passBaruEl = document.getElementById('siswa-pass-baru');
+        const passKonfirmEl = document.getElementById('siswa-pass-konfirm');
+        const passBaru = passBaruEl ? passBaruEl.value.trim() : '';
+        const passKonfirm = passKonfirmEl ? passKonfirmEl.value.trim() : '';
+
+        if (!passBaru || !passKonfirm) {
+            alert("Password baru dan konfirmasi wajib diisi!");
+            return;
+        }
+
+        if (passBaru !== passKonfirm) {
+            alert("Konfirmasi password tidak cocok!");
+            return;
+        }
+
+        const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+        try {
+            const passHash = await hashSHA256(passBaru);
+            await queryTurso('UPDATE siswa SET password = ? WHERE TRIM(nisn) = TRIM(?)', [passHash, nisnVal]);
+            alert("Password Anda berhasil diperbarui!");
+            if (passBaruEl) passBaruEl.value = '';
+            if (passKonfirmEl) passKonfirmEl.value = '';
+        } catch (err) {
+            alert("Gagal memperbarui password: " + err.message);
+        }
+    }
+</script>
