@@ -65,12 +65,8 @@ function logout() {
    2. MIGRASI OTOMATIS & HELPER DROPDOWN (TRIM SAFE)
    -------------------------------------------------------------------------- */
 async function pastikanStrukturTabelBK() {
-    try {
-        await queryTurso('ALTER TABLE kedisiplinan ADD COLUMN penanganan_bk TEXT');
-        console.log("Kolom penanganan_bk berhasil ditambahkan.");
-    } catch (e) {
-        console.log("Struktur tabel kedisiplinan sudah up-to-date.");
-    }
+    // Fungsi migrasi dihapus karena kolom penanganan_bk sudah ada di database
+    return true;
 }
 
 async function muatDaftarKelasSiswaBK() {
