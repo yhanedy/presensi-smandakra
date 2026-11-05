@@ -1,8 +1,6 @@
 /* ==========================================================================
    SMAN 2 KARANGANYAR - POS GURU PIKET ENGINE (TURSO DB)
-   ========================================================================== */
-
-const PORTAL_SSO_URL = "index.html";
+   ========================================================================== *
 
 // Auto-run saat dokumen siap
 document.addEventListener('DOMContentLoaded', async () => {
