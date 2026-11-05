@@ -1,10 +1,12 @@
 /* ==========================================================================
-   SMAN 2 KARANGANYAR - POS GURU PIKET ENGINE (TURSO DB)
+   SMAN 2 KARANGANYAR - POS GURU PIKET ENGINE (TURSO DB) - FULL FINAL
    ========================================================================== */
 
 // Auto-run saat dokumen siap
 document.addEventListener('DOMContentLoaded', async () => {
     verifikasiGuruPiket();
+    
+    // Set tanggal default ke hari ini
     const filterTgl = document.getElementById('filter-piket-tanggal');
     if (filterTgl) filterTgl.value = getTanggalWIB();
     
@@ -21,20 +23,23 @@ function getTanggalWIB(d = new Date()) {
 }
 
 function getJamWIB(d = new Date()) {
-    return new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }).format(d).replace(/\./g, ':');
+    return new Intl.DateTimeFormat('id-ID', { 
+        timeZone: 'Asia/Jakarta', 
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false 
+    }).format(d).replace(/\./g, ':');
 }
 
 function verifikasiGuruPiket() {
     const rawUser = localStorage.getItem('smada_user');
     if (rawUser && rawUser !== "null" && rawUser !== "undefined") {
         try {
-            currentUserSession = JSON.parse(rawUser);
+            const currentUserSession = JSON.parse(rawUser);
             const r = String(currentUserSession.role || '').toLowerCase().trim();
             const isAllowed = r.includes('piket') || r.includes('admin') || r.includes('superadmin') || r.includes('super_admin');
 
             if (!currentUserSession.username || !isAllowed) {
                 alert("Akses Ditolak! Akun Anda tidak memiliki otoritas Guru Piket.");
-                window.location.replace(PORTAL_SSO_URL);
+                window.location.replace("index.html");
                 return;
             }
             return;
@@ -44,21 +49,23 @@ function verifikasiGuruPiket() {
     }
 
     alert("Akses Terbatas! Silakan login melalui Portal SSO.");
-    window.location.replace(PORTAL_SSO_URL);
+    window.location.replace("index.html");
 }
 
 function logout() {
     localStorage.removeItem('smada_user');
-    window.location.href = PORTAL_SSO_URL;
+    window.location.href = "index.html";
 }
 
 /* --------------------------------------------------------------------------
-   2. HELPER DROPDOWN KELAS & SISWA (TRIM SAFE)
+   2. HELPER DROPDOWN KELAS & SISWA (PERBAIKAN SQLITE "")
    -------------------------------------------------------------------------- */
 async function muatDaftarKelasSiswaPiket() {
     const idsKelas = ['piket-masuk-kelas', 'piket-sakit-kelas', 'pulang-kelas'];
     try {
-        const res = await queryTurso('SELECT DISTINCT TRIM(kelas) AS kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != "" ORDER BY kelas ASC');
+        // PERBAIKAN: Menggunakan single quote ('') bukan double quote ("")
+        const res = await queryTurso("SELECT DISTINCT TRIM(kelas) AS kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != '' ORDER BY kelas ASC");
+        
         let options = '<option value="">-- Pilih Kelas --</option>';
         if (res && res.length > 0) {
             options += res.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
@@ -138,13 +145,15 @@ async function simpanPresensiPiket(status) {
         }
 
         alert("Presensi berhasil disimpan!");
-        document.getElementById('piket-masuk-kelas').value = '';
-        document.getElementById('piket-masuk-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
-        document.getElementById('piket-masuk-ket').value = '';
         
-        document.getElementById('pulang-kelas').value = '';
-        document.getElementById('pulang-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
-        document.getElementById('pulang-alasan').value = '';
+        // Reset Form
+        if (document.getElementById('piket-masuk-kelas')) document.getElementById('piket-masuk-kelas').value = '';
+        if (document.getElementById('piket-masuk-nisn')) document.getElementById('piket-masuk-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
+        if (document.getElementById('piket-masuk-ket')) document.getElementById('piket-masuk-ket').value = '';
+        
+        if (document.getElementById('pulang-kelas')) document.getElementById('pulang-kelas').value = '';
+        if (document.getElementById('pulang-nisn')) document.getElementById('pulang-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
+        if (document.getElementById('pulang-alasan')) document.getElementById('pulang-alasan').value = '';
         
         muatRekapPiketHarian();
     } catch (err) {
@@ -263,9 +272,11 @@ async function muatRekapPiketHarian() {
 async function muatAntreanIzinSiswa() {
     const tbody = document.getElementById('tabel-antrean-izin-body');
     if (!tbody) return;
+    
     tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean permohonan...</td></tr>';
 
     try {
+        // PERBAIKAN: Menambahkan filter NOT LIKE '%Diverifikasi Piket%' agar data yang sudah diverifikasi hilang dari antrean
         const sqlStr = `
             SELECT p.*, 
                    COALESCE(s.nama, 'Siswa') as nama_siswa, 
@@ -273,6 +284,7 @@ async function muatAntreanIzinSiswa() {
             FROM presensi p 
             LEFT JOIN siswa s ON TRIM(p.nisn) = TRIM(s.nisn) 
             WHERE p.status IN ('Izin', 'Sakit', 'Dispensasi') 
+              AND (p.keterangan NOT LIKE '%Diverifikasi Piket%' OR p.keterangan IS NULL)
             ORDER BY p.id DESC LIMIT 25
         `;
         const data = await queryTurso(sqlStr);
@@ -323,7 +335,7 @@ async function muatAntreanIzinSiswa() {
                     </td>
 
                     <td class="p-3 text-center">
-                        <button onclick="eksekusiVerifikasiIzin(${p.id}, '${p.nisn}')" class="bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black px-3 py-2 rounded-xl text-xs shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1 mx-auto">
+                        <button id="btn-verif-${p.id}" onclick="eksekusiVerifikasiIzin(${p.id}, '${p.nisn}')" class="bg-purple-900 hover:bg-purple-950 text-yellow-300 font-black px-3 py-2 rounded-xl text-xs shadow transition border border-yellow-400 cursor-pointer flex items-center justify-center gap-1 mx-auto">
                             <i class="fa-solid fa-circle-check"></i> Verifikasi
                         </button>
                     </td>
@@ -337,9 +349,16 @@ async function muatAntreanIzinSiswa() {
 }
 
 async function eksekusiVerifikasiIzin(id, nisn) {
+    const btn = document.getElementById(`btn-verif-${id}`);
     const statusFinal = document.getElementById(`verifikasi-status-${id}`).value;
     const manualLinkInput = document.getElementById(`manual-link-${id}`);
     const linkManual = manualLinkInput ? manualLinkInput.value.trim() : "";
+
+    // Cegah double click
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Proses...`;
+    }
 
     let keteranganBaru = `Diverifikasi Piket (${statusFinal})`;
 
@@ -362,11 +381,20 @@ async function eksekusiVerifikasiIzin(id, nisn) {
 
         alert(`Permohonan NISN ${nisn} berhasil diverifikasi sebagai [${statusFinal}]!`);
 
+        // Hapus baris dari tabel secara langsung agar responsif
         const row = document.getElementById(`row-antrean-${id}`);
         if (row) row.remove();
 
+        // Refresh rekap agar perubahan status langsung terlihat di tabel bawah
         muatRekapPiketHarian();
+        
     } catch (err) {
         alert("Gagal memverifikasi permohonan: " + err.message);
+        
+        // Kembalikan tombol jika gagal
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-circle-check"></i> Verifikasi`;
+        }
     }
 }
