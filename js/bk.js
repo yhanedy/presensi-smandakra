@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SMAN 2 KARANGANYAR - PORTAL BK & STP2K ENGINE (TURSO DB)
+   SMAN 2 KARANGANYAR - PORTAL BK & STP2K ENGINE (TURSO DB) - FULL FINAL
    ========================================================================== */
 
 let currentOffset = 0;
@@ -74,9 +74,11 @@ async function pastikanStrukturTabelBK() {
 }
 
 async function muatDaftarKelasSiswaBK() {
-    const idsKelas = ['pelanggaran-kelas', 'bk-kelas', 'pulang-kelas'];
+    const idsKelas = ['pelanggaran-kelas', 'bk-kelas', 'pulang-kelas', 'cari-kelas-siswa'];
     try {
-        const res = await queryTurso('SELECT DISTINCT TRIM(kelas) AS kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != "" ORDER BY kelas ASC');
+        // PERBAIKAN FATAL: Menggunakan single quote ('') bukan double quote ("") agar SQLite tidak error
+        const res = await queryTurso("SELECT DISTINCT TRIM(kelas) AS kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != '' ORDER BY kelas ASC");
+        
         let options = '<option value="">-- Pilih Kelas --</option>';
         if (res && res.length > 0) {
             options += res.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
@@ -86,7 +88,14 @@ async function muatDaftarKelasSiswaBK() {
 
         idsKelas.forEach(id => {
             const el = document.getElementById(id);
-            if (el) el.innerHTML = options;
+            if (el) {
+                // Untuk modal cari siswa, tambahkan opsi "Semua Kelas"
+                if (id === 'cari-kelas-siswa') {
+                    el.innerHTML = '<option value="">-- Semua Kelas --</option>' + options.split('>').slice(1).join('>');
+                } else {
+                    el.innerHTML = options;
+                }
+            }
         });
     } catch (e) {
         console.error("Gagal muat daftar kelas BK:", e);
