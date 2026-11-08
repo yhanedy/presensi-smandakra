@@ -1,14 +1,20 @@
+// KONFIGURASI API GATEWAY CLOUDFLARE WORKER
 const API_WORKER_URL = "https://smada-api-gateway.yhanedy.workers.dev/api/query";
+
+// KUNCI RAHASIA: Harus SAMA PERSIS dengan API_SECRET_KEY di Cloudflare Worker
+const API_SECRET_KEY = "SMADA_RAHASIA_2026_XYZ"; 
 
 async function queryTurso(sql, params = []) {
     const controller = new AbortController();
-    // 30 DETIK: Waktu yang sangat cukup untuk sinyal jelek
     const timeoutId = setTimeout(() => controller.abort(), 30000); 
 
     try {
         const response = await fetch(API_WORKER_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${API_SECRET_KEY}` // <-- Mengirim Kunci Rahasia
+            },
             body: JSON.stringify({ sql: sql, args: params }),
             signal: controller.signal 
         });
@@ -17,7 +23,7 @@ async function queryTurso(sql, params = []) {
 
         if (!response.ok) {
             const errJson = await response.json().catch(() => ({}));
-            throw new Error(errJson.error || `Server Error (${response.status}): ${response.statusText}`);
+            throw new Error(errJson.error || `Server Error (${response.status})`);
         }
 
         return await response.json();
