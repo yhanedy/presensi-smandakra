@@ -4,34 +4,43 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Manajemen Siklus Siswa & Guru - SMAN 2 Karanganyar</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome CDN -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS (xlsx) for Excel Upload & Export -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <!-- Inisialisasi Konfigurasi Turso Engine -->
-    <script src="js/config.js?v=msiswa_turso_final"></script>
+    <script src="js/config.js?v=msiswa_turso_v8"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
     <!-- PROTEKSI HAK AKSES -->
-   <script>
-    (function proteksiSuperAdmin() {
-        const activeUser = JSON.parse(localStorage.getItem('smada_user') || '{}');
-        const roleStr = String(activeUser.role || '').toLowerCase().trim();
+    <script>
+        let currentUserSession = null;
+        const PORTAL_SSO_URL = "index.html";
 
-        // Pengecekan ketat: Hanya superadmin atau super_admin
-        const isSuperAdmin = roleStr === 'superadmin' || roleStr === 'super_admin';
+        (function verifikasiSuperAdmin() {
+            const rawUser = localStorage.getItem('smada_user');
+            if (rawUser && rawUser !== "null" && rawUser !== "undefined") {
+                try {
+                    currentUserSession = JSON.parse(rawUser);
+                    const r = String(currentUserSession.role || '').toLowerCase().trim();
+                    const isAllowed = r.includes('admin') || r.includes('superadmin') || r.includes('super_admin');
 
-        if (!activeUser.username || !isSuperAdmin) {
-            alert('Akses Ditolak! Halaman Manajemen ini khusus untuk Super Admin.');
-            window.location.href = 'index.html';
-        }
-    })();
-</script>
+                    if (!currentUserSession.username || !isAllowed) {
+                        alert("Akses Ditolak! Halaman ini khusus Super Admin / Admin.");
+                        window.location.replace(PORTAL_SSO_URL);
+                        return;
+                    }
+                    return;
+                } catch (e) {
+                    localStorage.removeItem('smada_user');
+                }
+            }
 
-    <!-- HEADER / NAVBAR DENGAN NAVIGASI BACK DINAMIS -->
+            alert("Akses Terbatas! Silakan login melalui Portal SSO.");
+            window.location.replace(PORTAL_SSO_URL);
+        })();
+    </script>
+
+    <!-- HEADER -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center">
             <div class="flex items-center space-x-3">
@@ -52,8 +61,6 @@
 
     <!-- KONTEN UTAMA -->
     <main class="max-w-7xl mx-auto px-4 py-6 w-full flex-grow space-y-6">
-
-        <!-- KARTU SUMMARY TAHUN AJARAN -->
         <div class="bg-gradient-to-r from-blue-900 via-indigo-900 to-purple-900 text-white p-6 rounded-xl shadow-lg border border-blue-950 flex flex-wrap justify-between items-center gap-4">
             <div>
                 <span class="bg-blue-800 text-blue-200 text-[10px] font-bold uppercase px-2.5 py-1 rounded-md">Modul Administrasi Sekolah</span>
@@ -480,7 +487,6 @@
         <p>&copy; 2026 SMAN 2 Karanganyar. Sistem Informasi Presensi & Kedisiplinan Digital.</p>
     </footer>
 
-    <!-- JAVASCRIPT LOGIKA LENGKAP TURSO DB -->
     <script>
         window.onload = function() {
             setTombolBackDinamis();
@@ -540,7 +546,7 @@
 
         async function muatOpsiKelasDropdown() {
             try {
-                const data = await queryTurso('SELECT DISTINCT kelas FROM siswa WHERE kelas IS NOT NULL AND kelas != ""');
+                const data = await queryTurso("SELECT DISTINCT kelas FROM siswa WHERE kelas IS NOT NULL AND kelas != ''");
                 if (data) {
                     const uniqueKelas = data.map(item => cleanKelasFormat(item.kelas)).sort();
                     
@@ -705,7 +711,7 @@
         async function muatSiswaKelasXII() {
             const tbody = document.getElementById('tabel-lulus-body');
             try {
-                const data = await queryTurso('SELECT * FROM siswa WHERE kelas LIKE "%XII%" OR kelas LIKE "%12%"');
+                const data = await queryTurso("SELECT * FROM siswa WHERE kelas LIKE '%XII%' OR kelas LIKE '%12%'");
 
                 if (!data || data.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data siswa Kelas XII.</td></tr>';
@@ -781,11 +787,23 @@
             if (!nisn || !nama || !kelas) { alert("NISN, Nama, dan Kelas wajib diisi!"); return; }
 
             try {
+                // Insert data dasar
                 await queryTurso(
                     'INSERT INTO siswa (nisn, nama, kelas, password, status_siswa) VALUES (?, ?, ?, ?, "Aktif") ON CONFLICT(nisn) DO UPDATE SET nama=excluded.nama, kelas=excluded.kelas',
                     [nisn, nama, kelas, 'yhan123']
                 );
-                alert(`Siswa ${nama} berhasil disimpan!`);
+                
+                // Hash password via API Worker
+                await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/admin/reset-password', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer SMADA_RAHASIA_2026_XYZ` 
+                    },
+                    body: JSON.stringify({ nisn: nisn, defaultPassword: 'yhan123' })
+                });
+
+                alert(`Siswa ${nama} berhasil disimpan dan password diamankan!`);
                 document.getElementById('manual-siswa-nisn').value = '';
                 document.getElementById('manual-siswa-nama').value = '';
                 document.getElementById('manual-siswa-kelas').value = '';
@@ -818,11 +836,22 @@
                                 'INSERT INTO siswa (nisn, nama, kelas, password, status_siswa) VALUES (?, ?, ?, ?, "Aktif") ON CONFLICT(nisn) DO UPDATE SET nama=excluded.nama, kelas=excluded.kelas',
                                 [nisn, nama, kelas, 'yhan123']
                             );
+                            
+                            // Hash password via API Worker
+                            await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/admin/reset-password', {
+                                method: 'POST',
+                                headers: { 
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer SMADA_RAHASIA_2026_XYZ` 
+                                },
+                                body: JSON.stringify({ nisn: nisn, defaultPassword: 'yhan123' })
+                            });
+                            
                             imported++;
                         }
                     }
 
-                    alert(`Berhasil mengimpor ${imported} data siswa!`);
+                    alert(`Berhasil mengimpor ${imported} data siswa dan password diamankan!`);
                     fileInput.value = '';
                     muatSiswaTab3();
                 } catch (err) { alert("Error Excel: " + err.message); }
@@ -900,6 +929,7 @@
             const roleString = roleChecked.join(',');
 
             try {
+                // Catatan: Tabel users masih plaintext, akan dimigrasi nanti
                 await queryTurso(
                     'INSERT INTO users (username, nama, password_hash, role) VALUES (?, ?, ?, ?) ON CONFLICT(username) DO UPDATE SET nama=excluded.nama, role=excluded.role',
                     [user, nama, pass, roleString]
@@ -1043,6 +1073,7 @@
             if (!confirm(`Reset password guru "${nama}" kembali ke "guru123"?`)) return;
 
             try {
+                // Catatan: Tabel users masih plaintext
                 await queryTurso('UPDATE users SET password_hash = "guru123" WHERE username = ?', [username]);
                 alert(`Password untuk "${nama}" berhasil direset ke "guru123".`);
             } catch (err) {
@@ -1075,7 +1106,18 @@
                     'INSERT INTO siswa (nisn, nama, kelas, password, status_siswa) VALUES (?, ?, ?, ?, "Aktif") ON CONFLICT(nisn) DO UPDATE SET nama=excluded.nama, kelas=excluded.kelas, status_siswa="Aktif"',
                     [nisn, nama, kelas, 'yhan123']
                 );
-                alert(`Siswa mutasi masuk "${nama}" berhasil ditambahkan!`);
+                
+                // Hash password via API Worker
+                await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/admin/reset-password', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer SMADA_RAHASIA_2026_XYZ` 
+                    },
+                    body: JSON.stringify({ nisn: nisn, defaultPassword: 'yhan123' })
+                });
+
+                alert(`Siswa mutasi masuk "${nama}" berhasil ditambahkan dan password diamankan!`);
                 document.getElementById('mutasi-masuk-nisn').value = '';
                 document.getElementById('mutasi-masuk-nama').value = '';
                 document.getElementById('mutasi-masuk-kelas').value = '';
