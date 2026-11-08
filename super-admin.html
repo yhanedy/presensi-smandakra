@@ -4,20 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Control Panel Super Admin - SMAN 2 Karanganyar</title>
-    <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Turso Direct API Config -->
-    <script src="js/config.js"></script>
+    <script src="js/config.js?v=superadmin_v8"></script>
 </head>
 <body class="bg-slate-900 font-sans text-slate-800 min-h-screen flex flex-col justify-between">
 
-    <!-- VERIFIKASI SSO HAK AKSES SUPER ADMIN -->
+    <!-- PROTEKSI HAK AKSES SUPER ADMIN -->
     <script>
         let currentUserSession = null;
         (function verifikasiSuperAdmin() {
             const rawUser = localStorage.getItem('smada_user');
+            const rawRole = localStorage.getItem('smada_role');
+
             if (!rawUser || rawUser === "null" || rawUser === "undefined") {
                 alert("Akses Terbatas! Silakan login terlebih dahulu.");
                 window.location.replace('index.html');
@@ -25,9 +24,9 @@
             }
             try {
                 currentUserSession = JSON.parse(rawUser);
-                const roleStr = String(currentUserSession.role || '').toLowerCase();
+                const roleStr = String(currentUserSession.role || rawRole || '').toLowerCase();
                 
-                // Izinkan jika role mengandung superadmin, super_admin, atau admin
+                // Hanya superadmin, super_admin, atau admin
                 if (!roleStr.includes('superadmin') && !roleStr.includes('super_admin') && !roleStr.includes('admin')) {
                     alert("Akses Ditolak! Halaman ini khusus Super Admin.");
                     window.location.replace('index.html');
@@ -96,7 +95,6 @@
                 <span>Navigasi Modul & Akses Cepat</span>
             </h3>
 
-            <!-- GRID 6 KOTAK MODUL (TERMASUK ADMIN JURNAL) -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
                 <!-- 1. PORTAL SISWA -->
@@ -208,15 +206,14 @@
 
         function logoutPortal() {
             localStorage.removeItem('smada_user');
+            localStorage.removeItem('smada_role');
             window.location.replace('index.html');
         }
 
-        // Buka Modul Lokal Presensi (bk.html, piket.html, admin.html, dll)
         function bukaModulLokal(targetFile) {
             window.location.href = targetFile;
         }
 
-        // Buka Modul Admin Jurnal Mengajar (Dengan Mengirim Token SSO via URL)
         function bukaModulJurnal() {
             if (!currentUserSession) return;
             const ssoToken = btoa(JSON.stringify(currentUserSession));
