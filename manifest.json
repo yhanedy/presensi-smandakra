@@ -1,16 +1,41 @@
 {
-  "name": "Portal Presensi SMAN 2 Karanganyar",
-  "short_name": "SMADA Presensi",
+  "id": "/presensi-smandakra/",
+  "name": "SMANDA Presensi",
+  "short_name": "SMANDA Presensi",
+  "description": "Sistem Informasi Presensi & Kedisiplinan Siswa SMAN 2 Karanganyar",
   "start_url": "/presensi-smandakra/index.html",
+  "scope": "/presensi-smandakra/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "background_color": "#1e293b",
   "theme_color": "#1e3a8a",
-  "description": "Sistem Informasi Presensi & Kedisiplinan Siswa SMAN 2 Karanganyar",
   "icons": [
     {
       "src": "https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://lh3.googleusercontent.com/d/1qqhX88M3FtfF07-qQbiIz_aCuJ5VNds5",
+      "sizes": "1080x1920",
+      "type": "image/jpeg",
+      "form_factor": "narrow",
+      "label": "Tampilan Login Portal SMADA"
     }
   ]
 }
