@@ -125,107 +125,106 @@
         }
     }
 
-    async function handleLogin(e) {
-        e.preventDefault();
-        const usernameInput = document.getElementById('input-username').value.trim();
-        const passwordInput = document.getElementById('input-password').value; 
-        const errorBox = document.getElementById('error-msg');
-        const errorText = document.getElementById('error-text');
-        const btnLogin = document.getElementById('btn-login');
+async function handleLogin(e) {
+    e.preventDefault();
+    const usernameInput = document.getElementById('input-username').value.trim();
+    const passwordInput = document.getElementById('input-password').value;
+    const errorBox = document.getElementById('error-msg');
+    const errorText = document.getElementById('error-text');
+    const btnLogin = document.getElementById('btn-login');
 
-        if (!usernameInput || !passwordInput) {
-            if (errorText && errorBox) {
-                errorText.textContent = "Username/NISN dan Password wajib diisi!";
-                errorBox.classList.remove('hidden');
-            }
-            return;
+    if (!usernameInput || !passwordInput) {
+        if (errorText && errorBox) {
+            errorText.textContent = "Username/NISN dan Password wajib diisi!";
+            errorBox.classList.remove('hidden');
         }
+        return;
+    }
 
-        if (errorBox) errorBox.classList.add('hidden');
-        btnLogin.disabled = true;
-        btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
+    if (errorBox) errorBox.classList.add('hidden');
+    btnLogin.disabled = true;
+    btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
 
-        try {
-            // 1. CEK USER GURU / ADMIN
-            const userMatch = await queryTurso(
-                'SELECT username, nama, mapel, role, password FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
-                [usernameInput, passwordInput.trim()]
-            );
+    try {
+        // 1. CEK USER GURU / ADMIN
+        const userMatch = await queryTurso(
+            'SELECT username, nama, mapel, role, password FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
+            [usernameInput, passwordInput.trim()]
+        );
 
-            if (userMatch && userMatch.length > 0) {
-                const user = userMatch[0];
-                const roleStr = String(user.role || '').toLowerCase().trim();
-                const userSession = { username: user.username, nama: user.nama || user.username, role: user.role };
+        if (userMatch && userMatch.length > 0) {
+            const user = userMatch[0];
+            const roleStr = String(user.role || '').toLowerCase().trim();
+            const userSession = { username: user.username, nama: user.nama || user.username, role: user.role };
 
-                localStorage.setItem('smada_user', JSON.stringify(userSession));
-                localStorage.setItem('smada_role', user.role || '');
-                pendingUserSession = user;
+            localStorage.setItem('smada_user', JSON.stringify(userSession));
+            localStorage.setItem('smada_role', user.role || '');
+            pendingUserSession = user;
 
-                const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
-                const hasPiket = roleStr.includes('piket');
-                const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
-                const hasMapel = roleStr.includes('mapel') || roleStr.includes('guru') || roleStr.includes('jurnal');
+            const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
+            const hasPiket = roleStr.includes('piket');
+            const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
+            const hasMapel = roleStr.includes('mapel') || roleStr.includes('guru') || roleStr.includes('jurnal');
 
-                const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
+            const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
 
-                if (totalRoleCount > 1 || hasAdmin) {
-                    tampilkanModalPilihPeran(user, { hasAdmin, hasPiket, hasBK, hasMapel });
-                    return;
-                }
-
-                if (hasBK) {
-                    window.location.replace('bk.html');
-                } else if (hasPiket) {
-                    window.location.replace('piket.html');
-                } else {
-                    const ssoPayload = { u: user.username, n: user.nama || user.username, r: user.role || 'guru', t: Date.now() };
-                    const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
-                    window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}`);
-                }
+            if (totalRoleCount > 1 || hasAdmin) {
+                tampilkanModalPilihPeran(user, { hasAdmin, hasPiket, hasBK, hasMapel });
                 return;
             }
 
-            // 2. CEK USER SISWA (VIA API WORKER)
-            const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nisn: usernameInput, password: passwordInput })
-            });
-
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "NISN atau Password salah.");
-            }
-
-            const siswaSession = {
-                nisn: data.user.nisn,
-                nama: data.user.nama || 'Siswa SMADA',
-                kelas: data.user.kelas || '-',
-                role: 'siswa',
-                must_change: data.user.must_change_password
-            };
-
-            localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
-            localStorage.setItem('smada_user', JSON.stringify(siswaSession));
-            
-            window.location.replace('siswa.html');
-            return;
-
-        } catch (err) {
-            console.error("Login error:", err);
-            if (errorText && errorBox) {
-                errorText.textContent = err.message || "Gagal terhubung ke server autentikasi.";
-                errorBox.classList.remove('hidden');
+            if (hasBK) {
+                window.location.replace('bk.html');
+            } else if (hasPiket) {
+                window.location.replace('piket.html');
             } else {
-                alert(err.message || "Gagal login!");
+                const ssoPayload = { u: user.username, n: user.nama || user.username, r: user.role || 'guru', t: Date.now() };
+                const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
+                window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}`);
             }
-        } finally {
-            btnLogin.disabled = false;
-            btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
+            return;
         }
-    }
 
+        // 2. CEK USER SISWA (VIA API WORKER)
+        const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nisn: usernameInput, password: passwordInput })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+            throw new Error(data.error || "NISN atau Password salah.");
+        }
+
+        const siswaSession = {
+            nisn: data.user.nisn,
+            nama: data.user.nama || 'Siswa SMADA',
+            kelas: data.user.kelas || '-',
+            role: 'siswa',
+            must_change: data.user.must_change_password
+        };
+
+        localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
+        localStorage.setItem('smada_user', JSON.stringify(siswaSession));
+        
+        window.location.replace('siswa.html');
+        return;
+
+    } catch (err) {
+        console.error("Login error:", err);
+        if (errorText && errorBox) {
+            errorText.textContent = err.message || "Gagal terhubung ke server autentikasi.";
+            errorBox.classList.remove('hidden');
+        } else {
+            alert(err.message || "Gagal login!");
+        }
+    } finally {
+        btnLogin.disabled = false;
+        btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
+    }
+}
     // FUNGSI MODAL HANYA DIDEKLARASIKAN SEKALI DI SINI
     function tampilkanModalPilihPeran(user, roles) {
         let modal = document.getElementById('modalPilihPeranMulti');
