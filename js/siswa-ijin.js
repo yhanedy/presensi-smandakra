@@ -6,14 +6,9 @@ let fileDispenBase64 = null;
 // Buka Modal & Set Tanggal Default
 function bukaModalIzinDispen() {
     const tglStr = getTanggalWIB();
-    
-    // Kunci tanggal izin tulis tangan ke hari ini (1 hari)
     document.getElementById('ijinTanggalToday').innerText = tglStr;
-    
-    // Set default rentang tanggal dispen / surat dokter
     document.getElementById('dispenTglMulai').value = tglStr;
     document.getElementById('dispenTglSelesai').value = tglStr;
-    
     document.getElementById('modal-permohonan-ijin').classList.remove('hidden');
 }
 
@@ -23,15 +18,25 @@ function tutupModalIzinDispen() {
 
 // Beralih Tab (Tab 1: Izin Tulis Tangan vs Tab 2: Surat Dokter & Dispen)
 function switchTabIzinDispen(tabId) {
+    // Sembunyikan semua konten tab
     document.querySelectorAll('.tab-ijin-content').forEach(c => c.classList.add('hidden'));
-    document.getElementById(tabId).classList.remove('hidden');
-
-    document.querySelectorAll('.tab-ijin-btn').forEach(b => b.className = "tab-ijin-btn py-2.5 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition");
     
-    if (tabId === 'tab-ijin-harian') {
-        document.getElementById('btn-tab-ijin-harian').className = "tab-ijin-btn py-2.5 rounded-xl bg-purple-900 text-white font-black shadow transition";
-    } else {
-        document.getElementById('btn-tab-dispen').className = "tab-ijin-btn py-2.5 rounded-xl bg-blue-900 text-white font-black shadow transition";
+    // Tampilkan tab yang dipilih
+    const targetTab = document.getElementById(tabId);
+    if (targetTab) targetTab.classList.remove('hidden');
+
+    // Reset semua tombol tab ke class pasif
+    const btnTabHarian = document.getElementById('btn-tab-ijin-harian');
+    const btnTabDispen = document.getElementById('btn-tab-dispen');
+    const classPasif = "tab-ijin-btn py-2.5 px-4 rounded-xl text-slate-600 hover:bg-slate-200 font-black transition cursor-pointer";
+    if (btnTabHarian) btnTabHarian.className = classPasif;
+    if (btnTabDispen) btnTabDispen.className = classPasif;
+
+    // Set tombol aktif sesuai tab yang dipilih
+    if (tabId === 'tab-ijin-harian' && btnTabHarian) {
+        btnTabHarian.className = "tab-ijin-btn py-2.5 px-4 rounded-xl bg-purple-900 text-white font-black shadow transition cursor-pointer";
+    } else if (tabId === 'tab-dispen' && btnTabDispen) {
+        btnTabDispen.className = "tab-ijin-btn py-2.5 px-4 rounded-xl bg-blue-900 text-white font-black shadow transition cursor-pointer";
     }
 }
 
@@ -44,6 +49,13 @@ function previewFotoIzin(event) {
             fotoIzinBase64 = e.target.result;
             document.getElementById('ijinFotoPreview').src = fotoIzinBase64;
             document.getElementById('ijinPreviewBox').classList.remove('hidden');
+            
+            // Aktifkan tombol kirim jika sudah ada foto
+            const btn = document.getElementById('btnKirimIjinHarian');
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -59,6 +71,12 @@ function previewFileDispen(event) {
             const namaEl = document.getElementById('dispenFileNama');
             namaEl.innerText = `File Terpilih: ${file.name}`;
             namaEl.classList.remove('hidden');
+            
+            const btn = document.getElementById('btnKirimDispenDokter');
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+            }
         };
         reader.readAsDataURL(file);
     }
@@ -98,7 +116,7 @@ async function kirimPermohonanIzinHarian() {
 
 // 2. Kirim Surat Dokter / Dispensasi (Rentang Tanggal)
 async function kirimPermohonanDispenDokter() {
-    const jenisKategori = document.getElementById('dispenKategori').value; // 'Sakit (Surat Dokter)' atau 'Dispensasi'
+    const jenisKategori = document.getElementById('dispenKategori').value;
     const tglMulai = document.getElementById('dispenTglMulai').value;
     const tglSelesai = document.getElementById('dispenTglSelesai').value;
     const keterangan = document.getElementById('dispenKeterangan').value.trim();
@@ -124,7 +142,7 @@ async function kirimPermohonanDispenDokter() {
             ]
         );
 
-        alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil diteruskan ke Rule Guru Piket!`);
+        alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil diteruskan ke Guru Piket!`);
         tutupModalIzinDispen();
         muatPresensiSiswaHariIni();
         muatRiwayatSiswa();
