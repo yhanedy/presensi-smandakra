@@ -1,0 +1,16 @@
+{
+  "name": "Portal Presensi SMAN 2 Karanganyar",
+  "short_name": "SMADA Presensi",
+  "start_url": "/presensi-smandakra/index.html",
+  "display": "standalone",
+  "background_color": "#1e293b",
+  "theme_color": "#1e3a8a",
+  "description": "Sistem Informasi Presensi & Kedisiplinan Siswa SMAN 2 Karanganyar",
+  "icons": [
+    {
+      "src": "https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
