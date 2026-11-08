@@ -10,6 +10,12 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Konfigurasi Turso DB Engine Direct API -->
     <script src="js/config.js?v=20261102_index_secured"></script>
+    <link rel="manifest" href="manifest.json">
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('service-worker.js');
+  }
+</script>
 </head>
 <body class="font-sans text-slate-800 min-h-screen flex flex-col justify-between relative overflow-x-hidden bg-slate-900">
 
