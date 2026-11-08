@@ -105,7 +105,7 @@
     </footer>
 
     <!-- LOGIKA LOGIN MULTI-ROLE & SSO GENERATOR SECURED -->
-  <script>
+ <script>
     let pendingUserSession = null;
 
     function toggleTampilPassword() {
@@ -128,7 +128,7 @@
     async function handleLogin(e) {
         e.preventDefault();
         const usernameInput = document.getElementById('input-username').value.trim();
-        const passwordInput = document.getElementById('input-password').value; // JANGAN trim password siswa
+        const passwordInput = document.getElementById('input-password').value; 
         const errorBox = document.getElementById('error-msg');
         const errorText = document.getElementById('error-text');
         const btnLogin = document.getElementById('btn-login');
@@ -146,7 +146,7 @@
         btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
 
         try {
-            // 1. CEK USER GURU / ADMIN (Masih pakai queryTurso)
+            // 1. CEK USER GURU / ADMIN
             const userMatch = await queryTurso(
                 'SELECT username, nama, mapel, role, password FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
                 [usernameInput, passwordInput.trim()]
@@ -185,7 +185,7 @@
                 return;
             }
 
-            // 2. CEK USER SISWA (VIA CLOUDFLARE WORKER API AMAN)
+            // 2. CEK USER SISWA (VIA API WORKER)
             const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -198,7 +198,6 @@
                 throw new Error(data.error || "NISN atau Password salah.");
             }
 
-            // 3. SIMPAN SESI (TANPA PASSWORD/HASH)
             const siswaSession = {
                 nisn: data.user.nisn,
                 nama: data.user.nama || 'Siswa SMADA',
@@ -227,6 +226,7 @@
         }
     }
 
+    // FUNGSI MODAL HANYA DIDEKLARASIKAN SEKALI DI SINI
     function tampilkanModalPilihPeran(user, roles) {
         let modal = document.getElementById('modalPilihPeranMulti');
         
@@ -251,6 +251,10 @@
                     ${roles.hasAdmin ? `
                         <button onclick="window.location.href='super-admin.html'" class="w-full bg-slate-950 hover:bg-slate-900 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-yellow-400 cursor-pointer">
                             <span class="flex items-center gap-2.5"><i class="fa-solid fa-shield-halved text-base text-yellow-400"></i> Panel Super Admin Presensi</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                        <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/admin-jurnal.html?sso_token=${ssoToken}'" class="w-full bg-amber-700 hover:bg-amber-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-amber-600 cursor-pointer">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-user-shield text-base text-yellow-300"></i> Admin Control Jurnal KBM</span>
                             <i class="fa-solid fa-arrow-right"></i>
                         </button>
                     ` : ''}
@@ -281,77 +285,6 @@
         `;
         modal.classList.remove('hidden');
     }
-        // Modal Pemilihan Peran Multi-Role
-        function tampilkanModalPilihPeran(user, roles) {
-            let modal = document.getElementById('modalPilihPeranMulti');
-            
-            if (!modal) {
-                modal = document.createElement('div');
-                modal.id = 'modalPilihPeranMulti';
-                modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';
-                document.body.appendChild(modal);
-            }
-
-            // Injeksi Timestamp `t` pada SSO Payload
-            const ssoPayload = {
-                u: user.username,
-                n: user.nama || user.username,
-                r: user.role,
-                t: Date.now()
-            };
-            const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
-
-            modal.innerHTML = `
-                <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border-2 border-blue-200 animate-fade-in text-left">
-                    <div class="text-center border-b pb-3 space-y-1">
-                        <span class="bg-blue-100 text-blue-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">Beberapa Peran Terdeteksi</span>
-                        <h3 class="font-black text-slate-900 text-base">Pilih Modul Akses Anda</h3>
-                        <p class="text-xs text-slate-500 font-bold">${user.nama || user.username} (${user.username})</p>
-                    </div>
-
-                    <div class="space-y-2.5 text-xs font-black">
-                        ${roles.hasAdmin ? `
-                            <button onclick="window.location.href='super-admin.html'" class="w-full bg-slate-950 hover:bg-slate-900 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-yellow-400 cursor-pointer">
-                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-shield-halved text-base text-yellow-400"></i> Panel Super Admin Presensi</span>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </button>
-                            <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/admin-jurnal.html?sso_token=${ssoToken}'" class="w-full bg-amber-700 hover:bg-amber-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-amber-600 cursor-pointer">
-                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-user-shield text-base text-yellow-300"></i> Admin Control Jurnal KBM</span>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </button>
-                        ` : ''}
-
-                        ${roles.hasMapel || (!roles.hasPiket && !roles.hasBK && !roles.hasAdmin) ? `
-                            <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}'" class="w-full bg-blue-900 hover:bg-blue-950 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-blue-700 cursor-pointer">
-                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-book-bookmark text-yellow-300 text-base"></i> Portal Jurnal Mengajar Guru</span>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </button>
-                        ` : ''}
-
-                        ${roles.hasPiket ? `
-                            <button onclick="window.location.href='piket.html'" class="w-full bg-teal-700 hover:bg-teal-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition cursor-pointer">
-                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-clipboard-user text-base"></i> Menu Guru Piket</span>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </button>
-                        ` : ''}
-
-                        ${roles.hasBK ? `
-                            <button onclick="window.location.href='bk.html'" class="w-full bg-rose-700 hover:bg-rose-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition cursor-pointer">
-                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-triangle-exclamation text-base"></i> Menu BK & STP2K</span>
-                                <i class="fa-solid fa-arrow-right"></i>
-                            </button>
-                        ` : ''}
-
-                        <button onclick="window.location.href='laporan-publik.html'" class="w-full bg-indigo-900 hover:bg-indigo-950 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-indigo-700 cursor-pointer">
-                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-chart-pie text-base text-yellow-400"></i> Laporan & Rekapitulasi Publik</span>
-                            <i class="fa-solid fa-arrow-right"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-
-            modal.classList.remove('hidden');
-        }
-    </script>
+</script>
 </body>
 </html>
