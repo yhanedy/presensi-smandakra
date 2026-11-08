@@ -1,18 +1,4 @@
-Baik, ini adalah kode **BERSIH** untuk file `admin.html` dengan optimasi pencarian (Server-Side Search) dan penambahan pembatasan data agar tidak lambat.
 
-Sebelum menyalin kode ini, pastikan Anda sudah menjalankan perintah **Index Database** di Turso Dashboard (seperti yang saya jelaskan di pesan sebelumnya) agar pencarian benar-benar instan:
-
-```sql
-CREATE INDEX IF NOT EXISTS idx_siswa_nisn ON siswa(nisn);
-CREATE INDEX IF NOT EXISTS idx_siswa_nama ON siswa(nama);
-CREATE INDEX IF NOT EXISTS idx_siswa_kelas ON siswa(kelas);
-```
-
----
-
-**GANTI SELURUH ISI** file `admin.html` Anda dengan kode di bawah ini:
-
-```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
