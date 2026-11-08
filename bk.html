@@ -6,13 +6,40 @@
     <title>Menu BK & STP2K - SMAN 2 Karanganyar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SheetJS CDN untuk Ekspor Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    
-    <!-- KONFIGURASI TURSO (Hanya dipanggil SEKALI) -->
-    <script src="js/config.js?v=bk_turso_v8"></script>
+    <script src="js/config.js?v=bk_turso_v9"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
+
+    <!-- PROTEKSI HAK AKSES BK/STP2K -->
+    <script>
+        let currentUserSession = null;
+        const PORTAL_SSO_URL = "index.html";
+
+        (function verifikasiGuruPiket() {
+            const rawUser = localStorage.getItem('smada_user');
+            if (rawUser && rawUser !== "null" && rawUser !== "undefined") {
+                try {
+                    currentUserSession = JSON.parse(rawUser);
+                    const r = String(currentUserSession.role || '').toLowerCase().trim();
+                    
+                    const isAllowed = r.includes('bk') || r.includes('stp2k') || r.includes('admin') || r.includes('superadmin') || r.includes('super_admin');
+
+                    if (!currentUserSession.username || !isAllowed) {
+                        alert("Akses Ditolak! Akun Anda tidak memiliki otoritas Guru BK.");
+                        window.location.replace(PORTAL_SSO_URL);
+                        return;
+                    }
+                    return;
+                } catch (e) {
+                    localStorage.removeItem('smada_user');
+                }
+            }
+
+            alert("Akses Terbatas! Silakan login melalui Portal SSO.");
+            window.location.replace(PORTAL_SSO_URL);
+        })();
+    </script>
 
     <!-- HEADER -->
     <header class="bg-blue-900 text-white shadow-md sticky top-0 z-50">
@@ -271,7 +298,6 @@
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
 
-    <!-- Script Logic Eksternal BK -->
-    <script src="js/bk.js?v=1.3"></script>
+    <script src="js/bk.js?v=1.4"></script>
 </body>
 </html>
