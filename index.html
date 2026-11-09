@@ -9,7 +9,7 @@
     <!-- Font Awesome Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- Konfigurasi Turso DB Engine Direct API -->
-    <script src="js/config.js?v=index_final_v11"></script>
+    <script src="js/config.js?v=index_final_v12"></script>
     
     <!-- PWA Configuration -->
     <link rel="manifest" href="manifest.json">
@@ -155,25 +155,52 @@
             btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
 
             try {
-                // 1. CEK USER GURU / ADMIN
-                const userMatch = await queryTurso(
-                    'SELECT username, nama, role, password FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
-                    [usernameInput, passwordInput.trim()]
-                );
+                // 1. COBA LOGIN SEBAGAI SISWA (via API Worker)
+                const resSiswa = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nisn: usernameInput, password: passwordInput })
+                });
 
-                if (userMatch && userMatch.length > 0) {
-                    const user = userMatch[0];
-                    const roleStr = String(user.role || '').toLowerCase().trim();
-                    const userSession = { 
-                        username: user.username, 
-                        nama: user.nama || user.username, 
-                        role: user.role,
-                        token: null
+                if (resSiswa.ok) {
+                    const data = await resSiswa.json();
+                    if (!data.token || !data.user) throw new Error("Respons server tidak lengkap.");
+
+                    const siswaSession = {
+                        nisn: data.user.nisn,
+                        nama: data.user.nama || 'Siswa SMADA',
+                        kelas: data.user.kelas || '-',
+                        role: 'siswa',
+                        must_change: data.user.must_change_password,
+                        token: data.token
                     };
+                    localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
+                    localStorage.setItem('smada_user', JSON.stringify(siswaSession));
+                    window.location.replace('siswa.html');
+                    return;
+                }
 
+                // 2. JIKA GAGAL, COBA LOGIN SEBAGAI ADMIN / GURU (via API Worker)
+                const resAdmin = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login-admin', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: usernameInput, password: passwordInput })
+                });
+
+                if (resAdmin.ok) {
+                    const data = await resAdmin.json();
+                    if (!data.token || !data.user) throw new Error("Respons server tidak lengkap.");
+
+                    const userSession = {
+                        username: data.user.username,
+                        nama: data.user.nama || data.user.username,
+                        role: data.user.role,
+                        token: data.token
+                    };
                     localStorage.setItem('smada_user', JSON.stringify(userSession));
-                    localStorage.setItem('smada_role', user.role || '');
+                    localStorage.setItem('smada_role', data.user.role);
 
+                    const roleStr = String(data.user.role || '').toLowerCase();
                     const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
                     const hasPiket = roleStr.includes('piket');
                     const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
@@ -182,7 +209,7 @@
                     const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
 
                     if (totalRoleCount > 1 || hasAdmin) {
-                        tampilkanModalPilihPeran(user, { hasAdmin, hasPiket, hasBK, hasMapel });
+                        tampilkanModalPilihPeran(data.user, { hasAdmin, hasPiket, hasBK, hasMapel });
                         return;
                     }
 
@@ -191,46 +218,18 @@
                     } else if (hasPiket) {
                         window.location.replace('piket.html');
                     } else {
-                        const ssoPayload = { u: user.username, n: user.nama || user.username, r: user.role || 'guru', t: Date.now() };
+                        const ssoPayload = { u: data.user.username, n: data.user.nama || data.user.username, r: data.user.role || 'guru', t: Date.now() };
                         const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
                         window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}`);
                     }
                     return;
                 }
 
-                // 2. CEK USER SISWA (VIA API WORKER)
-                const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nisn: usernameInput, password: passwordInput })
-                });
-
-                const data = await res.json();
-
-                if (!res.ok) {
-                    throw new Error(data.error || "NISN atau Password salah.");
-                }
-
-                // Pastikan token dan data user ada
-                if (!data.user || !data.token) {
-                    throw new Error("Respons server tidak lengkap. Hubungi admin.");
-                }
-
-                // 3. SIMPAN SESI DENGAN TOKEN
-                const siswaSession = {
-                    nisn: data.user.nisn,
-                    nama: data.user.nama || 'Siswa SMADA',
-                    kelas: data.user.kelas || '-',
-                    role: 'siswa',
-                    must_change: data.user.must_change_password,
-                    token: data.token
-                };
-
-                localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
-                localStorage.setItem('smada_user', JSON.stringify(siswaSession));
-                
-                window.location.replace('siswa.html');
-                return;
+                // 3. JIKA KEDUANYA GAGAL
+                const errSiswa = await resSiswa.json().catch(() => ({}));
+                const errAdmin = await resAdmin.json().catch(() => ({}));
+                const pesanError = errSiswa.error || errAdmin.error || "NISN/Username atau Password salah.";
+                throw new Error(pesanError);
 
             } catch (err) {
                 console.error("Login error:", err);
