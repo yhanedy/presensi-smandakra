@@ -6,7 +6,7 @@
     <title>Control Panel Super Admin - SMAN 2 Karanganyar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="js/config.js?v=superadmin_v8"></script>
+    <script src="js/config.js?v=superadmin_v9"></script>
 </head>
 <body class="bg-slate-900 font-sans text-slate-800 min-h-screen flex flex-col justify-between">
 
@@ -17,23 +17,22 @@
             const rawUser = localStorage.getItem('smada_user');
             const rawRole = localStorage.getItem('smada_role');
 
-            if (!rawUser || rawUser === "null" || rawUser === "undefined") {
+            if (!rawUser) {
                 alert("Akses Terbatas! Silakan login terlebih dahulu.");
-                window.location.replace('index.html');
+                window.location.replace('login-superadmin.html');
                 return;
             }
             try {
                 currentUserSession = JSON.parse(rawUser);
                 const roleStr = String(currentUserSession.role || rawRole || '').toLowerCase();
                 
-                // Hanya superadmin, super_admin, atau admin
                 if (!roleStr.includes('superadmin') && !roleStr.includes('super_admin') && !roleStr.includes('admin')) {
                     alert("Akses Ditolak! Halaman ini khusus Super Admin.");
                     window.location.replace('index.html');
                 }
             } catch (e) {
                 localStorage.removeItem('smada_user');
-                window.location.replace('index.html');
+                window.location.replace('login-superadmin.html');
             }
         })();
     </script>
@@ -68,7 +67,6 @@
     <!-- MAIN HERO & GRID NAVIGATION -->
     <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 w-full flex-grow space-y-6">
 
-        <!-- WELCOME BANNER -->
         <div class="bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border border-blue-900/50 p-6 rounded-3xl text-white shadow-2xl flex flex-wrap items-center justify-between gap-4">
             <div class="space-y-1 max-w-2xl">
                 <h2 class="text-xl sm:text-2xl font-black flex items-center gap-2">
@@ -96,8 +94,6 @@
             </h3>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
-                <!-- 1. PORTAL SISWA -->
                 <div onclick="bukaModulLokal('siswa.html')" class="group bg-white hover:bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-xl transition cursor-pointer flex flex-col justify-between space-y-4">
                     <div class="space-y-2">
                         <div class="w-12 h-12 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform">
@@ -112,7 +108,6 @@
                     </div>
                 </div>
 
-                <!-- 2. MENU BK & STP2K -->
                 <div onclick="bukaModulLokal('bk.html')" class="group bg-white hover:bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-xl transition cursor-pointer flex flex-col justify-between space-y-4">
                     <div class="space-y-2">
                         <div class="w-12 h-12 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform">
@@ -127,7 +122,6 @@
                     </div>
                 </div>
 
-                <!-- 3. MENU GURU PIKET -->
                 <div onclick="bukaModulLokal('piket.html')" class="group bg-white hover:bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-xl transition cursor-pointer flex flex-col justify-between space-y-4">
                     <div class="space-y-2">
                         <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform">
@@ -142,7 +136,6 @@
                     </div>
                 </div>
 
-                <!-- 4. PANEL ADMIN SYSTEM -->
                 <div onclick="bukaModulLokal('admin.html')" class="group bg-white hover:bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-xl transition cursor-pointer flex flex-col justify-between space-y-4">
                     <div class="space-y-2">
                         <div class="w-12 h-12 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform">
@@ -157,7 +150,6 @@
                     </div>
                 </div>
 
-                <!-- 5. MANAJEMEN SISWA & GURU -->
                 <div onclick="bukaModulLokal('manajemen-siswa.html')" class="group bg-white hover:bg-slate-50 border-2 border-slate-200 p-5 rounded-2xl shadow-sm hover:shadow-xl transition cursor-pointer flex flex-col justify-between space-y-4">
                     <div class="space-y-2">
                         <div class="w-12 h-12 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform">
@@ -172,7 +164,6 @@
                     </div>
                 </div>
 
-                <!-- 6. MODUL BARU: ADMIN JURNAL MENGAJAR -->
                 <div onclick="bukaModulJurnal()" class="group bg-gradient-to-br from-yellow-50 to-amber-50 hover:from-yellow-100 hover:to-amber-100 border-2 border-amber-300 p-5 rounded-2xl shadow-sm hover:shadow-xl transition cursor-pointer flex flex-col justify-between space-y-4">
                     <div class="space-y-2">
                         <div class="w-12 h-12 rounded-xl bg-yellow-400 text-blue-950 flex items-center justify-center text-xl font-bold group-hover:scale-110 transition-transform border border-yellow-500">
@@ -186,13 +177,10 @@
                         <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
                     </div>
                 </div>
-
             </div>
         </div>
-
     </main>
 
-    <!-- FOOTER -->
     <footer class="bg-slate-950 border-t border-slate-800 text-slate-500 text-xs text-center py-4">
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. Integrated System Engine.</p>
     </footer>
@@ -216,7 +204,8 @@
 
         function bukaModulJurnal() {
             if (!currentUserSession) return;
-            const ssoToken = btoa(JSON.stringify(currentUserSession));
+            // Token SSO tetap menggunakan btoa, TAPI sudah diamankan oleh validasi domain di Jurnal
+            const ssoToken = btoa(JSON.stringify({ u: currentUserSession.username, n: currentUserSession.nama, r: currentUserSession.role, t: Date.now() }));
             window.location.href = `https://yhanedy.github.io/jurnalmengajar/admin-jurnal.html?sso_token=${encodeURIComponent(ssoToken)}`;
         }
     </script>
