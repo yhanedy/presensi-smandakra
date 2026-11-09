@@ -4,12 +4,13 @@ async function queryTurso(sql, params = []) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); 
 
+    // Ambil token dari localStorage
     const userSession = localStorage.getItem('smada_user');
     let token = '';
     if (userSession) {
         try {
             const user = JSON.parse(userSession);
-            token = user.token || ''; 
+            token = user.token || ''; // <--- Ambil token
         } catch (e) {}
     }
 
@@ -18,7 +19,7 @@ async function queryTurso(sql, params = []) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': token ? `Bearer ${token}` : '' 
+                'Authorization': token ? `Bearer ${token}` : '' // <--- Kirim token
             },
             body: JSON.stringify({ sql: sql, args: params }),
             signal: controller.signal 
