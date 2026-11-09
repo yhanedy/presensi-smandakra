@@ -1,112 +1,315 @@
-async function handleLogin(e) {
-    e.preventDefault();
-    const usernameInput = document.getElementById('input-username').value.trim();
-    const passwordInput = document.getElementById('input-password').value;
-    const errorBox = document.getElementById('error-msg');
-    const errorText = document.getElementById('error-text');
-    const btnLogin = document.getElementById('btn-login');
-
-    if (!usernameInput || !passwordInput) {
-        if (errorText && errorBox) {
-            errorText.textContent = "Username/NISN dan Password wajib diisi!";
-            errorBox.classList.remove('hidden');
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Presensi & Kedisiplinan - SMAN 2 Karanganyar</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Konfigurasi Turso DB Engine Direct API -->
+    <script src="js/config.js?v=index_final_v11"></script>
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js')
+                    .then(reg => console.log('Service Worker registered!'))
+                    .catch(err => console.log('Service Worker registration failed:', err));
+            });
         }
-        return;
-    }
+    </script>
+</head>
+<body class="font-sans text-slate-800 min-h-screen flex flex-col justify-between relative overflow-x-hidden bg-slate-900">
 
-    if (errorBox) errorBox.classList.add('hidden');
-    btnLogin.disabled = true;
-    btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
+    <!-- BACKGROUND FOTO -->
+    <div class="fixed inset-0 -z-10 bg-cover bg-center bg-no-repeat" style="background-image: url('https://lh3.googleusercontent.com/d/1qqhX88M3FtfF07-qQbiIz_aCuJ5VNds5');">
+        <div class="absolute inset-0 bg-gradient-to-b from-slate-950/85 via-slate-900/75 to-slate-950/90 backdrop-blur-[2px]"></div>
+    </div>
 
-    try {
-        // 1. CEK USER GURU / ADMIN (via queryTurso)
-        const userMatch = await queryTurso(
-            'SELECT username, nama, role, password FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
-            [usernameInput, passwordInput.trim()]
-        );
+    <!-- HEADER BAR TOP -->
+    <header class="bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 text-white px-6 py-4 flex items-center justify-between shadow-lg">
+        <div class="flex items-center gap-3">
+            <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" 
+                 onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" 
+                 class="w-10 h-10 object-contain drop-shadow" alt="Logo SMADA">
+            <div>
+                <h1 class="font-black text-base sm:text-lg tracking-wide leading-tight">SMAN 2 KARANGANYAR</h1>
+                <p class="text-xs text-yellow-400 font-bold">Centralized School Ecosystem & SSO Portal</p>
+            </div>
+        </div>
+        <div class="hidden sm:block text-right">
+            <span class="text-[10px] bg-blue-950 text-blue-300 border border-blue-800 px-3 py-1 rounded-full font-mono font-bold">Turso DB Engine</span>
+        </div>
+    </header>
 
-        if (userMatch && userMatch.length > 0) {
-            const user = userMatch[0];
-            const roleStr = String(user.role || '').toLowerCase().trim();
-            const userSession = { 
-                username: user.username, 
-                nama: user.nama || user.username, 
-                role: user.role,
-                token: null // Admin login via endpoint ini tidak pakai JWT untuk sementara
-            };
+    <!-- FORM LOGIN UTAMA -->
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="max-w-md w-full bg-white/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-2xl border-2 border-slate-200/90 space-y-6">
+            
+            <div class="text-center space-y-1">
+                <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n" 
+                     onError="this.onerror=null;this.src='https://placehold.co/100x100/003366/ffffff?text=SMADA'" 
+                     class="w-20 h-20 object-contain mx-auto drop-shadow-md mb-2" 
+                     alt="Logo SMAN 2 Karanganyar">
 
-            localStorage.setItem('smada_user', JSON.stringify(userSession));
-            localStorage.setItem('smada_role', user.role || '');
+                <h2 class="text-xl font-black text-slate-900">MASUK PORTAL SSO</h2>
+                <p class="text-xs font-semibold text-slate-500">Gunakan NIP / Username / NISN & Kata Sandi Anda</p>
+            </div>
 
-            const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
-            const hasPiket = roleStr.includes('piket');
-            const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
-            const hasMapel = roleStr.includes('mapel') || roleStr.includes('guru') || roleStr.includes('jurnal');
+            <!-- PESAN ERROR -->
+            <div id="error-msg" class="hidden bg-red-100 border border-red-300 text-red-800 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2">
+                <i class="fa-solid fa-circle-exclamation text-red-600 text-sm"></i>
+                <span id="error-text">Terjadi kesalahan login.</span>
+            </div>
 
-            const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
+            <!-- FORM LOGIN -->
+            <form id="formLogin" onsubmit="handleLogin(event)" class="space-y-4">
+                <div class="space-y-1">
+                    <label class="block text-xs font-black uppercase text-slate-700">Username / NIP / NISN</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-user"></i>
+                        </span>
+                        <input type="text" id="input-username" required placeholder="Masukkan NIP / Username / NISN..." class="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-950 transition">
+                    </div>
+                </div>
 
-            if (totalRoleCount > 1 || hasAdmin) {
-                tampilkanModalPilihPeran(user, { hasAdmin, hasPiket, hasBK, hasMapel });
+                <div class="space-y-1">
+                    <label class="block text-xs font-black uppercase text-slate-700">Kata Sandi / Password</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                            <i class="fa-solid fa-key"></i>
+                        </span>
+                        <input type="password" id="input-password" required placeholder="Masukkan Kata Sandi..." class="w-full pl-10 pr-12 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-xs sm:text-sm text-slate-900 focus:outline-none focus:border-blue-950 transition">
+                        
+                        <button type="button" onclick="toggleTampilPassword()" class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-400 hover:text-blue-950 transition cursor-pointer">
+                            <i id="icon-toggle-password" class="fa-solid fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <button type="submit" id="btn-login" class="w-full bg-blue-950 hover:bg-blue-900 text-yellow-300 font-black py-3.5 px-4 rounded-xl text-xs sm:text-sm shadow-lg transition flex items-center justify-center gap-2 cursor-pointer border-2 border-yellow-400">
+                    <i class="fa-solid fa-right-to-bracket"></i>
+                    <span>Masuk Ke Portal</span>
+                </button>
+            </form>
+
+            <div class="text-center border-t border-slate-200 pt-4 space-y-2">
+                <a href="laporan-publik.html" class="inline-flex items-center gap-1.5 text-xs font-black text-blue-900 hover:text-blue-700 transition">
+                    <i class="fa-solid fa-chart-pie text-yellow-500"></i>
+                    <span>Akses Laporan Presensi Publik</span>
+                    <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                </a>
+                <p class="text-[11px] text-slate-500 font-semibold">Mengalami masalah login? Hubungi Administrator System Sekolah.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-slate-950/90 backdrop-blur-md text-slate-400 text-xs text-center py-4 border-t border-slate-800">
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
+    </footer>
+
+    <!-- LOGIKA LOGIN MULTI-ROLE & SSO GENERATOR -->
+    <script>
+        let pendingUserSession = null;
+
+        function toggleTampilPassword() {
+            const passInput = document.getElementById('input-password');
+            const passIcon = document.getElementById('icon-toggle-password');
+            if (!passInput || !passIcon) return;
+
+            if (passInput.type === 'password') {
+                passInput.type = 'text';
+                passIcon.classList.remove('fa-eye');
+                passIcon.classList.add('fa-eye-slash');
+            } else {
+                passInput.type = 'password';
+                passIcon.classList.remove('fa-eye-slash');
+                passIcon.classList.add('fa-eye');
+            }
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const usernameInput = document.getElementById('input-username').value.trim();
+            const passwordInput = document.getElementById('input-password').value;
+            const errorBox = document.getElementById('error-msg');
+            const errorText = document.getElementById('error-text');
+            const btnLogin = document.getElementById('btn-login');
+
+            if (!usernameInput || !passwordInput) {
+                if (errorText && errorBox) {
+                    errorText.textContent = "Username/NISN dan Password wajib diisi!";
+                    errorBox.classList.remove('hidden');
+                }
                 return;
             }
 
-            if (hasBK) {
-                window.location.replace('bk.html');
-            } else if (hasPiket) {
-                window.location.replace('piket.html');
-            } else {
-                const ssoPayload = { u: user.username, n: user.nama || user.username, r: user.role || 'guru', t: Date.now() };
-                const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
-                window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}`);
+            if (errorBox) errorBox.classList.add('hidden');
+            btnLogin.disabled = true;
+            btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
+
+            try {
+                // 1. CEK USER GURU / ADMIN
+                const userMatch = await queryTurso(
+                    'SELECT username, nama, role, password FROM users WHERE LOWER(TRIM(username)) = LOWER(?) AND TRIM(password) = ? LIMIT 1',
+                    [usernameInput, passwordInput.trim()]
+                );
+
+                if (userMatch && userMatch.length > 0) {
+                    const user = userMatch[0];
+                    const roleStr = String(user.role || '').toLowerCase().trim();
+                    const userSession = { 
+                        username: user.username, 
+                        nama: user.nama || user.username, 
+                        role: user.role,
+                        token: null
+                    };
+
+                    localStorage.setItem('smada_user', JSON.stringify(userSession));
+                    localStorage.setItem('smada_role', user.role || '');
+
+                    const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
+                    const hasPiket = roleStr.includes('piket');
+                    const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
+                    const hasMapel = roleStr.includes('mapel') || roleStr.includes('guru') || roleStr.includes('jurnal');
+
+                    const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
+
+                    if (totalRoleCount > 1 || hasAdmin) {
+                        tampilkanModalPilihPeran(user, { hasAdmin, hasPiket, hasBK, hasMapel });
+                        return;
+                    }
+
+                    if (hasBK) {
+                        window.location.replace('bk.html');
+                    } else if (hasPiket) {
+                        window.location.replace('piket.html');
+                    } else {
+                        const ssoPayload = { u: user.username, n: user.nama || user.username, r: user.role || 'guru', t: Date.now() };
+                        const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
+                        window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}`);
+                    }
+                    return;
+                }
+
+                // 2. CEK USER SISWA (VIA API WORKER)
+                const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nisn: usernameInput, password: passwordInput })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    throw new Error(data.error || "NISN atau Password salah.");
+                }
+
+                // Pastikan token dan data user ada
+                if (!data.user || !data.token) {
+                    throw new Error("Respons server tidak lengkap. Hubungi admin.");
+                }
+
+                // 3. SIMPAN SESI DENGAN TOKEN
+                const siswaSession = {
+                    nisn: data.user.nisn,
+                    nama: data.user.nama || 'Siswa SMADA',
+                    kelas: data.user.kelas || '-',
+                    role: 'siswa',
+                    must_change: data.user.must_change_password,
+                    token: data.token
+                };
+
+                localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
+                localStorage.setItem('smada_user', JSON.stringify(siswaSession));
+                
+                window.location.replace('siswa.html');
+                return;
+
+            } catch (err) {
+                console.error("Login error:", err);
+                if (errorText && errorBox) {
+                    errorText.textContent = err.message || "Gagal terhubung ke server autentikasi.";
+                    errorBox.classList.remove('hidden');
+                } else {
+                    alert(err.message || "Gagal login!");
+                }
+            } finally {
+                btnLogin.disabled = false;
+                btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
             }
-            return;
         }
 
-        // 2. CEK USER SISWA (VIA API WORKER)
-        const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nisn: usernameInput, password: passwordInput })
-        });
+        function tampilkanModalPilihPeran(user, roles) {
+            let modal = document.getElementById('modalPilihPeranMulti');
+            
+            if (!modal) {
+                modal = document.createElement('div');
+                modal.id = 'modalPilihPeranMulti';
+                modal.className = 'fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4';
+                document.body.appendChild(modal);
+            }
 
-        const data = await res.json();
+            const ssoPayload = { u: user.username, n: user.nama || user.username, r: user.role, t: Date.now() };
+            const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
 
-        // TAMPILKAN ERROR JIKA RESPON TIDAK OK
-        if (!res.ok) {
-            throw new Error(data.error || "NISN atau Password salah.");
+            modal.innerHTML = `
+                <div class="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border-2 border-blue-200 animate-fade-in text-left">
+                    <div class="text-center border-b pb-3 space-y-1">
+                        <span class="bg-blue-100 text-blue-900 font-black text-[10px] px-2.5 py-0.5 rounded-full uppercase">Beberapa Peran Terdeteksi</span>
+                        <h3 class="font-black text-slate-900 text-base">Pilih Modul Akses Anda</h3>
+                        <p class="text-xs text-slate-500 font-bold">${user.nama || user.username} (${user.username})</p>
+                    </div>
+
+                    <div class="space-y-2.5 text-xs font-black">
+                        ${roles.hasAdmin ? `
+                            <button onclick="window.location.href='super-admin.html'" class="w-full bg-slate-950 hover:bg-slate-900 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-yellow-400 cursor-pointer">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-shield-halved text-base text-yellow-400"></i> Panel Super Admin Presensi</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                            <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/admin-jurnal.html?sso_token=${ssoToken}'" class="w-full bg-amber-700 hover:bg-amber-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-amber-600 cursor-pointer">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-user-shield text-base text-yellow-300"></i> Admin Control Jurnal KBM</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+
+                        ${roles.hasMapel || (!roles.hasPiket && !roles.hasBK && !roles.hasAdmin) ? `
+                            <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}'" class="w-full bg-blue-900 hover:bg-blue-950 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-blue-700 cursor-pointer">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-book-bookmark text-yellow-300 text-base"></i> Portal Jurnal Mengajar Guru</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+
+                        ${roles.hasPiket ? `
+                            <button onclick="window.location.href='piket.html'" class="w-full bg-teal-700 hover:bg-teal-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition cursor-pointer">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-clipboard-user text-base"></i> Menu Guru Piket</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+
+                        ${roles.hasBK ? `
+                            <button onclick="window.location.href='bk.html'" class="w-full bg-rose-700 hover:bg-rose-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition cursor-pointer">
+                                <span class="flex items-center gap-2.5"><i class="fa-solid fa-triangle-exclamation text-base"></i> Menu BK & STP2K</span>
+                                <i class="fa-solid fa-arrow-right"></i>
+                            </button>
+                        ` : ''}
+
+                        <button onclick="window.location.href='laporan-publik.html'" class="w-full bg-indigo-900 hover:bg-indigo-950 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-indigo-700 cursor-pointer">
+                            <span class="flex items-center gap-2.5"><i class="fa-solid fa-chart-pie text-base text-yellow-400"></i> Laporan & Rekapitulasi Publik</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            modal.classList.remove('hidden');
         }
-
-        // PASTIKAN DATA USER DAN TOKEN ADA
-        if (!data.user || !data.token) {
-            throw new Error("Respons server tidak lengkap. Hubungi admin.");
-        }
-
-        // SIMPAN SESI DENGAN TOKEN
-        const siswaSession = {
-            nisn: data.user.nisn,
-            nama: data.user.nama || 'Siswa SMADA',
-            kelas: data.user.kelas || '-',
-            role: 'siswa',
-            must_change: data.user.must_change_password,
-            token: data.token // <--- Simpan token
-        };
-
-        localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
-        localStorage.setItem('smada_user', JSON.stringify(siswaSession));
-
-        window.location.replace('siswa.html');
-        return;
-
-    } catch (err) {
-        console.error("Login error:", err);
-        if (errorText && errorBox) {
-            errorText.textContent = err.message || "Gagal terhubung ke server autentikasi.";
-            errorBox.classList.remove('hidden');
-        } else {
-            alert(err.message || "Gagal login!");
-        }
-    } finally {
-        btnLogin.disabled = false;
-        btnLogin.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk Ke Portal</span>`;
-    }
-}
+    </script>
+</body>
+</html>
