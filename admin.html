@@ -760,7 +760,7 @@
                 // 4. Kirim ke Google Drive via GAS BARU (GANTI DENGAN URL ANDA)
                 const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
                 const fileName = `Backup_SMADA_${today}.xlsx`;
-                const response = await fetch('https://script.google.com/macros/s/AKfycbySD1jgg35A9VJzarA6ZJUIf2ojjsZaUh-d9Hx1W008eMPrlRjPtkYkA_eN2pq_5FsZng/exec', { 
+                const response = await fetch('https://script.google.com/macros/s/AKfycbyhWmrZugkeEOt8uS-6aVC-ZyeZCt85RxSV3Er0ko6u01C-j95sM70L1CVNwzjSvqqr6A/exec', { 
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
