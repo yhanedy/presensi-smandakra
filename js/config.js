@@ -4,7 +4,6 @@ async function queryTurso(sql, params = []) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); 
 
-    // Ambil token dari localStorage (disimpan saat login)
     const userSession = localStorage.getItem('smada_user');
     let token = '';
     if (userSession) {
