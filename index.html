@@ -218,8 +218,9 @@
                     must_change: data.user.must_change_password
                 };
 
-                localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
-                localStorage.setItem('smada_user', JSON.stringify(siswaSession));
+                siswaSession.token = data.token; // Simpan token dari Worker
+localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
+localStorage.setItem('smada_user', JSON.stringify(siswaSession));
                 
                 window.location.replace('siswa.html');
                 return;
