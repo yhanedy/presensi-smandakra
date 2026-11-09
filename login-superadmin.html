@@ -95,9 +95,11 @@
 
                 // Simpan sesi
                 localStorage.setItem('smada_user', JSON.stringify({
-                    username: data.user.username,
-                    nama: data.user.nama || 'System Administrator',
-                    role: data.user.role
+    username: data.user.username,
+    nama: data.user.nama || 'System Administrator',
+    role: data.user.role,
+    token: data.token // Simpan token dari Worker
+}));
                 }));
                 localStorage.setItem('smada_role', data.user.role);
 
