@@ -216,12 +216,12 @@
                     kelas: data.user.kelas || '-',
                     role: 'siswa',
                     must_change: data.user.must_change_password
+                    token: data.token
                 };
 
                 siswaSession.token = data.token; // Simpan token dari Worker
-localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
-localStorage.setItem('smada_user', JSON.stringify(siswaSession));
-                
+                localStorage.setItem('smada_siswa', JSON.stringify(siswaSession));
+                localStorage.setItem('smada_user', JSON.stringify(siswaSession));
                 window.location.replace('siswa.html');
                 return;
 
