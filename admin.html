@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -7,11 +6,12 @@
     <title>Panel Administrator - SMAN 2 Karanganyar</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="js/config.js?v=admin_turso_v9"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="js/config.js?v=admin_turso_v10"></script>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
-    <!-- PROTEKSI HAK AKSES ADMIN (ANTI MANIPULASI LOCALSTORAGE) -->
+    <!-- PROTEKSI HAK AKSES ADMIN -->
     <script>
         (function proteksiHalaman() {
             const rawUser = localStorage.getItem('smada_user');
@@ -82,7 +82,6 @@
 
         <!-- BARIS 1: GRID UTAMA KONFIGURASI ADMIN -->
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-
             <!-- 1. Tambah Siswa Manual -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-slate-200 space-y-3 flex flex-col justify-between">
                 <div class="space-y-3">
@@ -239,8 +238,6 @@
 
         <!-- BARIS 2: GRID KOTAK KOREKSI SALAH KLIK & LOG HP MULTI-AKUN -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            <!-- KOTAK 1: KOREKSI SALAH KLIK STATUS PULANG -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-red-200 space-y-3 bg-red-50/20 flex flex-col justify-between">
                 <div class="space-y-3">
                     <h3 class="font-bold text-red-900 text-sm flex items-center space-x-2 border-b border-red-200 pb-2">
@@ -261,7 +258,6 @@
                 </button>
             </div>
 
-            <!-- KOTAK 2: LOG HP MULTI-AKUN -->
             <div class="bg-white p-5 rounded-xl shadow-md border border-amber-200 space-y-3 bg-amber-50/10 flex flex-col justify-between">
                 <div class="space-y-3">
                     <div class="flex justify-between items-center border-b border-amber-200 pb-2">
@@ -292,7 +288,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
 
         <!-- TABEL KELOLA DATA MASTER -->
@@ -302,7 +297,7 @@
                     <h3 class="font-bold text-slate-800 text-base">Master Data Pengguna</h3>
                     <p class="text-xs text-slate-500">Daftar pengguna tersimpan di Turso DB. Admin dapat mereset password maupun menghapus akun.</p>
                 </div>
-                <div class="flex items-center space-x-3">
+                <div class="flex flex-wrap items-center gap-2">
                     <div class="flex bg-slate-100 p-1 rounded-lg border border-slate-200">
                         <button id="btn-tab-siswa" onclick="switchMasterTab('siswa')" class="px-3 py-1 text-xs font-bold rounded-md bg-blue-900 text-white shadow transition cursor-pointer">
                             <i class="fa-solid fa-user-graduate mr-1"></i> Data Siswa
@@ -312,6 +307,12 @@
                         </button>
                     </div>
                     <input type="text" id="search-input" onkeyup="filterMasterTable()" placeholder="Cari data..." class="border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                    
+                    <!-- TOMBOL BACKUP -->
+                    <button onclick="backupDatabaseKeDrive()" id="btn-backup" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-3 py-1.5 rounded-lg font-bold transition flex items-center space-x-1.5 shadow cursor-pointer">
+                        <i class="fa-solid fa-cloud-arrow-up"></i> <span>Backup ke Drive</span>
+                    </button>
+                    
                     <button onclick="muatSemuaDataMaster()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs px-3 py-1.5 rounded-lg transition cursor-pointer">
                         <i class="fa-solid fa-rotate"></i> Refresh Data
                     </button>
@@ -392,7 +393,7 @@
             const btnSiswa = document.getElementById('btn-tab-siswa');
             const btnGuru = document.getElementById('btn-tab-guru');
             const searchInput = document.getElementById('search-input');
-            searchInput.value = ''; // Kosongkan pencarian saat ganti tab
+            searchInput.value = '';
 
             if (type === 'siswa') {
                 wrapSiswa.classList.remove('hidden');
@@ -715,7 +716,77 @@
                 alert("Gagal menghapus: " + err.message);
             }
         }
+
+        /* =========================================================
+           FUNGSI BACKUP DATABASE KE GOOGLE DRIVE
+           ========================================================= */
+        async function backupDatabaseKeDrive() {
+            if (!confirm("Apakah Anda yakin ingin membackup seluruh data ke Google Drive?\n\nData yang akan dibackup: Presensi, Kedisiplinan, Jurnal KBM.")) return;
+            
+            const btn = document.getElementById('btn-backup');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+            
+            try {
+                // 1. Ambil data dari Turso
+                const presensi = await queryTurso('SELECT * FROM presensi ORDER BY id DESC');
+                const kedisiplinan = await queryTurso('SELECT * FROM kedisiplinan ORDER BY id DESC');
+                const jurnal = await queryTurso('SELECT * FROM jurnal_kbm ORDER BY id DESC');
+                
+                // 2. Buat workbook Excel
+                const wb = XLSX.utils.book_new();
+                
+                if (presensi && presensi.length > 0) {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(presensi), "Presensi");
+                } else {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ Info: "Tidak ada data presensi" }]), "Presensi");
+                }
+                
+                if (kedisiplinan && kedisiplinan.length > 0) {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kedisiplinan), "Kedisiplinan");
+                } else {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ Info: "Tidak ada data kedisiplinan" }]), "Kedisiplinan");
+                }
+                
+                if (jurnal && jurnal.length > 0) {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(jurnal), "Jurnal_KBM");
+                } else {
+                    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([{ Info: "Tidak ada data jurnal KBM" }]), "Jurnal_KBM");
+                }
+                
+                // 3. Konversi ke base64
+                const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'base64' });
+                
+                // 4. Kirim ke Google Drive via GAS BARU (GANTI DENGAN URL ANDA)
+                const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
+                const fileName = `Backup_SMADA_${today}.xlsx`;
+                const response = await fetch('https://script.google.com/macros/s/AKfycbySD1jgg35A9VJzarA6ZJUIf2ojjsZaUh-d9Hx1W008eMPrlRjPtkYkA_eN2pq_5FsZng/exec', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({
+                        type: 'backup',
+                        fileBase64: excelBuffer,
+                        fileName: fileName,
+                        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        folderId: '1gnTFajgWvcwrOk5TIY8Hh5HtlvpNkr8b'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    alert(`Backup berhasil!\n\nFile: ${fileName}\n\nLink: ${result.url}`);
+                } else {
+                    alert("Gagal backup: " + (result.message || "Terjadi kesalahan."));
+                }
+                
+            } catch (err) {
+                alert("Gagal backup: " + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> <span>Backup ke Drive</span>`;
+            }
+        }
     </script>
 </body>
 </html>
-```
