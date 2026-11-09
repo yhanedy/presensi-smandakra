@@ -18,7 +18,7 @@ async function queryTurso(sql, params = []) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // TIDAK ADA Authorization header di sini. Validasi dilakukan oleh Worker berdasarkan domain.
+                // TIDAK ADA Authorization header. Validasi dilakukan oleh Worker berdasarkan domain.
             },
             body: JSON.stringify({
                 sql: sql,
