@@ -97,6 +97,9 @@ async function muatSiswaBerdasarkanKelas(idSelectKelas, idSelectSiswa) {
     }
 }
 
+// ==============================================================
+// FUNGSI YANG DIPERBAIKI (ANTI-DOBEL DATA & INTERVENSI PIKET)
+// ==============================================================
 async function simpanPresensiPiket(status) {
     const nisnInput = status === 'Pulang Mendahului' 
         ? document.getElementById('pulang-nisn').value.trim() 
@@ -104,29 +107,64 @@ async function simpanPresensiPiket(status) {
     const alasan = status === 'Pulang Mendahului' 
         ? document.getElementById('pulang-alasan').value.trim() 
         : document.getElementById('piket-masuk-ket').value.trim();
+    
     if (!nisnInput) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
+
     const tglWIB = getTanggalWIB();
     const jamWIB = getJamWIB();
+
     try {
+        // 1. Cek dulu apakah siswa sudah punya presensi hari ini (misal: sudah scan gerbang jam 07:08)
+        const cekExist = await queryTurso(
+            "SELECT id, jam_masuk, jam_pulang FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? LIMIT 1",
+            [nisnInput, tglWIB]
+        );
+
         if (status === 'Pulang Mendahului') {
-            await queryTurso(
-                "INSERT INTO presensi (nisn, tanggal, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?)",
-                [nisnInput, tglWIB, jamWIB, 'Pulang Mendahului', alasan || 'Izin Pulang Mendahului via Piket']
-            );
+            // JIKA PULANG MENDAHULUI
+            if (cekExist && cekExist.length > 0) {
+                // Jika sudah ada data, UPDATE jam pulang & statusnya
+                await queryTurso(
+                    "UPDATE presensi SET jam_pulang = ?, status = 'Pulang Mendahului', keterangan = keterangan || ? WHERE id = ?",
+                    [jamWIB, ` | Izin Pulang: ${alasan || 'Piket'}`, cekExist[0].id]
+                );
+            } else {
+                // Jika belum ada data, INSERT baru
+                await queryTurso(
+                    "INSERT INTO presensi (nisn, tanggal, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?)",
+                    [nisnInput, tglWIB, jamWIB, 'Pulang Mendahului', alasan || 'Izin Pulang Mendahului via Piket']
+                );
+            }
         } else {
-            await queryTurso(
-                "INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)",
-                [nisnInput, tglWIB, jamWIB, status, alasan || `Presensi Manual Piket (${status})`]
-            );
+            // JIKA SET HADIR MASUK ATAU SET TERLAMBAT
+            if (cekExist && cekExist.length > 0) {
+                // Jika siswa SUDAH absen (misal jam 07:08), kita UPDATE statusnya jadi 'Hadir' (sesuai input Piket)
+                // Kita timpa status 'Terlambat' di database menjadi 'Hadir'
+                await queryTurso(
+                    "UPDATE presensi SET status = ?, keterangan = keterangan || ? WHERE id = ?",
+                    [status, ` | Diubah Piket: ${alasan || status}`, cekExist[0].id]
+                );
+            } else {
+                // Jika siswa BELUM absen sama sekali, baru buat baris baru
+                await queryTurso(
+                    "INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)",
+                    [nisnInput, tglWIB, jamWIB, status, alasan || `Presensi Manual Piket (${status})`]
+                );
+            }
         }
+
         alert("Presensi berhasil disimpan!");
+        
+        // Reset Form
         if (document.getElementById('piket-masuk-kelas')) document.getElementById('piket-masuk-kelas').value = '';
         if (document.getElementById('piket-masuk-nisn')) document.getElementById('piket-masuk-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
         if (document.getElementById('piket-masuk-ket')) document.getElementById('piket-masuk-ket').value = '';
         if (document.getElementById('pulang-kelas')) document.getElementById('pulang-kelas').value = '';
         if (document.getElementById('pulang-nisn')) document.getElementById('pulang-nisn').innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
         if (document.getElementById('pulang-alasan')) document.getElementById('pulang-alasan').value = '';
+        
         muatRekapPiketHarian();
+
     } catch (err) {
         alert("Gagal menyimpan presensi: " + err.message);
     }
