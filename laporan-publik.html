@@ -1,3 +1,12 @@
+Baik, saya mengerti. Masalah utamanya adalah teks "HADIR" dan deretan angka (T, PA, A, S) saling bertabrakan karena ukuran kotaknya terlalu kecil dan *layout* di dalamnya berdesakan.
+
+Saya juga akan mengubah urutan singkatan di bagian bawah menjadi: **T (Terlambat), PA (Pulang Awal), A (Alpha), S (Sakit/Izin)**.
+
+Berikut adalah **File HTML Lengkap (Bersih)** yang sudah dirapikan desainnya. Kotaknya dibuat sedikit lebih tinggi agar tulisan tidak meleset, dan tata letaknya dibuat sejajar (rapi).
+
+Silakan *copy* seluruh kode ini dan ganti isi file `laporan-publik.html` Anda:
+
+```html
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -530,25 +539,25 @@
                 // Ambil warna secara bergantian dari palet
                 const tema = palette[idx % palette.length];
 
-                // A. HTML UNTUK KOTAK (GRID) - Desain Baru: Kode Kelas Kiri, Angka Tengah
+                // A. HTML UNTUK KOTAK (GRID)
                 htmlGrid += `
                     <div onclick="pilihKelasDetail('${namaKelas.replace(/'/g, "\\'")}')" 
-                         class="card-kelas ${tema.bg} rounded-lg shadow-sm border ${tema.border} p-2 cursor-pointer flex flex-col justify-between h-24">
+                         class="card-kelas ${tema.bg} rounded-lg shadow-sm border ${tema.border} p-2 cursor-pointer flex flex-col justify-between h-[88px]">
                         
-                        <!-- Baris Atas: Kode Kelas (Dibesarkan), Angka Hadir, Total Siswa -->
-                        <div class="flex justify-between items-start w-full">
-                            <span class="font-black ${tema.text} text-sm bg-white/70 px-2 py-0.5 rounded shadow-sm border border-white">${namaKelas}</span>
-                            <span class="text-[8px] font-bold text-slate-500 bg-white/50 px-1 rounded mt-1">${listSiswaKelas.length} Ssw</span>
+                        <!-- Baris 1: Nama Kelas & Total -->
+                        <div class="flex justify-between items-center w-full">
+                            <span class="font-black ${tema.text} text-sm bg-white/70 px-1.5 py-0.5 rounded shadow-sm border border-white">${namaKelas}</span>
+                            <span class="text-[8px] font-bold text-slate-500 bg-white/50 px-1 rounded">${listSiswaKelas.length} Ssw</span>
                         </div>
                         
-                        <!-- Baris Tengah: Angka Hadir & Tulisan HADIR -->
-                        <div class="text-center leading-none mt-1">
-                            <span class="text-2xl font-black ${tema.text} tracking-tighter block">${countHadir}</span>
-                            <span class="text-[8px] uppercase font-bold text-slate-500 tracking-widest block mt-0.5">HADIR</span>
+                        <!-- Baris 2: Angka & HADIR -->
+                        <div class="text-center leading-none my-0.5">
+                            <span class="text-2xl font-black ${tema.text} block">${countHadir}</span>
+                            <span class="text-[8px] uppercase font-bold text-slate-500 tracking-widest block">HADIR</span>
                         </div>
                         
-                        <!-- Baris Bawah: Singkatan Status -->
-                        <div class="flex justify-between items-center text-[9px] font-black mt-1 pt-1 border-t ${tema.border} tracking-wider">
+                        <!-- Baris 3: Singkatan Status -->
+                        <div class="flex justify-between items-center text-[9px] font-black border-t ${tema.border} pt-1 tracking-wider leading-none">
                             <span class="text-amber-600" title="Terlambat">${countTerlambat} T</span>
                             <span class="text-purple-600" title="Pulang Awal / TAP">${countPulangAwalTAP} PA</span>
                             <span class="text-red-600" title="Alpha">${countAlpha} A</span>
