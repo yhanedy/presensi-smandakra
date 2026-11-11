@@ -8,13 +8,26 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <style>
+        /* CSS KHUSUS UNTUK PRINT: Mengubah Kotak menjadi Tabel */
         @media print {
             .no-print { display: none !important; }
             .print-only { display: block !important; }
             body { background: white; color: black; font-size: 10pt; }
             .shadow-lg, .shadow-md, .shadow { box-shadow: none !important; }
             .border { border-color: #000 !important; }
+            
+            /* Sembunyikan tampilan Grid (Kotak) */
+            #grid-rekap-container { display: none !important; }
+            
+            /* Tampilkan tabel khusus print */
+            #table-print-container { display: block !important; width: 100%; }
+            #table-print-container table { width: 100%; border-collapse: collapse; }
+            #table-print-container th, #table-print-container td { 
+                border: 1px solid #000; padding: 4px; font-size: 9pt; text-align: center; 
+            }
+            #table-print-container th { background-color: #f0f0f0 !important; }
         }
+        
         .print-only { display: none; }
     </style>
 </head>
@@ -186,37 +199,45 @@
             </div>
         </div>
 
-        <!-- SECTION 2: REKAP KELAS UTAMA -->
+        <!-- SECTION 2: REKAP KELAS (GRID VIEW & PRINT VIEW) -->
         <div id="section-rekap-utama" class="space-y-6">
-            <div id="container-tabel-rekap" class="bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden space-y-3">
-                <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                    <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
-                        <i class="fa-solid fa-list-check text-blue-600"></i>
-                        <span>Ringkasan Kehadiran Seluruh Kelas</span>
-                    </h3>
-                    <span id="label-tanggal-aktif" class="text-xs font-mono font-bold text-blue-900 bg-blue-100 px-2.5 py-1 rounded-full">-</span>
-                </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-xs text-left text-slate-600">
-                        <thead class="bg-slate-100 text-slate-700 uppercase font-semibold border-b">
-                            <tr>
-                                <th class="p-3 text-center w-12">NO</th>
-                                <th class="p-3">NAMA KELAS (KLIK UNTUK DETAIL)</th>
-                                <th class="p-3 text-center text-emerald-700">SISWA HADIR</th>
-                                <th class="p-3 text-center text-amber-700">TERLAMBAT (> 07:01)</th>
-                                <th class="p-3 text-center text-purple-700">PULANG AWAL / TAP</th>
-                                <th class="p-3 text-center text-red-700">ALPHA (> 08:30)</th>
-                                <th class="p-3 text-center text-blue-700">TIDAK MASUK (S/I/D)</th>
-                                <th class="p-3 text-center font-bold">TOTAL SISWA</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabel-rekap-kelas-body" class="divide-y divide-slate-100">
-                            <tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat data rekapitulasi kehadiran...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            
+            <!-- HEADER REKAP -->
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center">
+                <h3 class="font-bold text-slate-800 text-sm flex items-center space-x-2">
+                    <i class="fa-solid fa-list-check text-blue-600"></i>
+                    <span>Ringkasan Kehadiran Seluruh Kelas</span>
+                </h3>
+                <span id="label-tanggal-aktif" class="text-xs font-mono font-bold text-blue-900 bg-blue-100 px-2.5 py-1 rounded-full">-</span>
             </div>
 
+            <!-- A. TAMPILAN LAYAR (GRID KOTAK-KOTAK) -->
+            <div id="grid-rekap-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                <!-- Kotak akan di-render oleh JS -->
+            </div>
+
+            <!-- B. TAMPILAN PRINT (TABEL KONVENSIONAL) -->
+            <div id="table-print-container" class="hidden">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>NO</th>
+                            <th>NAMA KELAS</th>
+                            <th>HADIR</th>
+                            <th>TERLAMBAT</th>
+                            <th>PULANG AWAL/TAP</th>
+                            <th>ALPHA</th>
+                            <th>TIDAK MASUK (S/I/D)</th>
+                            <th>TOTAL SISWA</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabel-rekap-kelas-body-print">
+                        <!-- Diisi oleh JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- C. DETAIL KELAS (TETAP TABEL) -->
             <div id="section-detail-kelas" class="hidden bg-white rounded-xl shadow-md border border-slate-200 overflow-hidden space-y-3">
                 <div class="p-4 bg-slate-900 text-white flex flex-wrap justify-between items-center gap-2">
                     <div>
@@ -247,7 +268,7 @@
                             </tr>
                         </thead>
                         <tbody id="tabel-detail-siswa-body" class="divide-y divide-slate-100">
-                            <tr><td colspan="6" class="p-4 text-center text-slate-400">Silakan klik salah satu nama kelas pada tabel ringkasan untuk melihat rincian siswa.</td></tr>
+                            <tr><td colspan="6" class="p-4 text-center text-slate-400">Silakan klik salah satu kotak kelas untuk melihat rincian siswa.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -379,15 +400,11 @@
             } catch (e) { return tanggalStr; }
         }
 
-        // Cek apakah suatu batas waktu pada tanggal tertentu sudah terlewati
         function isWaktuLewat(tanggalLaporan, batasJam) {
             const tglHariIni = getTanggalWIB();
-            if (tanggalLaporan < tglHariIni) return true; // Laporan masa lalu = pasti sudah lewat
-            if (tanggalLaporan > tglHariIni) return false; // Laporan masa depan = belum lewat
-            
-            // Jika laporan hari ini, bandingkan jamnya
-            const jamSekarang = getJamWIB();
-            return jamSekarang >= batasJam;
+            if (tanggalLaporan < tglHariIni) return true;
+            if (tanggalLaporan > tglHariIni) return false;
+            return getJamWIB() >= batasJam;
         }
 
         // ============================================================
@@ -402,14 +419,11 @@
         function kembaliKeRekapUtama() {
             document.getElementById('hasil-cari-siswa-container').classList.add('hidden');
             document.getElementById('section-detail-kelas').classList.add('hidden');
-            document.getElementById('container-tabel-rekap').classList.remove('hidden');
+            document.getElementById('grid-rekap-container').classList.remove('hidden');
             document.getElementById('section-rekap-utama').classList.remove('hidden');
             document.getElementById('input-cari-siswa').value = '';
         }
 
-        // ============================================================
-        // FUNGSI BANTU PENCARIAN
-        // ============================================================
         function cariPresensiSiswa(nisn) {
             if (!nisn) return [];
             return globalPresensiHariIni.filter(p => (p.nisn || '').toString().trim() === nisn.toString().trim());
@@ -438,7 +452,7 @@
                 globalSiswaList = Array.isArray(data.siswa) ? data.siswa : [];
                 globalPresensiHariIni = Array.isArray(data.presensi) ? data.presensi : [];
 
-                renderTabelRekapKelas(tglPilihan);
+                renderRekapKelas(tglPilihan);
                 renderTabelTigaKolomBawah(tglPilihan);
             } catch (err) {
                 console.error(err);
@@ -446,10 +460,16 @@
             }
         }
 
-        function renderTabelRekapKelas(tglLaporan) {
-            const tbody = document.getElementById('tabel-rekap-kelas-body');
+        // ============================================================
+        // RENDER REKAP (KOTAK & TABEL PRINT)
+        // ============================================================
+        function renderRekapKelas(tglLaporan) {
+            const gridContainer = document.getElementById('grid-rekap-container');
+            const printBody = document.getElementById('tabel-rekap-kelas-body-print');
+            
             if (!globalSiswaList.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Data siswa tidak ditemukan.</td></tr>';
+                gridContainer.innerHTML = '<div class="col-span-full p-4 text-center text-slate-400">Data siswa tidak ditemukan.</div>';
+                printBody.innerHTML = '<tr><td colspan="8" class="text-center">Data tidak ditemukan.</td></tr>';
                 return;
             }
 
@@ -461,7 +481,8 @@
             });
 
             const sortedKelas = Object.keys(kelasMap).sort();
-            let rowsHtml = '';
+            let htmlGrid = '';
+            let htmlPrint = '';
             let grandTotalHadir = 0, grandTotalTerlambat = 0, grandTotalAlpha = 0;
 
             sortedKelas.forEach((namaKelas, idx) => {
@@ -483,19 +504,44 @@
                 grandTotalTerlambat += countTerlambat;
                 grandTotalAlpha += countAlpha;
 
-                rowsHtml += `
-                    <tr class="hover:bg-blue-50/50 cursor-pointer transition border-b border-slate-100" onclick="pilihKelasDetail('${namaKelas.replace(/'/g, "\\'")}')">
-                        <td class="p-3 text-center font-mono font-bold text-slate-500">${idx + 1}</td>
-                        <td class="p-3 font-bold text-blue-900 flex items-center space-x-2">
-                            <i class="fa-solid fa-folder text-amber-500"></i>
-                            <span>${namaKelas}</span>
-                        </td>
-                        <td class="p-3 text-center font-bold text-emerald-600 font-mono">${countHadir}</td>
-                        <td class="p-3 text-center font-bold text-amber-600 font-mono">${countTerlambat}</td>
-                        <td class="p-3 text-center font-bold text-purple-600 font-mono">${countPulangAwalTAP}</td>
-                        <td class="p-3 text-center font-bold text-red-600 font-mono">${countAlpha}</td>
-                        <td class="p-3 text-center font-bold text-blue-600 font-mono">${countSI}</td>
-                        <td class="p-3 text-center font-bold font-mono text-slate-700">${listSiswaKelas.length} Siswa</td>
+                // A. HTML UNTUK KOTAK (GRID)
+                // Desain: Kotak putih, header abu-abu, angka hadir besar, ikon kecil di bawah
+                htmlGrid += `
+                    <div onclick="pilihKelasDetail('${namaKelas.replace(/'/g, "\\'")}')" 
+                         class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 cursor-pointer hover:shadow-lg hover:border-blue-400 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group">
+                        
+                        <div class="flex justify-between items-start mb-2 border-b border-slate-100 pb-2">
+                            <span class="font-black text-blue-900 text-sm group-hover:text-blue-600 flex items-center gap-1">
+                                <i class="fa-solid fa-folder text-amber-500 text-xs"></i> ${namaKelas}
+                            </span>
+                            <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${listSiswaKelas.length} Ssw</span>
+                        </div>
+                        
+                        <div class="text-center my-1">
+                            <span class="block text-2xl font-black ${countHadir > 0 ? 'text-emerald-600' : 'text-slate-300'}">${countHadir}</span>
+                            <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Hadir</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center text-[10px] font-bold mt-2 pt-2 border-t border-slate-100">
+                            <span class="text-amber-600" title="Terlambat">🟡 ${countTerlambat}</span>
+                            <span class="text-purple-600" title="Pulang Awal/TAP">🟣 ${countPulangAwalTAP}</span>
+                            <span class="text-red-600" title="Alpha">🔴 ${countAlpha}</span>
+                            <span class="text-blue-600" title="Sakit/Izin/Dispen">🔵 ${countSI}</span>
+                        </div>
+                    </div>
+                `;
+
+                // B. HTML UNTUK TABEL (PRINT)
+                htmlPrint += `
+                    <tr>
+                        <td>${idx + 1}</td>
+                        <td style="text-align: left; font-weight: bold;">${namaKelas}</td>
+                        <td>${countHadir}</td>
+                        <td>${countTerlambat}</td>
+                        <td>${countPulangAwalTAP}</td>
+                        <td>${countAlpha}</td>
+                        <td>${countSI}</td>
+                        <td>${listSiswaKelas.length}</td>
                     </tr>
                 `;
             });
@@ -503,14 +549,15 @@
             document.getElementById('box-total-hadir').textContent = grandTotalHadir;
             document.getElementById('box-total-terlambat').textContent = grandTotalTerlambat;
             document.getElementById('box-total-alpha').textContent = grandTotalAlpha;
-            tbody.innerHTML = rowsHtml;
+
+            gridContainer.innerHTML = htmlGrid;
+            printBody.innerHTML = htmlPrint;
         }
 
         // ============================================================
         // LOGIKA UTAMA PENENTUAN STATUS SISWA
         // ============================================================
         function hitungStatusSiswa(pList, tanggalLaporan) {
-            // 1. Cek Intervensi Mutlak (Sakit, Izin, Dispensasi, Alpa dari Piket/BK)
             const pSakit = pList.find(p => p.status === 'Sakit');
             if (pSakit) return { kategori: 'SI', statusText: 'Sakit', badgeClass: 'bg-blue-100 text-blue-800', jamMasuk: '-', jamPulang: '-', catatan: pSakit.keterangan || 'Sakit' };
 
@@ -523,7 +570,6 @@
             const pAlpa = pList.find(p => p.status === 'Alpa' || p.status === 'Alpha');
             if (pAlpa) return { kategori: 'ALPHA', statusText: 'Alpha', badgeClass: 'bg-red-100 text-red-800', jamMasuk: '-', jamPulang: '-', catatan: pAlpa.keterangan || 'Alpha (Input Piket/BK)' };
 
-            // 2. Cek Pulang Mendahului
             const pPulangAwal = pList.find(p => p.status === 'Pulang Mendahului');
             if (pPulangAwal) {
                 const pMasuk = pList.find(p => p.jam_masuk);
@@ -532,10 +578,8 @@
                 return { kategori: 'PULANG_AWAL_TAP', statusText: 'Pulang Awal', badgeClass: 'bg-purple-100 text-purple-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: pPulangAwal.keterangan || 'Izin Pulang' };
             }
 
-            // 3. Cek Data Presensi (Masuk / Pulang)
             const pMasuk = pList.find(p => p.jam_masuk);
             
-            // Jika tidak ada data masuk sama sekali
             if (!pMasuk) {
                 if (isWaktuLewat(tanggalLaporan, BATAS_ALPHA)) {
                     return { kategori: 'ALPHA', statusText: 'Alpha', badgeClass: 'bg-red-100 text-red-800', jamMasuk: '-', jamPulang: '-', catatan: 'Tidak absen masuk s.d 08:30' };
@@ -543,36 +587,38 @@
                 return { kategori: 'BELUM', statusText: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700', jamMasuk: '-', jamPulang: '-', catatan: 'Belum Melakukan Presensi' };
             }
 
-            // Jika ada data masuk
             const jamMasukVal = pMasuk.jam_masuk;
-            const isTerlambat = (jamMasukVal > BATAS_MASUK || pMasuk.status === 'Terlambat');
             
-            // Cari data pulang (bisa jadi terpisah barisnya di DB)
+            // KUNCI: Hormati Intervensi Piket. Jika status di DB = 'Hadir', jangan hiraukan jam terlambat
+            let isTerlambat = false;
+            if (pMasuk.status !== 'Hadir') {
+                isTerlambat = (jamMasukVal > BATAS_MASUK || pMasuk.status === 'Terlambat');
+            }
+            
             const pPulang = pList.find(p => p.jam_pulang);
             const jamPulangVal = pPulang ? pPulang.jam_pulang : '-';
 
             if (jamPulangVal === '-') {
-                // Jika belum absen pulang, cek apakah sudah lewat jam 17:30 (TAP)
                 if (isWaktuLewat(tanggalLaporan, BATAS_PULANG)) {
                     return { kategori: 'PULANG_AWAL_TAP', statusText: 'TAP', badgeClass: 'bg-fuchsia-100 text-fuchsia-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: 'Tidak Absen Pulang s.d 17:30' };
                 }
-                // Jika belum lewat 17:30 dan belum absen pulang
                 if (isTerlambat) return { kategori: 'TERLAMBAT', statusText: 'Terlambat', badgeClass: 'bg-amber-100 text-amber-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Terlambat (${jamMasukVal})` };
-                return { kategori: 'HADIR', statusText: 'Hadir Pagi', badgeClass: 'bg-teal-100 text-teal-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Hadir Pagi (${jamMasukVal})` };
+                return { kategori: 'HADIR', statusText: 'Hadir Pagi', badgeClass: 'bg-teal-100 text-teal-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: pMasuk.keterangan || `Hadir Pagi (${jamMasukVal})` };
             }
 
-            // Jika sudah ada jam masuk dan jam pulang
             if (isTerlambat) return { kategori: 'TERLAMBAT', statusText: 'Terlambat', badgeClass: 'bg-amber-100 text-amber-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Terlambat (${jamMasukVal} - ${jamPulangVal})` };
-            return { kategori: 'HADIR', statusText: 'Hadir Lengkap', badgeClass: 'bg-emerald-100 text-emerald-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir Lengkap (${jamMasukVal} - ${jamPulangVal})` };
+            return { kategori: 'HADIR', statusText: 'Hadir Lengkap', badgeClass: 'bg-emerald-100 text-emerald-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: pMasuk.keterangan || `Hadir Lengkap (${jamMasukVal} - ${jamPulangVal})` };
         }
 
         // ============================================================
-        // DETAIL KELAS & 3 TABEL BAWAH (Disederhanakan untuk ruang)
+        // DETAIL KELAS
         // ============================================================
         function pilihKelasDetail(namaKelas) {
             document.getElementById('detail-nama-kelas').textContent = namaKelas;
             detailSiswaAktif = globalSiswaList.filter(s => s.kelas === namaKelas);
-            document.getElementById('container-tabel-rekap').classList.add('hidden');
+            
+            // Sembunyikan Grid & Tampilkan Tabel Detail
+            document.getElementById('grid-rekap-container').classList.add('hidden');
             const sectionDetail = document.getElementById('section-detail-kelas');
             sectionDetail.classList.remove('hidden');
             sectionDetail.scrollIntoView({ behavior: 'smooth' });
@@ -603,6 +649,16 @@
             }).join('');
         }
 
+        function filterTabelDetail() {
+            const keyword = document.getElementById('search-detail-input').value.trim().toLowerCase();
+            const filtered = detailSiswaAktif.filter(s => s.nama.toLowerCase().includes(keyword));
+            const tglPilihan = document.getElementById('filter-tanggal').value;
+            renderTabelDetailRows(filtered, tglPilihan);
+        }
+
+        // ============================================================
+        // RENDER 3 KOLOM BAWAH
+        // ============================================================
         function renderTabelTigaKolomBawah(tglLaporan) {
             const listTerlambat = [], listPulangAwal = [], listAlpha = [];
             globalSiswaList.forEach(siswa => {
@@ -629,8 +685,114 @@
                 : listAlpha.map(item => `<tr class="hover:bg-red-50 border-b border-red-100"><td class="p-2"><div class="font-bold text-slate-800">${item.nama}</div><div class="text-[10px] text-slate-500 font-mono">${item.kelas}</div></td><td class="p-2 text-center font-bold text-red-600 text-[10px]">${item.res.statusText}</td></tr>`).join('');
         }
 
-        // Fungsi Cari Siswa BK & Ekspor Excel tetap sama (menggunakan logika yang sudah ada)
-        // ... [Bagian cariDataSiswaBK dan eksporExcelRekap tidak diubah, bisa gunakan dari kode sebelumnya] ...
+        // ============================================================
+        // FUNGSI PENCARIAN SISWA (BK) & EKSPOR EXCEL
+        // ============================================================
+        async function cariDataSiswaBK() {
+            const keyword = document.getElementById('input-cari-siswa').value.trim();
+            if (!keyword) return alert("Masukkan Nama siswa terlebih dahulu.");
+
+            document.getElementById('section-rekap-utama').classList.add('hidden');
+            const container = document.getElementById('hasil-cari-siswa-container');
+
+            try {
+                const response = await fetch(API_BASE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ type: 'cari', keyword: keyword })
+                });
+
+                const data = await response.json();
+                if (!response.ok || !data.siswa) {
+                    alert(`Siswa dengan Nama "${keyword}" tidak ditemukan.`);
+                    kembaliKeRekapUtama();
+                    return;
+                }
+
+                const siswa = data.siswa;
+                document.getElementById('cari-nama-siswa').textContent = siswa.nama || '-';
+                document.getElementById('cari-kelas-siswa').textContent = siswa.kelas || '-';
+
+                let cntHadir = 0, cntTerlambat = 0, cntSI = 0, cntAlpha = 0;
+                (Array.isArray(data.presensi) ? data.presensi : []).forEach(p => {
+                    if (p.status === 'Hadir') cntHadir++;
+                    else if (p.status === 'Terlambat') cntTerlambat++;
+                    else if (p.status === 'Sakit' || p.status === 'Izin') cntSI++;
+                    else if (p.status === 'Alpa' || p.status === 'Alpha') cntAlpha++;
+                });
+
+                document.getElementById('stat-total-hadir').textContent = cntHadir;
+                document.getElementById('stat-total-terlambat').textContent = cntTerlambat;
+                document.getElementById('stat-total-si').textContent = cntSI;
+                document.getElementById('stat-total-alpha').textContent = cntAlpha;
+
+                const tbodyPresensi = document.getElementById('tabel-cari-presensi-body');
+                if (!Array.isArray(data.presensi) || data.presensi.length === 0) {
+                    tbodyPresensi.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
+                } else {
+                    tbodyPresensi.innerHTML = data.presensi.map(r => `
+                        <tr class="hover:bg-slate-50 border-b border-slate-100">
+                            <td class="p-2.5 font-mono text-slate-700">${r.tanggal || '-'}</td>
+                            <td class="p-2.5 text-center font-bold font-mono text-emerald-700">${r.jam_masuk || '-'}</td>
+                            <td class="p-2.5 text-center font-bold font-mono text-blue-700">${r.jam_pulang || '-'}</td>
+                            <td class="p-2.5 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${r.status === 'Hadir' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}">${r.status}</span></td>
+                        </tr>
+                    `).join('');
+                }
+
+                const tbodyBK = document.getElementById('tabel-cari-pelanggaran-body');
+                if (!Array.isArray(data.pelanggaran) || data.pelanggaran.length === 0) {
+                    tbodyBK.innerHTML = '<tr><td colspan="2" class="p-4 text-center text-emerald-600 font-bold">Bersih (Tidak ada catatan pelanggaran BK).</td></tr>';
+                } else {
+                    tbodyBK.innerHTML = data.pelanggaran.map(b => `
+                        <tr class="hover:bg-red-50 border-b border-red-100">
+                            <td class="p-2.5 font-mono text-slate-600 whitespace-nowrap">${b.created_at || '-'}</td>
+                            <td class="p-2.5 font-semibold text-red-900">${b.catatan_pelanggaran || '-'}</td>
+                        </tr>
+                    `).join('');
+                }
+
+                container.classList.remove('hidden');
+                container.scrollIntoView({ behavior: 'smooth' });
+            } catch (err) {
+                alert('Gagal mencari data siswa: ' + err.message);
+                kembaliKeRekapUtama();
+            }
+        }
+
+        function eksporExcelRekap() {
+            if (!globalSiswaList.length) return alert("Belum ada data dimuat.");
+            if (typeof XLSX === 'undefined') return alert("Library XLSX belum termuat.");
+
+            const tglPilihan = document.getElementById('filter-tanggal').value || getTanggalWIB();
+            const kelasMap = {};
+            globalSiswaList.forEach(s => {
+                const k = s.kelas || 'Tanpa Kelas';
+                if (!kelasMap[k]) kelasMap[k] = [];
+                kelasMap[k].push(s);
+            });
+
+            const dataExport = [];
+            Object.keys(kelasMap).sort().forEach((namaKelas, idx) => {
+                const listSiswa = kelasMap[namaKelas];
+                let h = 0, t = 0, pa = 0, a = 0, si = 0;
+                listSiswa.forEach(s => {
+                    const pList = cariPresensiSiswa(s.nisn);
+                    const res = hitungStatusSiswa(pList, tglPilihan);
+                    if (res.kategori === 'HADIR') h++;
+                    else if (res.kategori === 'TERLAMBAT') t++;
+                    else if (res.kategori === 'PULANG_AWAL_TAP') pa++;
+                    else if (res.kategori === 'ALPHA') a++;
+                    else if (res.kategori === 'SI') si++;
+                });
+                dataExport.push({ "No": idx + 1, "Nama Kelas": namaKelas, "Siswa Hadir": h, "Terlambat": t, "Pulang Awal / TAP": pa, "Alpha": a, "Tidak Masuk (S/I)": si, "Total Siswa": listSiswa.length });
+            });
+
+            const ws = XLSX.utils.json_to_sheet(dataExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Rekap Kelas");
+            XLSX.writeFile(wb, `Laporan_Rekap_Presensi_SMADA_${tglPilihan}.xlsx`);
+        }
     </script>
 </body>
 </html>
