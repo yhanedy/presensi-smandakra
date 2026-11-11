@@ -237,7 +237,7 @@
             </div>
         </div>
 
-        <!-- BARIS 2: GRID KOTAK KOREKSI SALAH KLIK, LOG HP, & PEMULANGAN MASSAL -->
+        <!-- BARIS 2: GRID KOTAK KOREKSI SALAH KLIK, LOG HP, & PENYESUAIAN PRESENSI -->
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
             
             <!-- A. Koreksi Salah Klik Pulang -->
@@ -292,54 +292,60 @@
                 </div>
             </div>
 
-            <!-- C. PEMULANGAN MASSAL (FITUR BARU) -->
-            <div class="bg-white p-5 rounded-xl shadow-md border border-blue-200 space-y-3 bg-blue-50/20 flex flex-col justify-between">
+            <!-- C. PENYESUAIAN PRESENSI (FITUR BARU: MASUK TELAT TUGAS & PULANG AWAL) -->
+            <div class="bg-white p-5 rounded-xl shadow-md border border-blue-300 space-y-3 bg-blue-50/30 flex flex-col justify-between">
                 <div class="space-y-3">
                     <h3 class="font-bold text-blue-900 text-sm flex items-center space-x-2 border-b border-blue-200 pb-2">
-                        <i class="fa-solid fa-people-group text-blue-600"></i>
-                        <span>Pemulangan Massal</span>
+                        <i class="fa-solid fa-user-clock text-blue-600"></i>
+                        <span>Penyesuaian Presensi Khusus</span>
                     </h3>
                     <p class="text-xs text-slate-500 leading-relaxed">
-                        Memulangkan siswa lebih awal (misal: lomba renang).
+                        Untuk siswa yang datang terlambat karena <b>Tugas Guru</b> (tidak dihitung Alpa/Terlambat), atau pulang lebih awal (Lomba/Renang).
                     </p>
                     
-                    <div class="grid grid-cols-2 gap-2">
+                    <div class="space-y-2">
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Target</label>
-                            <select id="pulang-massal-tipe" onchange="togglePulangMassal()" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="kelas">Satu Kelas</option>
+                            <select id="penyesuaian-tipe" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="siswa">Siswa Tertentu</option>
+                                <option value="kelas">Satu Kelas (Massal)</option>
                             </select>
                         </div>
                         <div>
                             <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Kelas</label>
-                            <select id="pulang-massal-kelas" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                            <select id="penyesuaian-kelas" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
                                 <option value="">-- Pilih Kelas --</option>
+                            </select>
+                        </div>
+                        <div id="wrapper-penyesuaian-siswa">
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Siswa</label>
+                            <select id="penyesuaian-nisn" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">-- Pilih Kelas Dahulu --</option>
                             </select>
                         </div>
                     </div>
 
-                    <div id="wrapper-pulang-massal-siswa" class="hidden">
-                        <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Siswa</label>
-                        <select id="pulang-massal-nisn" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
-                            <option value="">-- Pilih Kelas Dahulu --</option>
-                        </select>
+                    <div class="grid grid-cols-2 gap-2 border-t pt-2 mt-2">
+                        <div>
+                            <label class="block text-[11px] font-bold text-blue-800 mb-1">Jenis Penyesuaian</label>
+                            <select id="penyesuaian-jenis" class="w-full border border-blue-300 rounded-lg px-2 py-1.5 text-xs outline-none bg-white font-bold text-blue-900">
+                                <option value="masuk">Masuk Telat (Tugas)</option>
+                                <option value="pulang">Pulang Lebih Awal</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-bold text-blue-800 mb-1">Jam Khusus</label>
+                            <input type="time" id="penyesuaian-jam" value="09:00" class="w-full border border-blue-300 rounded-lg px-2 py-1.5 text-xs outline-none font-mono">
+                        </div>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Jam Pulang</label>
-                            <input type="time" id="pulang-massal-jam" value="12:00" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500 font-mono">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-semibold text-slate-700 mb-1">Keterangan</label>
-                            <input type="text" id="pulang-massal-ket" placeholder="Cth: Renang" class="w-full border border-slate-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
-                        </div>
+                    <div>
+                        <label class="block text-[11px] font-bold text-blue-800 mb-1">Keterangan / Alasan</label>
+                        <input type="text" id="penyesuaian-ket" placeholder="Cth: Tugas Lomba / Renang" class="w-full border border-blue-300 rounded-lg px-3 py-1.5 text-xs outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                 </div>
-                <button onclick="prosesPemulanganMassal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow mt-2 cursor-pointer">
-                    <i class="fa-solid fa-paper-plane"></i>
-                    <span>Proses Pemulangan</span>
+                <button onclick="prosesPenyesuaianPresensi()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg text-xs transition flex items-center justify-center space-x-1.5 shadow mt-2 cursor-pointer">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span>Simpan Penyesuaian</span>
                 </button>
             </div>
         </div>
@@ -431,7 +437,7 @@
             muatSettingSekolah();
             muatSemuaDataMaster();
             muatLogPerangkatHP();
-            muatDropdownKelasPulangMassal(); // Panggil fungsi dropdown baru
+            muatDropdownKelasPenyesuaian(); // Inisialisasi Dropdown Penyesuaian
         };
 
         function logout() {
@@ -769,9 +775,6 @@
             }
         }
 
-        /* =========================================================
-           FUNGSI BACKUP DATABASE KE GOOGLE DRIVE
-           ========================================================= */
         async function backupDatabaseKeDrive() {
             if (!confirm("Apakah Anda yakin ingin membackup seluruh data ke Google Drive?\n\nData: Presensi, Kedisiplinan, Jurnal KBM.")) return;
             
@@ -836,19 +839,19 @@
         }
 
         // ============================================
-        // FITUR BARU: PEMULANGAN MASSAL
+        // FITUR BARU: PENYESUAIAN PRESENSI (MASUK TUGAS & PULANG AWAL)
         // ============================================
-        async function muatDropdownKelasPulangMassal() {
+        async function muatDropdownKelasPenyesuaian() {
             try {
                 const dataKelas = await queryTurso('SELECT DISTINCT kelas FROM siswa ORDER BY kelas ASC');
-                const selectKelas = document.getElementById('pulang-massal-kelas');
+                const selectKelas = document.getElementById('penyesuaian-kelas');
                 if (selectKelas && dataKelas) {
                     selectKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' + 
                         dataKelas.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
                     
                     selectKelas.addEventListener('change', async (e) => {
                         const kls = e.target.value;
-                        const selectSiswa = document.getElementById('pulang-massal-nisn');
+                        const selectSiswa = document.getElementById('penyesuaian-nisn');
                         if (!kls) {
                             selectSiswa.innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
                             return;
@@ -865,30 +868,23 @@
             }
         }
 
-        function togglePulangMassal() {
-            const tipe = document.getElementById('pulang-massal-tipe').value;
-            const wrapperSiswa = document.getElementById('wrapper-pulang-massal-siswa');
-            if (tipe === 'siswa') {
-                wrapperSiswa.classList.remove('hidden');
-            } else {
-                wrapperSiswa.classList.add('hidden');
-            }
-        }
-
-        async function prosesPemulanganMassal() {
-            const tipe = document.getElementById('pulang-massal-tipe').value;
-            const kelas = document.getElementById('pulang-massal-kelas').value;
-            const nisn = document.getElementById('pulang-massal-nisn').value;
-            const jam = document.getElementById('pulang-massal-jam').value;
-            const ket = document.getElementById('pulang-massal-ket').value.trim();
+        async function prosesPenyesuaianPresensi() {
+            const tipe = document.getElementById('penyesuaian-tipe').value;
+            const kelas = document.getElementById('penyesuaian-kelas').value;
+            const nisn = document.getElementById('penyesuaian-nisn').value;
+            const jenis = document.getElementById('penyesuaian-jenis').value;
+            const jam = document.getElementById('penyesuaian-jam').value;
+            const ket = document.getElementById('penyesuaian-ket').value.trim();
 
             if (!kelas) { alert("Pilih kelas terlebih dahulu!"); return; }
             if (tipe === 'siswa' && !nisn) { alert("Pilih siswa terlebih dahulu!"); return; }
-            if (!jam) { alert("Tentukan jam pulang khusus!"); return; }
+            if (!jam) { alert("Tentukan jam khusus!"); return; }
 
             const tglHariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
+            const ketFinal = ket ? `Penyesuaian: ${ket}` : 'Penyesuaian Khusus';
 
-            if (!confirm(`Proses pemulangan massal?\nTarget: ${tipe === 'kelas' ? 'Kelas ' + kelas : 'Siswa terpilih'}\nJam: ${jam}\nKet: ${ket || '-'}`)) return;
+            const labelJenis = jenis === 'masuk' ? 'Masuk Telat (Tugas)' : 'Pulang Lebih Awal';
+            if (!confirm(`Proses penyesuaian?\nTarget: ${tipe === 'kelas' ? 'Kelas ' + kelas : 'Siswa terpilih'}\nJenis: ${labelJenis}\nJam: ${jam}\nKet: ${ketFinal}`)) return;
 
             const btn = event.target;
             btn.disabled = true;
@@ -903,32 +899,46 @@
                     targetNisnList = [nisn];
                 }
 
-                if (targetNisnList.length === 0) throw new Error("Tidak ada siswa ditemukan di kelas ini.");
+                if (targetNisnList.length === 0) throw new Error("Tidak ada siswa ditemukan.");
 
                 let sukses = 0;
-                const ketFinal = ket ? `Pulang Khusus: ${ket}` : 'Pulang Khusus';
-
                 for (const n of targetNisnList) {
                     const cekPresensi = await queryTurso('SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ?', [n, tglHariIni]);
                     
                     if (cekPresensi && cekPresensi.length > 0) {
-                        await queryTurso('UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE id = ?', [jam, ketFinal, cekPresensi[0].id]);
+                        // Update
+                        if (jenis === 'masuk') {
+                            // Update jam masuk, paksa status jadi 'Hadir', agar tidak dihitung Terlambat/Alpha
+                            await queryTurso('UPDATE presensi SET jam_masuk = ?, status = ?, keterangan = ? WHERE id = ?', 
+                                [jam, 'Hadir', ketFinal, cekPresensi[0].id]);
+                        } else {
+                            // Update jam pulang
+                            await queryTurso('UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE id = ?', 
+                                [jam, ketFinal, cekPresensi[0].id]);
+                        }
                     } else {
-                        await queryTurso('INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?, ?)', [n, tglHariIni, '07:00:00', jam, 'Hadir', ketFinal]);
+                        // Insert Baru
+                        if (jenis === 'masuk') {
+                            await queryTurso('INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)', 
+                                [n, tglHariIni, jam, 'Hadir', ketFinal]);
+                        } else {
+                            await queryTurso('INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?, ?)', 
+                                [n, tglHariIni, '07:00:00', jam, 'Hadir', ketFinal]);
+                        }
                     }
                     sukses++;
                 }
 
-                alert(`Berhasil memproses pemulangan massal untuk ${sukses} siswa.`);
-                document.getElementById('pulang-massal-ket').value = '';
+                alert(`Berhasil memproses penyesuaian untuk ${sukses} siswa.`);
+                document.getElementById('penyesuaian-ket').value = '';
                 
                 if (typeof muatSemuaDataMaster === 'function') muatSemuaDataMaster();
 
             } catch (err) {
-                alert("Gagal memproses pemulangan massal: " + err.message);
+                alert("Gagal memproses penyesuaian: " + err.message);
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> <span>Proses Pemulangan</span>`;
+                btn.innerHTML = `<i class="fa-solid fa-check-double"></i> <span>Simpan Penyesuaian</span>`;
             }
         }
     </script>
