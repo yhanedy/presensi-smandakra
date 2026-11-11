@@ -331,8 +331,7 @@
     <footer class="bg-slate-800 text-slate-400 text-xs text-center py-4 no-print mt-8">
         <p>&copy; yhanedy@2026 SMAN 2 Karanganyar. All rights reserved.</p>
     </footer>
-
-    <script>
+        <script>
         // ============================================================
         // KONFIGURASI
         // ============================================================
@@ -341,9 +340,7 @@
         const BATAS_ALPHA = '08:30:00';
         const BATAS_PULANG_NORMAL = '17:30:00';
 
-        // ============================================================
         // STATE GLOBAL
-        // ============================================================
         let globalSiswaList = [];
         let globalPresensiHariIni = [];
         let detailSiswaAktif = [];
@@ -355,32 +352,21 @@
             try {
                 return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(d);
             } catch (e) {
-                // Fallback manual jika Intl tidak mendukung timezone
                 const offsetMs = 7 * 60 * 60 * 1000;
                 const wib = new Date(d.getTime() + offsetMs);
-                const yyyy = wib.getUTCFullYear();
-                const mm = String(wib.getUTCMonth() + 1).padStart(2, '0');
-                const dd = String(wib.getUTCDate()).padStart(2, '0');
-                return `${yyyy}-${mm}-${dd}`;
+                return `${wib.getUTCFullYear()}-${String(wib.getUTCMonth() + 1).padStart(2, '0')}-${String(wib.getUTCDate()).padStart(2, '0')}`;
             }
         }
 
         function getJamWIB(d = new Date()) {
             try {
                 return new Intl.DateTimeFormat('id-ID', {
-                    timeZone: 'Asia/Jakarta',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
+                    timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
                 }).format(d).replace(/\./g, ':');
             } catch (e) {
                 const offsetMs = 7 * 60 * 60 * 1000;
                 const wib = new Date(d.getTime() + offsetMs);
-                const hh = String(wib.getUTCHours()).padStart(2, '0');
-                const mm = String(wib.getUTCMinutes()).padStart(2, '0');
-                const ss = String(wib.getUTCSeconds()).padStart(2, '0');
-                return `${hh}:${mm}:${ss}`;
+                return `${String(wib.getUTCHours()).padStart(2, '0')}:${String(wib.getUTCMinutes()).padStart(2, '0')}:${String(wib.getUTCSeconds()).padStart(2, '0')}`;
             }
         }
 
@@ -389,15 +375,21 @@
                 const safeStr = tanggalStr.includes('T') ? tanggalStr : (tanggalStr + 'T00:00:00');
                 const d = new Date(safeStr);
                 if (isNaN(d.getTime())) return tanggalStr;
-                return d.toLocaleDateString('id-ID', {
-                    weekday: 'long',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                });
+                return d.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
             } catch (e) {
                 return tanggalStr;
             }
+        }
+
+        // ============================================================
+        // FUNGSI BANTU PENCARIAN PRESENSI (BERDASARKAN NISN)
+        // ============================================================
+        function cariPresensiSiswa(nisn) {
+            if (!nisn) return [];
+            const cleanNisn = nisn.toString().trim();
+            return globalPresensiHariIni.filter(p => {
+                return (p.nisn || '').toString().trim() === cleanNisn;
+            });
         }
 
         // ============================================================
@@ -406,15 +398,10 @@
         window.addEventListener('load', function () {
             const inputTanggal = document.getElementById('filter-tanggal');
             const hariIni = getTanggalWIB();
-            if (inputTanggal && hariIni) {
-                inputTanggal.value = hariIni;
-            }
+            if (inputTanggal && hariIni) inputTanggal.value = hariIni;
             muatLaporanPublik();
         });
 
-        // ============================================================
-        // NAVIGASI
-        // ============================================================
         function kembaliKeRekapUtama() {
             document.getElementById('hasil-cari-siswa-container').classList.add('hidden');
             document.getElementById('section-detail-kelas').classList.add('hidden');
@@ -429,16 +416,10 @@
         // ============================================================
         async function muatLaporanPublik() {
             const inputTanggal = document.getElementById('filter-tanggal');
-            const tglPilihan = (inputTanggal && inputTanggal.value)
-                ? inputTanggal.value
-                : getTanggalWIB();
+            const tglPilihan = (inputTanggal && inputTanggal.value) ? inputTanggal.value : getTanggalWIB();
 
-            if (!tglPilihan) {
-                alert('Tanggal tidak valid. Silakan pilih tanggal terlebih dahulu.');
-                return;
-            }
+            if (!tglPilihan) return alert('Tanggal tidak valid.');
 
-            // Update label tanggal (dengan fallback aman)
             document.getElementById('label-tanggal-aktif').textContent = formatTanggalIndonesia(tglPilihan);
             document.getElementById('print-tanggal-label').textContent = formatTanggalIndonesia(tglPilihan);
 
@@ -455,12 +436,15 @@
                 globalSiswaList = Array.isArray(data.siswa) ? data.siswa : [];
                 globalPresensiHariIni = Array.isArray(data.presensi) ? data.presensi : [];
 
+                // Debugging
+                console.log("Sample Data Siswa:", globalSiswaList[0]);
+                console.log("Sample Data Presensi:", globalPresensiHariIni[0]);
+
                 renderTabelRekapKelas();
                 renderTabelTigaKolomBawah();
             } catch (err) {
                 console.error('Gagal memuat laporan publik:', err);
-                document.getElementById('tabel-rekap-kelas-body').innerHTML =
-                    `<tr><td colspan="8" class="p-4 text-center text-red-500">Gagal memuat data: ${err.message}</td></tr>`;
+                document.getElementById('tabel-rekap-kelas-body').innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500">Gagal memuat data: ${err.message}</td></tr>`;
                 alert('Gagal memuat laporan: ' + err.message);
             }
         }
@@ -491,7 +475,8 @@
                 let countHadir = 0, countTerlambat = 0, countPulangAwalTAP = 0, countAlpha = 0, countSI = 0;
 
                 listSiswaKelas.forEach(siswa => {
-                    const pList = globalPresensiHariIni.filter(p => p.nama === siswa.nama && p.kelas === siswa.kelas);
+                    // GUNAKAN NISN UNTUK MENCARI PRESENSI
+                    const pList = cariPresensiSiswa(siswa.nisn); 
                     const res = hitungStatusSiswa(pList);
 
                     if (res.kategori === 'HADIR') countHadir++;
@@ -538,12 +523,11 @@
             const isLewatJam1730 = (jamSekarangStr >= BATAS_PULANG_NORMAL);
 
             if (!pList || pList.length === 0) {
-                if (isLewatBatasAlpha) {
-                    return { kategori: 'ALPHA', statusText: 'Alpha', badgeClass: 'bg-red-100 text-red-800 border-red-200', jamMasuk: '-', jamPulang: '-', catatan: 'Alpha (Tanpa Keterangan)' };
-                }
+                if (isLewatBatasAlpha) return { kategori: 'ALPHA', statusText: 'Alpha', badgeClass: 'bg-red-100 text-red-800 border-red-200', jamMasuk: '-', jamPulang: '-', catatan: 'Alpha (Tanpa Keterangan)' };
                 return { kategori: 'BELUM', statusText: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700', jamMasuk: '-', jamPulang: '-', catatan: 'Belum Melakukan Presensi' };
             }
 
+            // Ambil semua status yang ada di list
             const pSakit = pList.find(p => p.status === 'Sakit');
             if (pSakit) return { kategori: 'SI', statusText: 'Sakit', badgeClass: 'bg-blue-100 text-blue-800', jamMasuk: '-', jamPulang: '-', catatan: pSakit.keterangan || 'Sakit' };
 
@@ -554,34 +538,24 @@
             if (pAlpha) return { kategori: 'ALPHA', statusText: 'Alpha', badgeClass: 'bg-red-100 text-red-800', jamMasuk: '-', jamPulang: '-', catatan: pAlpha.keterangan || 'Alpha' };
 
             const pPulangAwal = pList.find(p => p.status === 'Pulang Mendahului');
-            const pMasuk = pList.find(p => p.status === 'Hadir' || p.status === 'Terlambat' || p.jam_masuk);
-            const pPulang = pList.find(p => p.status === 'Pulang' || p.jam_pulang);
+            const pMasuk = pList.find(p => p.jam_masuk); // Cukup cari yang punya jam masuk
+            const pPulang = pList.find(p => p.jam_pulang); // Cukup cari yang punya jam pulang
 
             const jamMasukVal = pMasuk ? (pMasuk.jam_masuk || '-') : '-';
-            const jamPulangVal = pPulangAwal
-                ? (pPulangAwal.jam_pulang || pPulangAwal.jam_masuk || '-')
-                : (pPulang ? (pPulang.jam_pulang || pPulang.jam_masuk || '-') : '-');
+            const jamPulangVal = pPulangAwal 
+                ? (pPulangAwal.jam_pulang || pPulangAwal.jam_masuk || '-') 
+                : (pPulang ? (pPulang.jam_pulang || '-') : '-');
 
-            if (pPulangAwal) {
-                return { kategori: 'PULANG_AWAL_TAP', statusText: 'Pulang Awal', badgeClass: 'bg-purple-100 text-purple-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: pPulangAwal.keterangan || 'Izin Pulang' };
-            }
+            if (pPulangAwal) return { kategori: 'PULANG_AWAL_TAP', statusText: 'Pulang Awal', badgeClass: 'bg-purple-100 text-purple-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: pPulangAwal.keterangan || 'Izin Pulang' };
 
             if (pMasuk) {
                 const isTerlambat = (jamMasukVal > BATAS_TERLAMBAT || pMasuk.status === 'Terlambat');
-
                 if (jamPulangVal === '-') {
-                    if (isLewatJam1730) {
-                        return { kategori: 'PULANG_AWAL_TAP', statusText: 'TAP', badgeClass: 'bg-fuchsia-100 text-fuchsia-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: 'Tidak Absen Pulang' };
-                    }
-                    if (isTerlambat) {
-                        return { kategori: 'TERLAMBAT', statusText: 'Terlambat', badgeClass: 'bg-amber-100 text-amber-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Terlambat (${jamMasukVal})` };
-                    }
+                    if (isLewatJam1730) return { kategori: 'PULANG_AWAL_TAP', statusText: 'TAP', badgeClass: 'bg-fuchsia-100 text-fuchsia-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: 'Tidak Absen Pulang' };
+                    if (isTerlambat) return { kategori: 'TERLAMBAT', statusText: 'Terlambat', badgeClass: 'bg-amber-100 text-amber-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Terlambat (${jamMasukVal})` };
                     return { kategori: 'HADIR', statusText: 'Hadir Pagi', badgeClass: 'bg-teal-100 text-teal-800', jamMasuk: jamMasukVal, jamPulang: '-', catatan: `Hadir (${jamMasukVal})` };
                 }
-
-                if (isTerlambat) {
-                    return { kategori: 'TERLAMBAT', statusText: 'Terlambat', badgeClass: 'bg-amber-100 text-amber-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Terlambat (${jamMasukVal} - ${jamPulangVal})` };
-                }
+                if (isTerlambat) return { kategori: 'TERLAMBAT', statusText: 'Terlambat', badgeClass: 'bg-amber-100 text-amber-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Terlambat (${jamMasukVal} - ${jamPulangVal})` };
                 return { kategori: 'HADIR', statusText: 'Hadir', badgeClass: 'bg-emerald-100 text-emerald-800', jamMasuk: jamMasukVal, jamPulang: jamPulangVal, catatan: `Hadir (${jamMasukVal} - ${jamPulangVal})` };
             }
             return { kategori: 'BELUM', statusText: 'Belum Presensi', badgeClass: 'bg-slate-100 text-slate-700', jamMasuk: '-', jamPulang: '-', catatan: '-' };
@@ -607,7 +581,7 @@
                 return;
             }
             tbody.innerHTML = listSiswa.map((siswa, idx) => {
-                const pList = globalPresensiHariIni.filter(p => p.nama === siswa.nama && p.kelas === siswa.kelas);
+                const pList = cariPresensiSiswa(siswa.nisn);
                 const res = hitungStatusSiswa(pList);
                 return `
                     <tr class="hover:bg-slate-50 border-b border-slate-100">
@@ -634,31 +608,25 @@
         function renderTabelTigaKolomBawah() {
             const listTerlambat = [], listPulangAwal = [], listAlpha = [];
             globalSiswaList.forEach(siswa => {
-                const pList = globalPresensiHariIni.filter(p => p.nama === siswa.nama && p.kelas === siswa.kelas);
+                const pList = cariPresensiSiswa(siswa.nisn);
                 const res = hitungStatusSiswa(pList);
                 if (res.kategori === 'TERLAMBAT') listTerlambat.push({ ...siswa, res });
                 else if (res.kategori === 'PULANG_AWAL_TAP') listPulangAwal.push({ ...siswa, res });
                 else if (res.kategori === 'ALPHA') listAlpha.push({ ...siswa, res });
             });
 
-            // Terlambat
             document.getElementById('badge-count-terlambat').textContent = listTerlambat.length;
-            const tbodyTerlambat = document.getElementById('tabel-bawah-terlambat-body');
-            tbodyTerlambat.innerHTML = listTerlambat.length === 0
+            document.getElementById('tabel-bawah-terlambat-body').innerHTML = listTerlambat.length === 0 
                 ? '<tr><td colspan="2" class="p-3 text-center text-slate-400">Tidak ada siswa terlambat.</td></tr>'
                 : listTerlambat.map(item => `<tr class="hover:bg-amber-50 border-b border-amber-100"><td class="p-2"><div class="font-bold text-slate-800">${item.nama}</div><div class="text-[10px] text-slate-500 font-mono">${item.kelas}</div></td><td class="p-2 text-center font-mono font-bold text-amber-700">${item.res.jamMasuk}</td></tr>`).join('');
 
-            // Pulang Awal
             document.getElementById('badge-count-pulang-awal').textContent = listPulangAwal.length;
-            const tbodyPulangAwal = document.getElementById('tabel-bawah-pulang-awal-body');
-            tbodyPulangAwal.innerHTML = listPulangAwal.length === 0
+            document.getElementById('tabel-bawah-pulang-awal-body').innerHTML = listPulangAwal.length === 0 
                 ? '<tr><td colspan="2" class="p-3 text-center text-slate-400">Tidak ada siswa pulang mendahului.</td></tr>'
                 : listPulangAwal.map(item => `<tr class="hover:bg-purple-50 border-b border-purple-100"><td class="p-2"><div class="font-bold text-slate-800">${item.nama}</div><div class="text-[10px] text-slate-500 font-mono">${item.kelas}</div></td><td class="p-2 text-center font-mono font-bold text-purple-700">${item.res.jamPulang}</td></tr>`).join('');
 
-            // Alpha
             document.getElementById('badge-count-alpha').textContent = listAlpha.length;
-            const tbodyAlpha = document.getElementById('tabel-bawah-alpha-body');
-            tbodyAlpha.innerHTML = listAlpha.length === 0
+            document.getElementById('tabel-bawah-alpha-body').innerHTML = listAlpha.length === 0 
                 ? '<tr><td colspan="2" class="p-3 text-center text-slate-400">Tidak ada data siswa alpa.</td></tr>'
                 : listAlpha.map(item => `<tr class="hover:bg-red-50 border-b border-red-100"><td class="p-2"><div class="font-bold text-slate-800">${item.nama}</div><div class="text-[10px] text-slate-500 font-mono">${item.kelas}</div></td><td class="p-2 text-center font-bold text-red-600 text-[10px]">${item.res.statusText}</td></tr>`).join('');
         }
@@ -668,10 +636,7 @@
         // ============================================================
         async function cariDataSiswaBK() {
             const keyword = document.getElementById('input-cari-siswa').value.trim();
-            if (!keyword) {
-                alert("Masukkan Nama siswa terlebih dahulu.");
-                return;
-            }
+            if (!keyword) return alert("Masukkan Nama siswa terlebih dahulu.");
 
             document.getElementById('section-rekap-utama').classList.add('hidden');
             const container = document.getElementById('hasil-cari-siswa-container');
@@ -707,7 +672,6 @@
                 document.getElementById('stat-total-si').textContent = cntSI;
                 document.getElementById('stat-total-alpha').textContent = cntAlpha;
 
-                // Tabel Presensi
                 const tbodyPresensi = document.getElementById('tabel-cari-presensi-body');
                 if (!Array.isArray(data.presensi) || data.presensi.length === 0) {
                     tbodyPresensi.innerHTML = '<tr><td colspan="4" class="p-4 text-center text-slate-400">Belum ada data presensi.</td></tr>';
@@ -722,7 +686,6 @@
                     `).join('');
                 }
 
-                // Tabel Pelanggaran
                 const tbodyBK = document.getElementById('tabel-cari-pelanggaran-body');
                 if (!Array.isArray(data.pelanggaran) || data.pelanggaran.length === 0) {
                     tbodyBK.innerHTML = '<tr><td colspan="2" class="p-4 text-center text-emerald-600 font-bold">Bersih (Tidak ada catatan pelanggaran BK).</td></tr>';
@@ -747,14 +710,8 @@
         // EKSPOR EXCEL
         // ============================================================
         function eksporExcelRekap() {
-            if (!globalSiswaList.length) {
-                alert("Belum ada data dimuat.");
-                return;
-            }
-            if (typeof XLSX === 'undefined') {
-                alert("Library XLSX belum termuat. Periksa koneksi internet.");
-                return;
-            }
+            if (!globalSiswaList.length) return alert("Belum ada data dimuat.");
+            if (typeof XLSX === 'undefined') return alert("Library XLSX belum termuat.");
 
             const tglPilihan = document.getElementById('filter-tanggal').value || getTanggalWIB();
             const kelasMap = {};
@@ -769,7 +726,7 @@
                 const listSiswa = kelasMap[namaKelas];
                 let h = 0, t = 0, pa = 0, a = 0, si = 0;
                 listSiswa.forEach(s => {
-                    const pList = globalPresensiHariIni.filter(p => p.nama === s.nama && p.kelas === s.kelas);
+                    const pList = cariPresensiSiswa(s.nisn);
                     const res = hitungStatusSiswa(pList);
                     if (res.kategori === 'HADIR') h++;
                     else if (res.kategori === 'TERLAMBAT') t++;
@@ -777,16 +734,7 @@
                     else if (res.kategori === 'ALPHA') a++;
                     else if (res.kategori === 'SI') si++;
                 });
-                dataExport.push({
-                    "No": idx + 1,
-                    "Nama Kelas": namaKelas,
-                    "Siswa Hadir": h,
-                    "Terlambat": t,
-                    "Pulang Awal / TAP": pa,
-                    "Alpha": a,
-                    "Tidak Masuk (S/I)": si,
-                    "Total Siswa": listSiswa.length
-                });
+                dataExport.push({ "No": idx + 1, "Nama Kelas": namaKelas, "Siswa Hadir": h, "Terlambat": t, "Pulang Awal / TAP": pa, "Alpha": a, "Tidak Masuk (S/I)": si, "Total Siswa": listSiswa.length });
             });
 
             const ws = XLSX.utils.json_to_sheet(dataExport);
@@ -795,5 +743,5 @@
             XLSX.writeFile(wb, `Laporan_Rekap_Presensi_SMADA_${tglPilihan}.xlsx`);
         }
     </script>
-</body>
-</html>
+
+   
