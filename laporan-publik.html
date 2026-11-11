@@ -29,6 +29,15 @@
         }
         
         .print-only { display: none; }
+        
+        /* Animasi Hover Kotak */
+        .card-kelas {
+            transition: all 0.2s ease-in-out;
+        }
+        .card-kelas:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
     </style>
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
@@ -212,7 +221,7 @@
             </div>
 
             <!-- A. TAMPILAN LAYAR (GRID KOTAK-KOTAK) -->
-            <div id="grid-rekap-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div id="grid-rekap-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                 <!-- Kotak akan di-render oleh JS -->
             </div>
 
@@ -480,7 +489,18 @@
                 kelasMap[k].push(s);
             });
 
-            const sortedKelas = Object.keys(kelasMap).sort();
+            // Logika Natural Sort (Agar X E2 urut sebelum X E10)
+            const sortedKelas = Object.keys(kelasMap).sort((a, b) => {
+                return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            // Palet Warna Pastel berdasarkan Tingkat
+            const colorPalette = {
+                'X': { bg: 'bg-emerald-50', border: 'border-emerald-200', text: 'text-emerald-800', icon: 'text-emerald-500', badge: 'bg-emerald-100 text-emerald-800' },
+                'XI': { bg: 'bg-blue-50', border: 'border-blue-200', text: 'text-blue-800', icon: 'text-blue-500', badge: 'bg-blue-100 text-blue-800' },
+                'XII': { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', icon: 'text-purple-500', badge: 'bg-purple-100 text-purple-800' }
+            };
+
             let htmlGrid = '';
             let htmlPrint = '';
             let grandTotalHadir = 0, grandTotalTerlambat = 0, grandTotalAlpha = 0;
@@ -504,29 +524,29 @@
                 grandTotalTerlambat += countTerlambat;
                 grandTotalAlpha += countAlpha;
 
-                // A. HTML UNTUK KOTAK (GRID)
-                // Desain: Kotak putih, header abu-abu, angka hadir besar, ikon kecil di bawah
+                // Tentukan warna berdasarkan awalan nama kelas
+                let tema = colorPalette['X']; // default
+                if (namaKelas.toUpperCase().startsWith('XII')) tema = colorPalette['XII'];
+                else if (namaKelas.toUpperCase().startsWith('XI')) tema = colorPalette['XI'];
+
+                // A. HTML UNTUK KOTAK (GRID) - Desain Baru: Kode Kelas Kiri, Angka Tengah
                 htmlGrid += `
                     <div onclick="pilihKelasDetail('${namaKelas.replace(/'/g, "\\'")}')" 
-                         class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 cursor-pointer hover:shadow-lg hover:border-blue-400 hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between group">
+                         class="card-kelas ${tema.bg} rounded-lg shadow-sm border ${tema.border} p-2 cursor-pointer flex flex-col justify-between h-24">
                         
-                        <div class="flex justify-between items-start mb-2 border-b border-slate-100 pb-2">
-                            <span class="font-black text-blue-900 text-sm group-hover:text-blue-600 flex items-center gap-1">
-                                <i class="fa-solid fa-folder text-amber-500 text-xs"></i> ${namaKelas}
-                            </span>
-                            <span class="text-[10px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">${listSiswaKelas.length} Ssw</span>
+                        <!-- Baris Atas: Kode Kelas, Angka Hadir, Total Siswa -->
+                        <div class="flex justify-between items-center w-full">
+                            <span class="font-black ${tema.text} text-[11px] bg-white/70 px-1.5 py-0.5 rounded shadow-sm border border-white">${namaKelas}</span>
+                            <span class="text-xl font-black ${tema.text} tracking-tighter leading-none">${countHadir}</span>
+                            <span class="text-[8px] font-bold text-slate-500 bg-white/50 px-1 rounded">${listSiswaKelas.length} Ssw</span>
                         </div>
                         
-                        <div class="text-center my-1">
-                            <span class="block text-2xl font-black ${countHadir > 0 ? 'text-emerald-600' : 'text-slate-300'}">${countHadir}</span>
-                            <span class="text-[9px] uppercase font-bold text-slate-400 tracking-wider">Hadir</span>
-                        </div>
-                        
-                        <div class="flex justify-between items-center text-[10px] font-bold mt-2 pt-2 border-t border-slate-100">
-                            <span class="text-amber-600" title="Terlambat">🟡 ${countTerlambat}</span>
-                            <span class="text-purple-600" title="Pulang Awal/TAP">🟣 ${countPulangAwalTAP}</span>
-                            <span class="text-red-600" title="Alpha">🔴 ${countAlpha}</span>
-                            <span class="text-blue-600" title="Sakit/Izin/Dispen">🔵 ${countSI}</span>
+                        <!-- Baris Bawah: Singkatan Status -->
+                        <div class="flex justify-between items-center text-[9px] font-black mt-1 pt-1 border-t ${tema.border} tracking-wider">
+                            <span class="text-amber-600" title="Terlambat">${countTerlambat} T</span>
+                            <span class="text-purple-600" title="Pulang Awal / TAP">${countPulangAwalTAP} PA</span>
+                            <span class="text-red-600" title="Alpha">${countAlpha} A</span>
+                            <span class="text-blue-600" title="Sakit/Izin/Dispen">${countSI} S</span>
                         </div>
                     </div>
                 `;
@@ -773,7 +793,7 @@
             });
 
             const dataExport = [];
-            Object.keys(kelasMap).sort().forEach((namaKelas, idx) => {
+            Object.keys(kelasMap).sort((a, b) => a.localeCompare(b, undefined, { numeric: true })).forEach((namaKelas, idx) => {
                 const listSiswa = kelasMap[namaKelas];
                 let h = 0, t = 0, pa = 0, a = 0, si = 0;
                 listSiswa.forEach(s => {
