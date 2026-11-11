@@ -407,9 +407,9 @@
                 let countHadir = 0, countTerlambat = 0, countPulangAwalTAP = 0, countAlpha = 0, countSI = 0;
 
                 listSiswaKelas.forEach(siswa => {
-                    // Karena tidak ada NISN, kita cocokkan berdasarkan nama + kelas
-                    const pList = globalPresensiHariIni.filter(p => p.nama === siswa.nama && p.kelas === siswa.kelas);
-                    const res = hitungStatusSiswa(pList);
+                    // PERBAIKAN: Cocokkan berdasarkan NISN (bukan nama + kelas)
+                    const pList = globalPresensiHariIni.filter(p => p.nisn === siswa.nisn);
+                    const res = hitungStatusSiswa(pList, tglPilihan);
 
                     if (res.kategori === 'HADIR') countHadir++;
                     else if (res.kategori === 'TERLAMBAT') countTerlambat++;
@@ -446,10 +446,12 @@
             tbody.innerHTML = rowsHtml;
         }
 
-        function hitungStatusSiswa(pList) {
+        function hitungStatusSiswa(pList, tanggalLaporan) {
+            const hariIni = getTanggalWIB();
+            const isLaporanHariIni = (tanggalLaporan === hariIni);
             const jamSekarangStr = getJamWIB();
-            const isLewatBatasAlpha = (jamSekarangStr >= '08:30:00');
-            const isLewatJam1730 = (jamSekarangStr >= '17:30:00');
+            const isLewatBatasAlpha = isLaporanHariIni ? (jamSekarangStr >= '08:30:00') : true;
+            const isLewatJam1730 = isLaporanHariIni ? (jamSekarangStr >= '17:30:00') : true;
 
             if (!pList || pList.length === 0) {
                 if (isLewatBatasAlpha) return { kategori: 'ALPHA', statusText: 'Alpha', badgeClass: 'bg-red-100 text-red-800 border-red-200', jamMasuk: '-', jamPulang: '-', catatan: 'Alpha (Tanpa Keterangan)' };
@@ -504,8 +506,8 @@
                 return;
             }
             tbody.innerHTML = listSiswa.map((siswa, idx) => {
-                const pList = globalPresensiHariIni.filter(p => p.nama === siswa.nama && p.kelas === siswa.kelas);
-                const res = hitungStatusSiswa(pList);
+                const pList = globalPresensiHariIni.filter(p => p.nisn === siswa.nisn);
+                const res = hitungStatusSiswa(pList, tglPilihan);
                 return `
                     <tr class="hover:bg-slate-50 border-b border-slate-100">
                         <td class="p-3 text-center font-mono text-slate-500">${idx + 1}</td>
@@ -528,8 +530,8 @@
         function renderTabelTigaKolomBawah() {
             const listTerlambat = [], listPulangAwal = [], listAlpha = [];
             globalSiswaList.forEach(siswa => {
-                const pList = globalPresensiHariIni.filter(p => p.nama === siswa.nama && p.kelas === siswa.kelas);
-                const res = hitungStatusSiswa(pList);
+                const pList = globalPresensiHariIni.filter(p => p.nisn === siswa.nisn);
+                const res = hitungStatusSiswa(pList, tglPilihan);
                 if (res.kategori === 'TERLAMBAT') listTerlambat.push({ ...siswa, res });
                 else if (res.kategori === 'PULANG_AWAL_TAP') listPulangAwal.push({ ...siswa, res });
                 else if (res.kategori === 'ALPHA') listAlpha.push({ ...siswa, res });
@@ -642,8 +644,8 @@
                 const listSiswa = kelasMap[namaKelas];
                 let h = 0, t = 0, pa = 0, a = 0, si = 0;
                 listSiswa.forEach(s => {
-                    const pList = globalPresensiHariIni.filter(p => p.nama === s.nama && p.kelas === s.kelas);
-                    const res = hitungStatusSiswa(pList);
+                    const pList = globalPresensiHariIni.filter(p => p.nisn === s.nisn);
+                    const res = hitungStatusSiswa(pList, tglPilihan);
                     if (res.kategori === 'HADIR') h++;
                     else if (res.kategori === 'TERLAMBAT') t++;
                     else if (res.kategori === 'PULANG_AWAL_TAP') pa++;
