@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Laporan Presensi & Kedisiplinan Publik - SMAN 2 Karanganyar</title>
-    <script src="js/security-guard.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -531,29 +530,29 @@
                 // Ambil warna secara bergantian dari palet
                 const tema = palette[idx % palette.length];
 
-                // A. HTML UNTUK KOTAK (GRID)
+                // A. HTML UNTUK KOTAK (GRID) - Desain Dikunci (Absolute)
                 htmlGrid += `
                     <div onclick="pilihKelasDetail('${namaKelas.replace(/'/g, "\\'")}')" 
-                         class="card-kelas ${tema.bg} rounded-lg shadow-sm border ${tema.border} p-2 cursor-pointer flex flex-col justify-between h-[88px]">
+                         class="card-kelas ${tema.bg} rounded-lg shadow-sm border ${tema.border} p-2 cursor-pointer relative h-[88px]">
                         
-                        <!-- Baris 1: Nama Kelas & Total -->
+                        <!-- Bagian Atas: Nama Kelas & Total Siswa -->
                         <div class="flex justify-between items-center w-full">
                             <span class="font-black ${tema.text} text-sm bg-white/70 px-1.5 py-0.5 rounded shadow-sm border border-white">${namaKelas}</span>
                             <span class="text-[8px] font-bold text-slate-500 bg-white/50 px-1 rounded">${listSiswaKelas.length} Ssw</span>
                         </div>
                         
-                        <!-- Baris 2: Angka & HADIR -->
-                        <div class="text-center leading-none my-0.5">
+                        <!-- Bagian Tengah: Angka Hadir (Dikunci di tengah) -->
+                        <div class="absolute top-8 left-0 w-full text-center leading-none">
                             <span class="text-2xl font-black ${tema.text} block">${countHadir}</span>
                             <span class="text-[8px] uppercase font-bold text-slate-500 tracking-widest block">HADIR</span>
                         </div>
                         
-                        <!-- Baris 3: Singkatan Status -->
-                        <div class="flex justify-between items-center text-[9px] font-black border-t ${tema.border} pt-1 tracking-wider leading-none">
+                        <!-- Bagian Bawah: Singkatan Status (Dikunci di bawah) -->
+                        <div class="absolute bottom-2 left-2 right-2 flex justify-between items-center text-[9px] font-black border-t ${tema.border} pt-1 tracking-wider leading-none">
                             <span class="text-amber-600" title="Terlambat">${countTerlambat} T</span>
-                            <span class="text-purple-600" title="Pulang Awal / TAP">${countPulangAwalTAP} PA</span>
+                            <span class="text-purple-600" title="Pulang Awal / TAP">${countPulangAwalTAP} TAP</span>
                             <span class="text-red-600" title="Alpha">${countAlpha} A</span>
-                            <span class="text-blue-600" title="Sakit/Izin/Dispen">${countSI} S</span>
+                            <span class="text-blue-600" title="Sakit/Izin/Dispen">${countSI} S/D</span>
                         </div>
                     </div>
                 `;
@@ -823,4 +822,3 @@
     </script>
 </body>
 </html>
-```
