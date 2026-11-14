@@ -24,8 +24,9 @@
     }
 })();
 
-let currentOffset = 0;
-const LIMIT = 15;
+let currentPage = 1;
+const LIMIT = 10;
+let totalPages = 1;
 let activeUser = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -37,8 +38,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const nameEl = document.getElementById('display-user-name');
         if (nameEl) nameEl.textContent = activeUser.nama || activeUser.username;
     }
+
+    // Set tanggal default hari ini pada input pelanggaran
+    const tglPelanggaranElem = document.getElementById('pelanggaran-tanggal');
+    if (tglPelanggaranElem) {
+        const hariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
+        tglPelanggaranElem.value = hariIni;
+    }
+
     await muatDaftarKelasSiswaBK();
-    muatPelanggaranBK(false);
+    muatPelanggaranBK(1); // Panggil halaman 1
 });
 
 function logout() {
@@ -101,23 +110,35 @@ async function muatSiswaBerdasarkanKelas(idSelectKelas, idSelectSiswa) {
 
 async function simpanPelanggaranBK() {
     const nisn = document.getElementById('pelanggaran-nisn').value;
+    const tglInput = document.getElementById('pelanggaran-tanggal').value;
     const catatan = document.getElementById('pelanggaran-catatan').value.trim();
+    
     if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
+    if (!tglInput) { alert("Tanggal kejadian wajib diisi!"); return; }
     if (!catatan) { alert("Catatan Pelanggaran Wajib diisi!"); return; }
+
     try {
         const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
         const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
         const diinputOleh = activeUser ? (activeUser.nama || activeUser.username) : 'Guru BK';
+        
+        // Insert dengan tanggal yang dipilih user
         await queryTurso(
-            'INSERT INTO kedisiplinan (nisn, catatan_pelanggaran, diinput_oleh) VALUES (?, ?, ?)',
-            [nisn, catatan, diinputOleh]
+            'INSERT INTO kedisiplinan (nisn, catatan_pelanggaran, diinput_oleh, created_at) VALUES (?, ?, ?, ?)',
+            [nisn, catatan, diinputOleh, tglInput]
         );
+        
         alert(`Catatan kedisiplinan untuk SISWA (${namaSiswa}) berhasil disimpan!`);
+        
         document.getElementById('pelanggaran-kelas').value = '';
         document.getElementById('pelanggaran-nisn').innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
         document.getElementById('pelanggaran-catatan').value = '';
-        currentOffset = 0;
-        muatPelanggaranBK(false);
+        
+        // Kembalikan tanggal ke hari ini
+        const hariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
+        document.getElementById('pelanggaran-tanggal').value = hariIni;
+        
+        muatPelanggaranBK(1); // Refresh ke halaman 1
     } catch (err) {
         alert("Gagal menyimpan catatan pelanggaran: " + err.message);
     }
@@ -190,15 +211,31 @@ async function simpanPulangMendahului() {
     }
 }
 
-async function muatPelanggaranBK(isLoadMore = false) {
+// =========================================================
+// FUNGSI BARU: MENDUKUNG PAGINATION 10 DATA
+// =========================================================
+async function muatPelanggaranBK(page) {
+    if (page < 1) page = 1;
+    currentPage = page;
+
     const tbody = document.getElementById('tabel-pelanggaran-body');
-    const btnMore = document.getElementById('btn-load-more');
+    const btnPrev = document.getElementById('btn-prev-pelanggaran');
+    const btnNext = document.getElementById('btn-next-pelanggaran');
+    const pageInfo = document.getElementById('page-info-pelanggaran');
+    
     if (!tbody) return;
-    if (!isLoadMore) {
-        currentOffset = 0;
-        tbody.innerHTML = '';
-    }
+    tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Memuat catatan...</td></tr>';
+
     try {
+        // 1. Hitung Total Data untuk menentukan Total Halaman
+        const countRes = await queryTurso("SELECT COUNT(*) as total FROM kedisiplinan");
+        const totalData = countRes[0] ? countRes[0].total : 0;
+        totalPages = Math.ceil(totalData / LIMIT) || 1;
+        
+        if (currentPage > totalPages) currentPage = totalPages;
+        const offset = (currentPage - 1) * LIMIT;
+
+        // 2. Ambil Data dengan LIMIT & OFFSET
         const sqlStr = `
             SELECT k.id, k.created_at, k.nisn, k.catatan_pelanggaran, k.penanganan_bk, k.diinput_oleh, 
                    COALESCE(s.nama, 'Siswa') as nama, 
@@ -206,44 +243,41 @@ async function muatPelanggaranBK(isLoadMore = false) {
             FROM kedisiplinan k 
             LEFT JOIN siswa s ON TRIM(k.nisn) = TRIM(s.nisn) 
             ORDER BY k.id DESC 
-            LIMIT ${LIMIT} OFFSET ${currentOffset}
+            LIMIT ${LIMIT} OFFSET ${offset}
         `;
         const data = await queryTurso(sqlStr);
+        
         if (!data || data.length === 0) {
-            if (!isLoadMore) tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>';
-            if (btnMore) btnMore.classList.add('hidden');
-            return;
+            tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>';
+        } else {
+            tbody.innerHTML = data.map(p => `
+                <tr class="hover:bg-slate-50 border-b border-slate-100">
+                    <td class="p-3 font-mono text-slate-500">${p.created_at || '-'}</td>
+                    <td class="p-3 font-mono font-bold text-slate-700">${p.nisn}</td>
+                    <td class="p-3 font-bold text-slate-900">${p.nama}</td>
+                    <td class="p-3 font-mono font-bold text-blue-900">${p.kelas}</td>
+                    <td class="p-3 text-red-700 font-medium">${p.catatan_pelanggaran}</td>
+                    <td class="p-3 text-emerald-800 font-medium bg-emerald-50/50 rounded-lg">
+                        ${p.penanganan_bk ? `<i class="fa-solid fa-check text-emerald-600 mr-1"></i>${p.penanganan_bk}` : '<span class="text-slate-400 italic">Belum ada penanganan</span>'}
+                    </td>
+                    <td class="p-3 text-center font-semibold text-slate-600">${p.diinput_oleh || 'BK'}</td>
+                    <td class="p-3 text-center">
+                        <button onclick="bukaModalPenanganan(${p.id}, '${(p.nama || '').replace(/'/g, "\\'")}', '${(p.catatan_pelanggaran || '').replace(/'/g, "\\'")}', '${(p.penanganan_bk || '').replace(/'/g, "\\'")}')" class="bg-blue-900 hover:bg-blue-950 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow transition cursor-pointer flex items-center justify-center gap-1 mx-auto">
+                            <i class="fa-solid fa-pen-to-square text-yellow-400"></i> Penanganan
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
         }
-        const rowsHtml = data.map(p => `
-            <tr class="hover:bg-slate-50 border-b border-slate-100">
-                <td class="p-3 font-mono text-slate-500">${p.created_at || '-'}</td>
-                <td class="p-3 font-mono font-bold text-slate-700">${p.nisn}</td>
-                <td class="p-3 font-bold text-slate-900">${p.nama}</td>
-                <td class="p-3 font-mono font-bold text-blue-900">${p.kelas}</td>
-                <td class="p-3 text-red-700 font-medium">${p.catatan_pelanggaran}</td>
-                <td class="p-3 text-emerald-800 font-medium bg-emerald-50/50 rounded-lg">
-                    ${p.penanganan_bk ? `<i class="fa-solid fa-check text-emerald-600 mr-1"></i>${p.penanganan_bk}` : '<span class="text-slate-400 italic">Belum ada penanganan</span>'}
-                </td>
-                <td class="p-3 text-center font-semibold text-slate-600">${p.diinput_oleh || 'BK'}</td>
-                <td class="p-3 text-center">
-                    <button onclick="bukaModalPenanganan(${p.id}, '${(p.nama || '').replace(/'/g, "\\'")}', '${(p.catatan_pelanggaran || '').replace(/'/g, "\\'")}', '${(p.penanganan_bk || '').replace(/'/g, "\\'")}')" class="bg-blue-900 hover:bg-blue-950 text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold shadow transition cursor-pointer flex items-center justify-center gap-1 mx-auto">
-                        <i class="fa-solid fa-pen-to-square text-yellow-400"></i> Penanganan
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-        tbody.insertAdjacentHTML('beforeend', rowsHtml);
-        if (btnMore) {
-            if (data.length === LIMIT) {
-                btnMore.classList.remove('hidden');
-                currentOffset += LIMIT;
-            } else {
-                btnMore.classList.add('hidden');
-            }
-        }
+
+        // 3. Update UI Pagination
+        if (pageInfo) pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages} (Total: ${totalData} data)`;
+        if (btnPrev) btnPrev.disabled = (currentPage <= 1);
+        if (btnNext) btnNext.disabled = (currentPage >= totalPages);
+
     } catch (err) {
         console.error("Gagal muat kedisiplinan:", err);
-        tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500 font-bold">Gagal memuat data kedisiplinan: ${err.message}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500 font-bold">Gagal memuat data kedisiplinan: ${err.message}</td></tr>`;
     }
 }
 
@@ -270,8 +304,7 @@ async function simpanPenangananBK() {
         );
         alert("Catatan penanganan BK berhasil diperbarui!");
         tutupModalPenanganan();
-        currentOffset = 0;
-        muatPelanggaranBK(false);
+        muatPelanggaranBK(currentPage); // Refresh di halaman yang sama
         if (!document.getElementById('modal-cari-siswa').classList.contains('hidden')) {
             eksekusiCariSiswaBK();
         }
