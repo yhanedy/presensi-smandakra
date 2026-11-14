@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="js/config.js?v=bk_turso_v9"></script>
-   
 </head>
 <body class="bg-slate-100 font-sans min-h-screen flex flex-col justify-between text-slate-800">
 
@@ -95,8 +94,13 @@
                     </div>
                 </div>
                 <div>
+                    <!-- TAMBAHAN: INPUT TANGGAL -->
+                    <label class="block text-xs font-semibold text-slate-600 mb-1">Tanggal Kejadian</label>
+                    <input type="date" id="pelanggaran-tanggal" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500 font-mono">
+                </div>
+                <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1">Catatan Pelanggaran</label>
-                    <textarea id="pelanggaran-catatan" rows="3" placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none"></textarea>
+                    <textarea id="pelanggaran-catatan" rows="3" placeholder="Deskripsi jenis pelanggaran..." class="w-full border border-slate-300 rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-red-500"></textarea>
                 </div>
                 <button onclick="simpanPelanggaranBK()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-lg text-xs transition cursor-pointer">Simpan Catatan Kedisiplinan</button>
             </div>
@@ -157,6 +161,7 @@
                 <table class="w-full text-xs text-left text-slate-600">
                     <thead class="bg-slate-100 text-slate-700 uppercase font-semibold">
                         <tr>
+                            <th class="p-3">Tanggal</th>
                             <th class="p-3">Waktu Input</th>
                             <th class="p-3">NISN</th>
                             <th class="p-3">Nama Siswa</th>
@@ -168,14 +173,19 @@
                         </tr>
                     </thead>
                     <tbody id="tabel-pelanggaran-body" class="divide-y divide-slate-100">
-                        <tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>
+                        <tr><td colspan="9" class="p-4 text-center text-slate-400">Memuat catatan...</td></tr>
                     </tbody>
                 </table>
             </div>
 
-            <div class="text-center pt-2">
-                <button id="btn-load-more" onclick="muatPelanggaranBK(true)" class="bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs px-4 py-2 rounded-lg font-bold transition hidden cursor-pointer">
-                    Lihat Selengkapnya...
+            <!-- PAGINATION CONTROLS -->
+            <div class="flex justify-between items-center p-3 border-t border-slate-100 text-xs mt-2">
+                <button id="btn-prev-pelanggaran" onclick="muatPelanggaranBK(false)" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fa-solid fa-chevron-left mr-1"></i> Sebelumnya
+                </button>
+                <span id="page-info-pelanggaran" class="font-bold text-slate-600">Halaman 1</span>
+                <button id="btn-next-pelanggaran" onclick="muatPelanggaranBK(true)" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 rounded-lg font-bold transition disabled:opacity-50 disabled:cursor-not-allowed">
+                    Selanjutnya <i class="fa-solid fa-chevron-right ml-1"></i>
                 </button>
             </div>
         </div>
