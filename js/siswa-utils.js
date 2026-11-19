@@ -58,21 +58,6 @@ function handleLogoutSiswa() {
   localStorage.removeItem('smada_user');
   window.location.replace('index.html');
 }
-
-/* ---------- NAVIGASI TAB ---------- */
-function switchPage(pageName) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-
-  const target = document.getElementById('page-' + pageName);
-  if (target) target.classList.add('active');
-
-  const navBtn = document.querySelector(`.nav-item[data-page="${pageName}"]`);
-  if (navBtn) navBtn.classList.add('active');
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
 /* ---------- KOMPRES GAMBAR ---------- */
 function kompresGambar(file, maxSize = 800, quality = 0.7) {
   return new Promise((resolve, reject) => {
