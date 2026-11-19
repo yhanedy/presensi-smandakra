@@ -322,10 +322,10 @@ body {
 }
 .btn-password:hover { box-shadow: 0 0 20px rgba(245, 158, 11, 0.3); }
 
-/* ---------- IZIN CARD ---------- */
-.card-izin { border-color: rgba(168, 85, 247, 0.3); }
-.izin-flex { display: flex; align-items: center; gap: 12px; }
-.izin-icon {
+/* ---------- IJIN CARD ---------- */
+.card-ijin { border-color: rgba(168, 85, 247, 0.3); }
+.ijin-flex { display: flex; align-items: center; gap: 12px; }
+.ijin-icon {
   width: 46px; height: 46px;
   background: var(--purple-soft);
   border: 1px solid rgba(168, 85, 247, 0.4);
