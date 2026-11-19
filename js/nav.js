@@ -6,7 +6,7 @@
   // Daftar menu navigasi (Label diubah sesuai permintaan)
   const menu = [
     { id: 'presensi',      label: 'Presensi',      icon: 'fa-fingerprint', href: 'siswa.html' },
-    { id: 'perpustakaan',  label: 'Mandala',       icon: 'fa-book-open',   href: 'perpustakaan.html' }, // Teks diubah jadi Mandala
+    { id: 'perpustakaan',  label: 'Mandala',       icon: 'fa-book-open',   href: 'https://yhanedy.github.io/perpus-smanda/' }, // Teks diubah jadi Mandala
     { id: 'salat',         label: 'Sholat',        icon: 'fa-mosque',      href: 'salat.html' }         // Teks diubah jadi Sholat
   ];
 
