@@ -1,10 +1,10 @@
-// js/siswa-ijin.js — Modul Permohonan Izin, Surat Dokter & Dispensasi SMADA
+// js/siswa-ijin.js — Modul Permohonan ijin, Surat Dokter & Dispensasi SMADA
 // Versi: selaras dengan siswa.css futuristik & siswa-utils.js
 
 /* =========================================================
    STATE LOKAL
    ========================================================= */
-let fotoIzinBase64 = null;
+let fotoijinBase64 = null;
 let fileDispenBase64 = null;
 let fileDispenMime = 'image/jpeg';
 let fileDispenExt = 'jpg';
@@ -12,9 +12,9 @@ let fileDispenExt = 'jpg';
 /* =========================================================
    BUKA / TUTUP MODAL
    ========================================================= */
-function bukaModalIzinDispen() {
+function bukaModalijinDispen() {
   // Reset state agar tidak ada data lama terkirim
-  fotoIzinBase64 = null;
+  fotoijinBase64 = null;
   fileDispenBase64 = null;
   fileDispenMime = 'image/jpeg';
   fileDispenExt = 'jpg';
@@ -36,18 +36,18 @@ function bukaModalIzinDispen() {
   if (imgDispen) { imgDispen.src = '#'; imgDispen.classList.add('hidden'); }
 
   // Reset input file (agar bisa pilih file yang sama lagi)
-  const inputIzin = document.getElementById('ijinFotoInput');
+  const inputijin = document.getElementById('ijinFotoInput');
   const inputDispen = document.getElementById('dispenFileInput');
-  if (inputIzin) inputIzin.value = '';
+  if (inputijin) inputijin.value = '';
   if (inputDispen) inputDispen.value = '';
 
-  switchTabIzinDispen('tab-ijin-harian');
+  switchTabijinDispen('tab-ijin-harian');
   document.getElementById('modal-permohonan-ijin')?.classList.remove('hidden');
 }
 
-function tutupModalIzinDispen() {
+function tutupModalijinDispen() {
   document.getElementById('modal-permohonan-ijin')?.classList.add('hidden');
-  fotoIzinBase64 = null;
+  fotoijinBase64 = null;
   fileDispenBase64 = null;
 }
 
@@ -64,7 +64,7 @@ function lockButton(id, locked) {
 /* =========================================================
    TAB SWITCH — pakai class CSS baru (.tab-btn.active)
    ========================================================= */
-function switchTabIzinDispen(tabId) {
+function switchTabijinDispen(tabId) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
 
   const target = document.getElementById(tabId);
@@ -77,27 +77,27 @@ function switchTabIzinDispen(tabId) {
 }
 
 /* =========================================================
-   PREVIEW FOTO IZIN (dengan kompresi)
+   PREVIEW FOTO ijin (dengan kompresi)
    ========================================================= */
-async function previewFotoIzin(event) {
+async function previewFotoijin(event) {
   const file = event.target.files[0];
   if (!file) {
-    fotoIzinBase64 = null;
+    fotoijinBase64 = null;
     lockButton('btnKirimIjinHarian', true);
     return;
   }
 
   try {
-    fotoIzinBase64 = await kompresGambar(file, 800, 0.7);
+    fotoijinBase64 = await kompresGambar(file, 800, 0.7);
     const img = document.getElementById('ijinFotoPreview');
     const box = document.getElementById('ijinPreviewBox');
-    if (img) img.src = fotoIzinBase64;
+    if (img) img.src = fotoijinBase64;
     if (box) box.classList.remove('hidden');
     lockButton('btnKirimIjinHarian', false);
   } catch (e) {
     alert(e.message);
     event.target.value = '';
-    fotoIzinBase64 = null;
+    fotoijinBase64 = null;
     lockButton('btnKirimIjinHarian', true);
   }
 }
@@ -152,14 +152,14 @@ async function previewFileDispen(event) {
 }
 
 /* =========================================================
-   1. KIRIM IZIN HARIAN (dengan upload Drive)
+   1. KIRIM ijin HARIAN (dengan upload Drive)
    ========================================================= */
-async function kirimPermohonanIzinHarian() {
+async function kirimPermohonanijinHarian() {
   const alasan = document.getElementById('ijin-alasan')?.value.trim() || '';
   const btn = document.getElementById('btnKirimIjinHarian');
 
-  if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
-  if (!fotoIzinBase64) { alert("Wajib mefoto Surat Izin Tulis Tangan bertanda tangan Orang Tua!"); return; }
+  if (!alasan) { alert("Tuliskan alasan ijin secara jelas!"); return; }
+  if (!fotoijinBase64) { alert("Wajib mefoto Surat ijin Tulis Tangan bertanda tangan Orang Tua!"); return; }
 
   const originalHTML = btn.innerHTML;
   btn.disabled = true;
@@ -170,25 +170,25 @@ async function kirimPermohonanIzinHarian() {
     const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
 
     // Upload ke Google Drive via GAS
-    const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan", "image/jpeg", "jpg");
+    const driveUrl = await uploadKeDriveGAS(fotoijinBase64, "ijin_tangan", "image/jpeg", "jpg");
     if (!driveUrl) {
       // uploadKeDriveGAS sudah menampilkan alert
       return;
     }
 
-    const ket = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
+    const ket = `ijin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
 
     await queryTurso(
       'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-      [nisnVal, tglWIB, getJamWIB(), 'Izin', ket, driveUrl]
+      [nisnVal, tglWIB, getJamWIB(), 'ijin', ket, driveUrl]
     );
 
-    alert(`Permohonan Izin Harian berhasil dikirim ke Guru Piket!`);
-    tutupModalIzinDispen();
+    alert(`Permohonan ijin Harian berhasil dikirim ke Guru Piket!`);
+    tutupModalijinDispen();
     muatPresensiSiswaHariIni();
     muatRiwayatSiswa();
   } catch (err) {
-    alert("Gagal mengirim izin: " + err.message);
+    alert("Gagal mengirim ijin: " + err.message);
   } finally {
     btn.disabled = false;
     btn.innerHTML = originalHTML;
@@ -230,7 +230,7 @@ async function kirimPermohonanDispenDokter() {
     );
 
     alert(`Permohonan ${jenisKategori} (${tglMulai} s.d ${tglSelesai}) berhasil diteruskan ke Guru Piket!`);
-    tutupModalIzinDispen();
+    tutupModalijinDispen();
     muatPresensiSiswaHariIni();
     muatRiwayatSiswa();
   } catch (err) {
