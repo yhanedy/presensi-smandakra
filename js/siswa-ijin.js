@@ -1,9 +1,3 @@
-// js/siswa-ijin.js — Modul Izin Bersih & Anti-Error
-let fotoIzinBase64 = null;
-let fileDispenBase64 = null;
-let fileDispenMime = 'image/jpeg';
-let fileDispenExt = 'jpg';
-
 function bukaModalIzinDispen() {
   fotoIzinBase64 = null;
   fileDispenBase64 = null;
