@@ -1,4 +1,4 @@
-// js/siswa-ijin.js — Modul Permohonan Izin (Siswa) terintegrasi dengan Piket
+// js/siswa-ijin.js — Modul Izin Bersih & Anti-Error
 let fotoIzinBase64 = null;
 let fileDispenBase64 = null;
 let fileDispenMime = 'image/jpeg';
@@ -11,14 +11,23 @@ function bukaModalIzinDispen() {
   fileDispenExt = 'jpg';
 
   const tglStr = getTanggalWIB();
-  document.getElementById('ijinTanggalToday').innerText = tglStr;
-  document.getElementById('dispenTglMulai').value = tglStr;
-  document.getElementById('dispenTglSelesai').value = tglStr;
+  const elTgl = document.getElementById('ijinTanggalToday');
+  const elMulai = document.getElementById('dispenTglMulai');
+  const elSelesai = document.getElementById('dispenTglSelesai');
+  
+  if (elTgl) elTgl.innerText = tglStr;
+  if (elMulai) elMulai.value = tglStr;
+  if (elSelesai) elSelesai.value = tglStr;
 
   lockButton('btnKirimIjinHarian', true);
   lockButton('btnKirimDispenDokter', true);
-  document.getElementById('ijinPreviewBox')?.classList.add('hidden');
-  document.getElementById('dispenFileNama')?.classList.add('hidden');
+  
+  const boxPreview = document.getElementById('ijinPreviewBox');
+  if (boxPreview) boxPreview.classList.add('hidden');
+  
+  const fileNama = document.getElementById('dispenFileNama');
+  if (fileNama) fileNama.classList.add('hidden');
+  
   const imgDispen = document.getElementById('dispenFotoPreview');
   if (imgDispen) { imgDispen.src = '#'; imgDispen.classList.add('hidden'); }
 
@@ -28,11 +37,15 @@ function bukaModalIzinDispen() {
   if (inputDispen) inputDispen.value = '';
 
   switchTabIzinDispen('tab-ijin-harian');
-  document.getElementById('modal-permohonan-ijin')?.classList.remove('hidden');
+  
+  const modal = document.getElementById('modal-permohonan-ijin');
+  if (modal) modal.classList.remove('hidden');
+  else alert("Error: Elemen modal-permohonan-ijin tidak ditemukan di HTML!");
 }
 
 function tutupModalIzinDispen() {
-  document.getElementById('modal-permohonan-ijin')?.classList.add('hidden');
+  const modal = document.getElementById('modal-permohonan-ijin');
+  if (modal) modal.classList.add('hidden');
   fotoIzinBase64 = null;
   fileDispenBase64 = null;
 }
@@ -48,6 +61,7 @@ function switchTabIzinDispen(tabId) {
   document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
   const target = document.getElementById(tabId);
   if (target) target.classList.remove('hidden');
+  
   const btnHarian = document.getElementById('btn-tab-ijin-harian');
   const btnDispen = document.getElementById('btn-tab-dispen');
   if (btnHarian) btnHarian.classList.toggle('active', tabId === 'tab-ijin-harian');
@@ -63,8 +77,10 @@ async function previewFotoIzin(event) {
   }
   try {
     fotoIzinBase64 = await kompresGambar(file, 800, 0.7);
-    document.getElementById('ijinFotoPreview').src = fotoIzinBase64;
-    document.getElementById('ijinPreviewBox').classList.remove('hidden');
+    const img = document.getElementById('ijinFotoPreview');
+    const box = document.getElementById('ijinPreviewBox');
+    if (img) img.src = fotoIzinBase64;
+    if (box) box.classList.remove('hidden');
     lockButton('btnKirimIjinHarian', false);
   } catch (e) {
     alert(e.message);
@@ -111,9 +127,6 @@ async function previewFileDispen(event) {
   }
 }
 
-// ==========================================
-// 1. KIRIM IZIN HARIAN
-// ==========================================
 async function kirimPermohonanIzinHarian() {
   const alasan = document.getElementById('ijin-alasan')?.value.trim() || '';
   const btn = document.getElementById('btnKirimIjinHarian');
@@ -129,8 +142,6 @@ async function kirimPermohonanIzinHarian() {
     if (!driveUrl) return;
 
     const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
-    
-    // Keterangan dibersihkan agar Regex di piket.js mudah mendeteksi URL
     const ket = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
 
     await queryTurso(
@@ -150,9 +161,6 @@ async function kirimPermohonanIzinHarian() {
   }
 }
 
-// ==========================================
-// 2. KIRIM DISPEN / DOKTER
-// ==========================================
 async function kirimPermohonanDispenDokter() {
   const jenisKategori = document.getElementById('dispenKategori')?.value || 'Dispensasi';
   const tglMulai = document.getElementById('dispenTglMulai')?.value;
@@ -174,8 +182,6 @@ async function kirimPermohonanDispenDokter() {
 
     const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
     const statusFinal = jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi';
-    
-    // Keterangan dibersihkan agar Regex di piket.js mudah mendeteksi URL
     const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
 
     await queryTurso(
