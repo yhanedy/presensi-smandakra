@@ -5,10 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Portal Presensi — SMAN 2 Karanganyar</title>
 
- <script src="js/security-guard.js"></script>
+  <script src="js/security-guard.js"></script>
   <script src="js/config.js?v=siswa_futuristik_v1"></script>
 
-  <!-- Font futuristik -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -146,56 +145,84 @@
         </button>
       </div>
 
-      <!-- Riwayat + Password -->
+      <!-- Riwayat (Grafik) + Password -->
       <div class="grid-2">
+        
+        <!-- GRAFIK KONTRIBUSI -->
         <div class="card">
-          <h3 class="card-title">Riwayat Presensi</h3>
-          <div class="table-wrap">
-            <table class="table">
-              <thead>
-                <tr><th>Tanggal</th><th>Masuk</th><th>Pulang</th><th>Status</th><th>Ket</th></tr>
-              </thead>
-              <tbody id="tabel-riwayat-siswa">
-                <tr><td colspan="5" class="empty">Belum ada data.</td></tr>
-              </tbody>
-            </table>
+          <h3 class="card-title"><i class="fa-solid fa-chart-simple"></i> Peta Kehadiran</h3>
+          <p class="label-xs" style="margin-bottom: 12px;">Klik kotak untuk melihat detail.</p>
+          
+          <div id="grafik-kehadiran" class="graph-container">
+            <p class="empty">Memuat data...</p>
+          </div>
+          
+          <div class="graph-legend">
+            <span class="legend-item"><span class="box bg-hadir"></span> Hadir</span>
+            <span class="legend-item"><span class="box bg-terlambat"></span> Terlambat</span>
+            <span class="legend-item"><span class="box bg-izin"></span> Izin/Sakit</span>
+            <span class="legend-item"><span class="box bg-alpa"></span> Alpa</span>
           </div>
         </div>
 
-        <div class="card">
-          <h3 class="card-title"><i class="fa-solid fa-key"></i> Ganti Password</h3>
-          <p class="label-xs">Ubah password demi keamanan akun.</p>
-          <label class="field-label">Password Lama</label>
-          <input type="password" id="siswa-pass-lama" class="input" placeholder="Password saat ini...">
-          <label class="field-label">Password Baru</label>
-          <input type="password" id="siswa-pass-baru" class="input" placeholder="Password baru...">
-          <label class="field-label">Konfirmasi</label>
-          <input type="password" id="siswa-pass-konfirm" class="input" placeholder="Ulangi password baru...">
-          <button onclick="gantiPasswordSiswa()" class="btn btn-password">Perbarui Password</button>
+        <!-- GANTI PASSWORD (FUTURISTIK) -->
+        <div class="card card-password">
+          <div class="card-head" style="border-bottom: none; padding-bottom: 0; margin-bottom: 10px;">
+            <h3 class="card-title"><i class="fa-solid fa-shield-halved"></i> Keamanan Akun</h3>
+            <p class="label-xs">Perbarui kata sandi Anda.</p>
+          </div>
+          
+          <div class="password-group">
+            <label class="field-label">Password Lama</label>
+            <div class="input-icon-wrap">
+              <i class="fa-solid fa-lock"></i>
+              <input type="password" id="siswa-pass-lama" class="input" placeholder="Sandi saat ini...">
+            </div>
+          </div>
+          
+          <div class="password-group">
+            <label class="field-label">Password Baru</label>
+            <div class="input-icon-wrap">
+              <i class="fa-solid fa-key"></i>
+              <input type="password" id="siswa-pass-baru" class="input" placeholder="Sandi baru...">
+            </div>
+          </div>
+
+          <div class="password-group">
+            <label class="field-label">Konfirmasi</label>
+            <div class="input-icon-wrap">
+              <i class="fa-solid fa-check-double"></i>
+              <input type="password" id="siswa-pass-konfirm" class="input" placeholder="Ulangi sandi baru...">
+            </div>
+          </div>
+
+          <button onclick="gantiPasswordSiswa()" class="btn btn-password">
+            <i class="fa-solid fa-fingerprint"></i> Perbarui Password
+          </button>
         </div>
       </div>
     </section>
 
-    <!-- ===== TAB: PERPUSTAKAAN (placeholder) ===== -->
+    <!-- ===== TAB: MANDALA ===== -->
     <section id="page-perpustakaan" class="page">
       <div class="card placeholder-card">
         <div class="placeholder-icon"><i class="fa-solid fa-book-open"></i></div>
-        <h3 class="card-title">Perpustakaan Digital</h3>
+        <h3 class="card-title">Mandala</h3>
         <p class="label-xs">Fitur ini sedang disiapkan. Nantinya Anda bisa melihat katalog buku, meminjam, dan membaca e-book.</p>
       </div>
     </section>
 
-    <!-- ===== TAB: SALAT (placeholder) ===== -->
+    <!-- ===== TAB: SHOLAT ===== -->
     <section id="page-salat" class="page">
       <div class="card placeholder-card">
         <div class="placeholder-icon"><i class="fa-solid fa-mosque"></i></div>
-        <h3 class="card-title">Jadwal Salat</h3>
-        <p class="label-xs">Fitur ini sedang disiapkan. Nantinya menampilkan jadwal salat harian dan pengingat.</p>
+        <h3 class="card-title">Sholat</h3>
+        <p class="label-xs">Fitur ini sedang disiapkan. Nantinya menampilkan jadwal sholat harian dan pengingat.</p>
       </div>
     </section>
   </main>
 
-    <!-- BOTTOM NAVIGATION -->
+  <!-- BOTTOM NAVIGATION -->
   <div id="bottom-nav-root"></div>
 
   <!-- ============ MODAL: PENGUMUMAN ============ -->
@@ -231,7 +258,6 @@
         </button>
       </div>
 
-      <!-- TAB IZIN HARIAN -->
       <div id="tab-ijin-harian" class="tab-content">
         <div class="info-box info-purple">
           <strong>Ketentuan Izin Tulis Tangan:</strong>
@@ -261,7 +287,6 @@
         </button>
       </div>
 
-      <!-- TAB DISPEN -->
       <div id="tab-dispen" class="tab-content hidden">
         <div class="info-box info-blue">
           <strong>Surat Dokter / Dispensasi:</strong>
@@ -300,6 +325,29 @@
         <button type="button" onclick="kirimPermohonanDispenDokter()" id="btnKirimDispenDokter" class="btn btn-primary" disabled>
           <i class="fa-solid fa-paper-plane"></i> Kirim ke Piket
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODAL: DETAIL RIWAYAT ============ -->
+  <div id="modal-detail-riwayat" class="modal hidden">
+    <div class="modal-box modal-sm">
+      <button class="modal-close" onclick="document.getElementById('modal-detail-riwayat').classList.add('hidden')">&times;</button>
+      <div class="modal-head">
+        <h3 class="modal-title"><i class="fa-solid fa-calendar-day"></i> <span id="detail-tanggal">Tanggal</span></h3>
+        <span id="detail-badge" class="badge">Status</span>
+      </div>
+      <div class="info-box info-blue" style="margin-top: 10px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+          <span>Jam Masuk:</span> <strong id="detail-masuk" class="font-mono">-</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span>Jam Pulang:</span> <strong id="detail-pulang" class="font-mono">-</strong>
+        </div>
+      </div>
+      <div style="margin-top: 10px;">
+        <span class="label-xs">Keterangan:</span>
+        <p id="detail-keterangan" class="input" style="margin-top: 4px; font-size: 12px; min-height: 40px;">-</p>
       </div>
     </div>
   </div>
@@ -351,10 +399,8 @@
     <p>&copy; yhanedy@2026 SMAN 2 Karanganyar</p>
   </footer>
 
-    <!-- SCRIPT -->
-  <script src="js/security-guard.js"></script> <!-- Atau jika ada di head, biarkan -->
   <script src="js/siswa-utils.js"></script>
-  <script src="js/siswa-ijin.js"></script>     <!-- ← PASTIKAN BARIS INI ADA -->
+  <script src="js/siswa-ijin.js"></script>
   <script src="js/siswa-app.js"></script>
   <script src="js/nav.js"></script>
 </body>
