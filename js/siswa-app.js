@@ -343,43 +343,88 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
   }
 }
 
-/* ---------- RIWAYAT ---------- */
+/* ---------- RIWAYAT (GRAFIK KONTRIBUSI) ---------- */
 async function muatRiwayatSiswa() {
   if (!currentActiveUser) return;
   const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
-  const tbody = document.getElementById('tabel-riwayat-siswa');
-  if (!tbody) return;
+  const container = document.getElementById('grafik-kehadiran');
+  if (!container) return;
 
   try {
     const data = await queryTurso(
-      'SELECT * FROM presensi WHERE TRIM(nisn) = TRIM(?) ORDER BY id DESC LIMIT 10',
+      'SELECT * FROM presensi WHERE TRIM(nisn) = TRIM(?) ORDER BY tanggal DESC LIMIT 35',
       [nisnVal]
     );
-    if (!data?.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="empty">Belum ada data presensi.</td></tr>';
-      return;
+    
+    const dataMap = {};
+    if (data && data.length) {
+      data.forEach(d => {
+        if (!dataMap[d.tanggal] || d.status === 'Hadir' || d.status === 'Terlambat') {
+          dataMap[d.tanggal] = d;
+        }
+      });
     }
 
-    tbody.innerHTML = data.map(r => {
-      let color = '#94a3b8';
-      if (r.status === 'Hadir') color = '#6ee7b7';
-      else if (r.status === 'Terlambat') color = '#fcd34d';
-      else if (r.status === 'Sakit' || r.status === 'Izin') color = '#d8b4fe';
-      else if (r.status === 'Dispensasi') color = '#7dd3fc';
-      else if (r.status === 'Alpa' || r.status === 'Alpha') color = '#fca5a5';
+    let html = '';
+    const today = new Date();
+    
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      
+      const tglStr = d.toISOString().split('T')[0];
+      const rec = dataMap[tglStr];
+      
+      let bgClass = 'bg-empty';
+      let statusText = 'Tidak ada data';
+      
+      if (rec) {
+        if (rec.status === 'Hadir') { bgClass = 'bg-hadir'; statusText = 'Hadir'; }
+        else if (rec.status === 'Terlambat') { bgClass = 'bg-terlambat'; statusText = 'Terlambat'; }
+        else if (['Izin', 'Sakit', 'Dispensasi'].includes(rec.status)) { bgClass = 'bg-izin'; statusText = rec.status; }
+        else if (['Alpa', 'Alpha'].includes(rec.status)) { bgClass = 'bg-alpa'; statusText = 'Alpa'; }
+        else { bgClass = 'bg-hadir'; statusText = rec.status; }
+      }
 
-      return `
-        <tr>
-          <td>${r.tanggal || r.created_at || '-'}</td>
-          <td style="color:#6ee7b7;font-weight:600">${r.jam_masuk || '-'}</td>
-          <td style="color:#7dd3fc;font-weight:600">${r.jam_pulang || '-'}</td>
-          <td><span style="color:${color};font-weight:700">${r.status || 'Hadir'}</span></td>
-          <td>${r.keterangan || '-'}</td>
-        </tr>`;
-    }).join('');
+      const tglIndo = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+      const safeKet = rec && rec.keterangan ? rec.keterangan.replace(/'/g, "\\'").replace(/"/g, '&quot;') : '-';
+      const safeMasuk = rec && rec.jam_masuk ? rec.jam_masuk : '-';
+      const safePulang = rec && rec.jam_pulang ? rec.jam_pulang : '-';
+
+      html += `
+        <div class="graph-box ${bgClass}" 
+             title="${tglIndo}: ${statusText}"
+             onclick="bukaDetailRiwayat('${tglIndo}', '${statusText}', '${safeMasuk}', '${safePulang}', '${safeKet}')">
+        </div>
+      `;
+    }
+
+    container.innerHTML = html;
+    
   } catch (e) {
     console.error("Gagal muat riwayat:", e);
+    container.innerHTML = `<p class="empty">Gagal memuat data kehadiran.</p>`;
   }
+}
+
+// Fungsi untuk membuka popup detail
+function bukaDetailRiwayat(tanggal, status, masuk, pulang, ket) {
+  document.getElementById('detail-tanggal').innerText = tanggal;
+  
+  const badge = document.getElementById('detail-badge');
+  badge.innerText = status;
+  
+  if (status === 'Hadir') badge.className = 'badge bg-hadir';
+  else if (status === 'Terlambat') badge.className = 'badge bg-terlambat';
+  else if (['Izin', 'Sakit', 'Dispensasi'].includes(status)) badge.className = 'badge bg-izin';
+  else if (['Alpa', 'Alpha'].includes(status)) badge.className = 'badge bg-alpa';
+  else badge.className = 'badge';
+
+  document.getElementById('detail-masuk').innerText = masuk;
+  document.getElementById('detail-pulang').innerText = pulang;
+  document.getElementById('detail-keterangan').innerText = ket;
+
+  document.getElementById('modal-detail-riwayat').classList.remove('hidden');
 }
 
 /* ---------- GANTI PASSWORD ---------- */
