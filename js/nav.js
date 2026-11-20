@@ -14,7 +14,7 @@
   // Deteksi halaman aktif berdasarkan URL
   if (url.includes('perpus-smanda')) {
     activeId = 'perpustakaan';
-  } else if (url.includes('salat.html')) {
+  } else if (url.includes('sholat')) {
     activeId = 'salat';
   } else if (url.includes('presensi-smandakra') || url.includes('siswa.html')) {
     activeId = 'presensi';
