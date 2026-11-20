@@ -5,7 +5,7 @@
   const menu = [
     { id: 'presensi',      label: 'Presensi', icon: 'fa-fingerprint', href: 'https://yhanedy.github.io/presensi-smandakra/siswa.html' },
     { id: 'perpustakaan',  label: 'Mandala',  icon: 'fa-book-open',   href: 'https://yhanedy.github.io/perpus-smanda/' },
-    { id: 'salat',         label: 'Sholat',   icon: 'fa-mosque',      href: 'https://yhanedy.github.io/sholat.html' }
+    { id: 'salat',         label: 'Sholat',   icon: 'fa-mosque',      href: 'https://yhanedy.github.io/sholat/' }
   ];
 
   let activeId = 'presensi'; // Default
