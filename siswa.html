@@ -145,6 +145,20 @@
         </button>
       </div>
 
+      <!-- TOMBOL LAPOR ANONIM (DI BAWAH IZIN) -->
+      <div class="card" style="border-left: 4px solid #dc2626; margin-top: 12px;">
+        <div class="izin-flex">
+          <div class="izin-icon" style="background: #fef2f2; color: #dc2626;"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div>
+            <h3 class="card-title">Lapor Bullying / Pelanggaran</h3>
+            <p class="label-xs">Laporan rahasia, identitas Anda akan dilindungi.</p>
+          </div>
+        </div>
+        <button onclick="bukaModalLapor()" class="btn btn-primary w-full" style="background:#dc2626; border:none; margin-top: 12px;">
+          <i class="fa-solid fa-shield-halved"></i> Buat Laporan Rahasia
+        </button>
+      </div>
+
       <!-- Riwayat (Grafik) + Password -->
       <div class="grid-2">
         
@@ -394,12 +408,8 @@
       </button>
     </div>
   </div>
-  <!-- TOMBOL LAPOR ANONIM (FLOATING) -->
-  <button onclick="bukaModalLapor()" class="fixed bottom-24 right-6 md:right-10 w-14 h-14 bg-red-600 text-white rounded-full shadow-lg shadow-red-600/40 flex items-center justify-center hover:bg-red-700 hover:scale-110 transition z-40" title="Lapor Bullying / Pelanggaran">
-    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
-  </button>
 
-  <!-- MODAL LAPOR ANONIM -->
+  <!-- ============ MODAL LAPOR ANONIM ============ -->
   <div id="modal-lapor" class="modal hidden">
     <div class="modal-box modal-sm">
       <button class="modal-close" onclick="tutupModalLapor()">&times;</button>
@@ -420,6 +430,18 @@
             <option value="Lainnya">Lainnya</option>
           </select>
         </div>
+        
+        <div class="grid-2-tight">
+          <div>
+            <label class="field-label">Tanggal Kejadian</label>
+            <input type="date" id="lapor-tanggal" class="input" required>
+          </div>
+          <div>
+            <label class="field-label">Tempat Kejadian</label>
+            <input type="text" id="lapor-tempat" class="input" placeholder="Cth: Kantin, Kelas XII..." required>
+          </div>
+        </div>
+
         <div>
           <label class="field-label">Isi Laporan / Kronologi</label>
           <textarea id="lapor-isi" rows="4" class="input" placeholder="Ceritakan kejadiannya secara detail..." required></textarea>
@@ -467,6 +489,8 @@
 
       const payload = {
         kategori: document.getElementById('lapor-kategori').value,
+        tanggal: document.getElementById('lapor-tanggal').value,
+        tempat: document.getElementById('lapor-tempat').value,
         isi_laporan: document.getElementById('lapor-isi').value,
         is_anonim: isAnonim,
         pelapor_nama: isAnonim ? "" : document.getElementById('lapor-nama').value,
@@ -474,7 +498,6 @@
       };
 
       try {
-        // Pastikan API_URL sudah dideklarasikan di config.js atau file utama Anda
         const res = await fetch(`${API_URL}/api/laporan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -482,11 +505,10 @@
         });
         const data = await res.json();
         
-        // PERBAIKAN: Worker mengembalikan { success: true }, bukan { ok: true }
         if(data.success) {
           alert(data.message);
           tutupModalLapor();
-          document.getElementById('form-lapor').reset(); // Reset form yang benar
+          document.getElementById('form-lapor').reset(); 
         } else {
           alert('Gagal: ' + (data.error || 'Terjadi kesalahan'));
         }
@@ -498,6 +520,7 @@
       }
     }
   </script>
+  
   <footer class="app-footer">
     <p>&copy; yhanedy@2026 SMAN 2 Karanganyar</p>
   </footer>
