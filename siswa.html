@@ -394,7 +394,108 @@
       </button>
     </div>
   </div>
+  <!-- TOMBOL LAPOR ANONIM (FLOATING) -->
+  <button onclick="bukaModalLapor()" class="fixed bottom-24 right-6 md:right-10 w-14 h-14 bg-red-600 text-white rounded-full shadow-lg shadow-red-600/40 flex items-center justify-center hover:bg-red-700 hover:scale-110 transition z-40" title="Lapor Bullying / Pelanggaran">
+    <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+  </button>
 
+  <!-- MODAL LAPOR ANONIM -->
+  <div id="modal-lapor" class="modal hidden">
+    <div class="modal-box modal-sm">
+      <button class="modal-close" onclick="tutupModalLapor()">&times;</button>
+      <div class="modal-head">
+        <div class="announce-icon bg-red-100 text-red-600"><i class="fa-solid fa-shield-halved"></i></div>
+        <div>
+          <h3 class="modal-title">Laporan Rahasia</h3>
+          <p class="label-xs">Laporan akan langsung diterima Guru BK.</p>
+        </div>
+      </div>
+      
+      <form onsubmit="kirimLaporan(event)" class="space-y-4 mt-4">
+        <div>
+          <label class="field-label">Kategori Laporan</label>
+          <select id="lapor-kategori" class="input" required>
+            <option value="Bullying / Perundungan">Bullying / Perundungan</option>
+            <option value="Pelanggaran Sekolah">Pelanggaran Sekolah</option>
+            <option value="Lainnya">Lainnya</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Isi Laporan / Kronologi</label>
+          <textarea id="lapor-isi" rows="4" class="input" placeholder="Ceritakan kejadiannya secara detail..." required></textarea>
+        </div>
+        
+        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200">
+          <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="lapor-anonim" checked onchange="toggleIdentitas()" class="w-4 h-4 text-blue-600 rounded">
+            <span class="text-xs font-bold text-slate-700">Sembunyikan Identitas Saya (Anonim)</span>
+          </label>
+          
+          <div id="form-identitas" class="hidden mt-3 space-y-2">
+            <input type="text" id="lapor-nama" class="input" placeholder="Nama Anda (Opsional)">
+            <input type="text" id="lapor-kelas" class="input" placeholder="Kelas Anda (Opsional)">
+          </div>
+        </div>
+
+        <button type="submit" id="btn-kirim-lapor" class="btn btn-primary w-full bg-red-600 hover:bg-red-700">
+          <i class="fa-solid fa-paper-plane"></i> Kirim Laporan
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // --- LOGIKA LAPOR ANONIM (siswa.html) ---
+    function bukaModalLapor() {
+      document.getElementById('modal-lapor').classList.remove('hidden');
+    }
+    function tutupModalLapor() {
+      document.getElementById('modal-lapor').classList.add('hidden');
+    }
+    function toggleIdentitas() {
+      const isAnonim = document.getElementById('lapor-anonim').checked;
+      document.getElementById('form-identitas').classList.toggle('hidden', isAnonim);
+    }
+
+    async function kirimLaporan(e) {
+      e.preventDefault();
+      const btn = document.getElementById('btn-kirim-lapor');
+      const isAnonim = document.getElementById('lapor-anonim').checked;
+      
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+
+      const payload = {
+        kategori: document.getElementById('lapor-kategori').value,
+        isi_laporan: document.getElementById('lapor-isi').value,
+        is_anonim: isAnonim,
+        pelapor_nama: isAnonim ? "" : document.getElementById('lapor-nama').value,
+        pelapor_kelas: isAnonim ? "" : document.getElementById('lapor-kelas').value
+      };
+
+      try {
+        const res = await fetch(`${API_URL}/api/laporan`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        
+        if(data.ok) {
+          alert(data.message);
+          tutupModalLapor();
+          document.querySelector('form').reset(); // Reset form
+        } else {
+          alert('Gagal: ' + data.error);
+        }
+      } catch (err) {
+        alert('Error jaringan: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Laporan';
+      }
+    }
+  </script>
   <footer class="app-footer">
     <p>&copy; yhanedy@2026 SMAN 2 Karanganyar</p>
   </footer>
