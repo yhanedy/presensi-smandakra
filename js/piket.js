@@ -1,196 +1,150 @@
-// js/siswa-ijin.js — Modul Permohonan Izin (Siswa) terintegrasi dengan Piket
-let fotoIzinBase64 = null;
-let fileDispenBase64 = null;
-let fileDispenMime = 'image/jpeg';
-let fileDispenExt = 'jpg';
+/* ==========================================================================
+   PORTAL GURU PIKET — OPTIMIZED FOR TURSO (Hemat Kuota)
+   ========================================================================== */
 
-function bukaModalIzinDispen() {
-  fotoIzinBase64 = null;
-  fileDispenBase64 = null;
-  fileDispenMime = 'image/jpeg';
-  fileDispenExt = 'jpg';
+let currentUserSession = null;
 
-  const tglStr = getTanggalWIB();
-  document.getElementById('ijinTanggalToday').innerText = tglStr;
-  document.getElementById('dispenTglMulai').value = tglStr;
-  document.getElementById('dispenTglSelesai').value = tglStr;
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Cek Sesi Login
+    const rawUser = localStorage.getItem('smada_user');
+    if (rawUser && rawUser !== "null" && rawUser !== "undefined") {
+        try { 
+            currentUserSession = JSON.parse(rawUser); 
+            const nameEl = document.getElementById('display-user-name');
+            if (nameEl) nameEl.textContent = currentUserSession.nama || currentUserSession.username;
+        } catch (e) {}
+    } else {
+        alert("Akses Ditolak! Silakan login terlebih dahulu.");
+        window.location.replace('index.html');
+        return;
+    }
 
-  lockButton('btnKirimIjinHarian', true);
-  lockButton('btnKirimDispenDokter', true);
-  document.getElementById('ijinPreviewBox')?.classList.add('hidden');
-  document.getElementById('dispenFileNama')?.classList.add('hidden');
-  const imgDispen = document.getElementById('dispenFotoPreview');
-  if (imgDispen) { imgDispen.src = '#'; imgDispen.classList.add('hidden'); }
+    // 2. Muat Data Awal
+    muatPresensiHariIni();
+});
 
-  const inputIzin = document.getElementById('ijinFotoInput');
-  const inputDispen = document.getElementById('dispenFileInput');
-  if (inputIzin) inputIzin.value = '';
-  if (inputDispen) inputDispen.value = '';
+// =====================================================================
+// 1. MEMUAT DAFTAR PRESENSI & PENGAJUAN IZIN HARI INI
+// =====================================================================
+async function muatPresensiHariIni() {
+    const tbody = document.getElementById('tabel-presensi-body'); // Sesuaikan ID tabel di HTML piket
+    if (!tbody) return;
 
-  switchTabIzinDispen('tab-ijin-harian');
-  document.getElementById('modal-permohonan-ijin')?.classList.remove('hidden');
-}
-
-function tutupModalIzinDispen() {
-  document.getElementById('modal-permohonan-ijin')?.classList.add('hidden');
-  fotoIzinBase64 = null;
-  fileDispenBase64 = null;
-}
-
-function lockButton(id, locked) {
-  const btn = document.getElementById(id);
-  if (!btn) return;
-  btn.disabled = locked;
-  btn.classList.toggle('opacity-50', locked);
-}
-
-function switchTabIzinDispen(tabId) {
-  document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-  const target = document.getElementById(tabId);
-  if (target) target.classList.remove('hidden');
-  const btnHarian = document.getElementById('btn-tab-ijin-harian');
-  const btnDispen = document.getElementById('btn-tab-dispen');
-  if (btnHarian) btnHarian.classList.toggle('active', tabId === 'tab-ijin-harian');
-  if (btnDispen) btnDispen.classList.toggle('active', tabId === 'tab-dispen');
-}
-
-async function previewFotoIzin(event) {
-  const file = event.target.files[0];
-  if (!file) {
-    fotoIzinBase64 = null;
-    lockButton('btnKirimIjinHarian', true);
-    return;
-  }
-  try {
-    fotoIzinBase64 = await kompresGambar(file, 800, 0.7);
-    document.getElementById('ijinFotoPreview').src = fotoIzinBase64;
-    document.getElementById('ijinPreviewBox').classList.remove('hidden');
-    lockButton('btnKirimIjinHarian', false);
-  } catch (e) {
-    alert(e.message);
-    event.target.value = '';
-    lockButton('btnKirimIjinHarian', true);
-  }
-}
-
-async function previewFileDispen(event) {
-  const file = event.target.files[0];
-  if (!file) {
-    fileDispenBase64 = null;
-    lockButton('btnKirimDispenDokter', true);
-    return;
-  }
-  const nama = document.getElementById('dispenFileNama');
-  const img = document.getElementById('dispenFotoPreview');
-
-  if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
-    const reader = new FileReader();
-    reader.onload = e => {
-      fileDispenBase64 = e.target.result;
-      fileDispenMime = 'application/pdf';
-      fileDispenExt = 'pdf';
-      if (nama) { nama.innerText = `📄 PDF: ${file.name}`; nama.classList.remove('hidden'); }
-      if (img) { img.src = '#'; img.classList.add('hidden'); }
-      lockButton('btnKirimDispenDokter', false);
-    };
-    reader.readAsDataURL(file);
-    return;
-  }
-
-  try {
-    fileDispenBase64 = await kompresGambar(file, 800, 0.7);
-    fileDispenMime = 'image/jpeg';
-    fileDispenExt = 'jpg';
-    if (nama) { nama.innerText = `🖼️ Foto: ${file.name}`; nama.classList.remove('hidden'); }
-    if (img) { img.src = fileDispenBase64; img.classList.remove('hidden'); }
-    lockButton('btnKirimDispenDokter', false);
-  } catch (e) {
-    alert(e.message);
-    event.target.value = '';
-    lockButton('btnKirimDispenDokter', true);
-  }
-}
-
-// ==========================================
-// 1. KIRIM IZIN HARIAN
-// ==========================================
-async function kirimPermohonanIzinHarian() {
-  const alasan = document.getElementById('ijin-alasan')?.value.trim() || '';
-  const btn = document.getElementById('btnKirimIjinHarian');
-
-  if (!alasan) { alert("Tuliskan alasan izin secara jelas!"); return; }
-  if (!fotoIzinBase64) { alert("Wajib mefoto Surat Izin Tulis Tangan!"); return; }
-
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...`;
-
-  try {
-    const driveUrl = await uploadKeDriveGAS(fotoIzinBase64, "izin_tangan", "image/jpeg", "jpg");
-    if (!driveUrl) return;
-
-    const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4"><i class="fa-solid fa-spinner fa-spin"></i> Memuat data...</td></tr>';
     
-    // Keterangan dibersihkan agar Regex di piket.js mudah mendeteksi URL
-    const ket = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
+    // Ambil tanggal hari ini (WIB)
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
-    await queryTurso(
-      'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-      [nisnVal, getTanggalWIB(), getJamWIB(), 'Izin', ket, driveUrl]
-    );
+    try {
+        // OPTIMASI HEMAT KUOTA:
+        // 1. JANGAN SELECT * (karena kolom foto base64 bisa sangat besar)
+        // 2. Hapus TRIM() pada tanggal
+        // 3. Hanya ambil kolom yang dibutuhkan
+        const data = await queryTurso(
+            'SELECT id, nisn, jam_masuk, jam_pulang, status, keterangan FROM presensi WHERE tanggal = ? ORDER BY jam_masuk DESC', 
+            [today]
+        );
 
-    alert(`Permohonan Izin berhasil dikirim ke Guru Piket!`);
-    tutupModalIzinDispen();
-    muatPresensiSiswaHariIni();
-    muatRiwayatSiswa();
-  } catch (err) {
-    alert("Gagal mengirim izin: " + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Kirim ke Piket`;
-  }
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-500 p-4">Belum ada data presensi hari ini.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map((p, index) => {
+            // Cek apakah ada link bukti surat di dalam keterangan
+            let linkBukti = '-';
+            if (p.keterangan && p.keterangan.includes('Link: ')) {
+                const urlMatch = p.keterangan.match(/Link:\s*(https?:\/\/[^\s]+)/);
+                if (urlMatch) {
+                    linkBukti = `<a href="${urlMatch[1]}" target="_blank" class="text-blue-600 underline text-xs font-bold">Lihat Bukti</a>`;
+                }
+            }
+
+            return `
+            <tr class="hover:bg-slate-50 border-b">
+                <td class="p-3 text-center">${index + 1}</td>
+                <td class="p-3 font-mono font-bold">${p.nisn}</td>
+                <td class="p-3">${p.jam_masuk || '-'}</td>
+                <td class="p-3">${p.jam_pulang || '-'}</td>
+                <td class="p-3">
+                    <span class="px-2 py-1 rounded text-xs font-bold ${p.status === 'Hadir' ? 'bg-green-100 text-green-700' : (p.status === 'Izin' || p.status === 'Sakit' ? 'bg-amber-100 text-amber-700' : 'bg-red-100 text-red-700')}">
+                        ${p.status}
+                    </span>
+                </td>
+                <td class="p-3 text-xs text-slate-600 max-w-xs truncate" title="${p.keterangan || '-'}">
+                    ${p.keterangan || '-'} <br> ${linkBukti}
+                </td>
+            </tr>
+            `;
+        }).join('');
+
+    } catch (err) {
+        console.error("Gagal memuat presensi:", err);
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center text-red-500 p-4">Gagal memuat data: ${err.message}</td></tr>`;
+    }
 }
 
-// ==========================================
-// 2. KIRIM DISPEN / DOKTER
-// ==========================================
-async function kirimPermohonanDispenDokter() {
-  const jenisKategori = document.getElementById('dispenKategori')?.value || 'Dispensasi';
-  const tglMulai = document.getElementById('dispenTglMulai')?.value;
-  const tglSelesai = document.getElementById('dispenTglSelesai')?.value;
-  const keterangan = document.getElementById('dispenKeterangan')?.value.trim() || '';
-  const btn = document.getElementById('btnKirimDispenDokter');
+// =====================================================================
+// 2. MENGUBAH STATUS IZIN (Verifikasi Piket)
+// =====================================================================
+async function ubahStatusIzin(idPresensi, statusBaru) {
+    if (!confirm(`Yakin ingin mengubah status menjadi ${statusBaru}?`)) return;
 
-  if (!keterangan) { alert("Tuliskan keterangan!"); return; }
-  if (!tglMulai || !tglSelesai) { alert("Pilih rentang tanggal!"); return; }
-  if (tglSelesai < tglMulai) { alert("Tanggal selesai tidak boleh sebelum tanggal mulai!"); return; }
-  if (!fileDispenBase64) { alert("Wajib lampirkan Surat Dokter / Tugas!"); return; }
+    try {
+        // OPTIMASI: Langsung update berdasarkan ID (Primary Key)
+        await queryTurso(
+            'UPDATE presensi SET status = ? WHERE id = ?',
+            [statusBaru, idPresensi]
+        );
+        
+        alert('Status berhasil diperbarui!');
+        muatPresensiHariIni(); // Refresh tabel
+    } catch (err) {
+        alert('Gagal memperbarui status: ' + err.message);
+    }
+}
 
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Mengunggah...`;
+// =====================================================================
+// 3. PENCARIAN SISWA (Untuk Piket)
+// =====================================================================
+async function cariDataSiswa() {
+    const keyword = document.getElementById('input-cari-piket')?.value.trim();
+    const tbody = document.getElementById('tabel-hasil-cari');
 
-  try {
-    const driveUrl = await uploadKeDriveGAS(fileDispenBase64, "dispen_dokter", fileDispenMime, fileDispenExt);
-    if (!driveUrl) return;
+    if (!keyword) {
+        alert("Masukkan NISN atau Nama untuk mencari!");
+        return;
+    }
 
-    const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
-    const statusFinal = jenisKategori.includes('Sakit') ? 'Sakit' : 'Dispensasi';
-    
-    // Keterangan dibersihkan agar Regex di piket.js mudah mendeteksi URL
-    const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Mencari...</td></tr>';
 
-    await queryTurso(
-      'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-      [nisnVal, tglMulai, getJamWIB(), statusFinal, ketLengkap, driveUrl]
-    );
+    try {
+        // OPTIMASI: 
+        // 1. Hapus TRIM()
+        // 2. Batasi hasil pencarian (LIMIT 20) agar tidak menarik seluruh database
+        const data = await queryTurso(
+            'SELECT nisn, nama, kelas FROM siswa WHERE nisn LIKE ? OR LOWER(nama) LIKE LOWER(?) LIMIT 20',
+            [`%${keyword}%`, `%${keyword}%`]
+        );
 
-    alert(`Permohonan ${jenisKategori} berhasil diteruskan ke Guru Piket!`);
-    tutupModalIzinDispen();
-    muatPresensiSiswaHariIni();
-    muatRiwayatSiswa();
-  } catch (err) {
-    alert("Gagal mengirim pengajuan: " + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> Kirim ke Piket`;
-  }
+        if (!data || data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4 text-slate-500">Siswa tidak ditemukan.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = data.map(s => `
+            <tr class="hover:bg-slate-50 border-b">
+                <td class="p-3 font-mono font-bold">${s.nisn}</td>
+                <td class="p-3 font-bold text-slate-800">${s.nama}</td>
+                <td class="p-3 font-mono text-blue-700">${s.kelas}</td>
+                <td class="p-3 text-center">
+                    <button onclick="lihatDetailSiswa('${s.nisn}')" class="bg-blue-600 text-white px-2 py-1 rounded text-xs">Detail</button>
+                </td>
+            </tr>
+        `).join('');
+        
+    } catch (err) {
+        console.error("Gagal mencari siswa:", err);
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-red-500 p-4">Gagal mencari: ${err.message}</td></tr>`;
+    }
 }
