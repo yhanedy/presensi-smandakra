@@ -1,8 +1,8 @@
 /* ==========================================================================
-   SMAN 2 KARANGANYAR - PORTAL BK & STP2K ENGINE (TURSO DB) - FULL FINAL
+   SMAN 2 KARANGANYAR - PORTAL BK & STP2K ENGINE (TURSO DB) - OPTIMIZED
    ========================================================================== */
 
-// PROTEKSI HALAMAN: Cek akses sebelum memuat apapun
+// PROTEKSI HALAMAN
 (function proteksiHalamanBK() {
     const rawUser = localStorage.getItem('smada_user');
     if (!rawUser || rawUser === "null" || rawUser === "undefined") {
@@ -28,6 +28,7 @@ let currentPage = 1;
 const LIMIT = 10;
 let totalPages = 1;
 let activeUser = null;
+const WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev'; // Sesuaikan jika perlu
 
 document.addEventListener('DOMContentLoaded', async () => {
     const rawUser = localStorage.getItem('smada_user');
@@ -39,7 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (nameEl) nameEl.textContent = activeUser.nama || activeUser.username;
     }
 
-    // Set tanggal default hari ini pada input pelanggaran
     const tglPelanggaranElem = document.getElementById('pelanggaran-tanggal');
     if (tglPelanggaranElem) {
         const hariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     await muatDaftarKelasSiswaBK();
-    muatPelanggaranBK(1); // Panggil halaman 1
+    muatPelanggaranBK(1);
 });
 
 function logout() {
@@ -56,10 +56,11 @@ function logout() {
     window.location.href = 'index.html';
 }
 
+// OPTIMASI: Menghapus TRIM() agar index database bekerja
 async function muatDaftarKelasSiswaBK() {
     const idsKelas = ['pelanggaran-kelas', 'bk-kelas', 'pulang-kelas', 'cari-kelas-siswa'];
     try {
-        const res = await queryTurso("SELECT DISTINCT TRIM(kelas) AS kelas FROM siswa WHERE kelas IS NOT NULL AND TRIM(kelas) != '' ORDER BY kelas ASC");
+        const res = await queryTurso("SELECT DISTINCT kelas FROM siswa WHERE kelas IS NOT NULL AND kelas != '' ORDER BY kelas ASC");
         let options = '<option value="">-- Pilih Kelas --</option>';
         if (res && res.length > 0) {
             options += res.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
@@ -81,19 +82,22 @@ async function muatDaftarKelasSiswaBK() {
     }
 }
 
+// OPTIMASI: Menghapus TRIM() dan hanya mengambil kolom yang perlu
 async function muatSiswaBerdasarkanKelas(idSelectKelas, idSelectSiswa) {
     const elKelas = document.getElementById(idSelectKelas);
     const selectSiswa = document.getElementById(idSelectSiswa);
     if (!elKelas || !selectSiswa) return;
-    const kelasSelected = elKelas.value.trim();
+    
+    const kelasSelected = elKelas.value;
     if (!kelasSelected) {
         selectSiswa.innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
         return;
     }
     selectSiswa.innerHTML = '<option value="">Memuat nama siswa...</option>';
+    
     try {
         const res = await queryTurso(
-            'SELECT TRIM(nisn) AS nisn, nama FROM siswa WHERE TRIM(kelas) = TRIM(?) ORDER BY nama ASC', 
+            'SELECT nisn, nama FROM siswa WHERE kelas = ? ORDER BY nama ASC', 
             [kelasSelected]
         );
         if (res && res.length > 0) {
@@ -118,11 +122,11 @@ async function simpanPelanggaranBK() {
     if (!catatan) { alert("Catatan Pelanggaran Wajib diisi!"); return; }
 
     try {
-        const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
+        // OPTIMASI: Hapus TRIM()
+        const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
         const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
         const diinputOleh = activeUser ? (activeUser.nama || activeUser.username) : 'Guru BK';
         
-        // Insert dengan tanggal yang dipilih user
         await queryTurso(
             'INSERT INTO kedisiplinan (nisn, catatan_pelanggaran, diinput_oleh, created_at) VALUES (?, ?, ?, ?)',
             [nisn, catatan, diinputOleh, tglInput]
@@ -134,11 +138,10 @@ async function simpanPelanggaranBK() {
         document.getElementById('pelanggaran-nisn').innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
         document.getElementById('pelanggaran-catatan').value = '';
         
-        // Kembalikan tanggal ke hari ini
         const hariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
         document.getElementById('pelanggaran-tanggal').value = hariIni;
         
-        muatPelanggaranBK(1); // Refresh ke halaman 1
+        muatPelanggaranBK(1);
     } catch (err) {
         alert("Gagal menyimpan catatan pelanggaran: " + err.message);
     }
@@ -151,7 +154,8 @@ async function simpanPresensiBK() {
     if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
     try {
-        const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
+        // OPTIMASI: Hapus TRIM()
+        const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
         if (!sCheck || sCheck.length === 0) {
             alert(`Data siswa tidak ditemukan!`);
             return;
@@ -187,9 +191,11 @@ async function simpanPulangMendahului() {
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
     const jamNow = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date()).replace(/\./g, ':');
     try {
-        const sCheck = await queryTurso('SELECT nama FROM siswa WHERE TRIM(nisn) = TRIM(?)', [nisn]);
+        // OPTIMASI: Hapus TRIM()
+        const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
         const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
-        const pCek = await queryTurso('SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? LIMIT 1', [nisn, today]);
+        
+        const pCek = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 1', [nisn, today]);
         if (pCek && pCek.length > 0) {
             await queryTurso(
                 'UPDATE presensi SET jam_pulang = ?, status = ?, keterangan = ? WHERE id = ?',
@@ -211,9 +217,7 @@ async function simpanPulangMendahului() {
     }
 }
 
-// =========================================================
-// FUNGSI BARU: MENDUKUNG PAGINATION 10 DATA
-// =========================================================
+// OPTIMASI: Hapus TRIM() pada JOIN
 async function muatPelanggaranBK(page) {
     if (page < 1) page = 1;
     currentPage = page;
@@ -227,7 +231,7 @@ async function muatPelanggaranBK(page) {
     tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Memuat catatan...</td></tr>';
 
     try {
-        // 1. Hitung Total Data untuk menentukan Total Halaman
+        // 1. Hitung Total Data
         const countRes = await queryTurso("SELECT COUNT(*) as total FROM kedisiplinan");
         const totalData = countRes[0] ? countRes[0].total : 0;
         totalPages = Math.ceil(totalData / LIMIT) || 1;
@@ -235,13 +239,13 @@ async function muatPelanggaranBK(page) {
         if (currentPage > totalPages) currentPage = totalPages;
         const offset = (currentPage - 1) * LIMIT;
 
-        // 2. Ambil Data dengan LIMIT & OFFSET
+        // 2. Ambil Data (Hapus TRIM pada JOIN)
         const sqlStr = `
             SELECT k.id, k.created_at, k.nisn, k.catatan_pelanggaran, k.penanganan_bk, k.diinput_oleh, 
                    COALESCE(s.nama, 'Siswa') as nama, 
                    COALESCE(s.kelas, '-') as kelas 
             FROM kedisiplinan k 
-            LEFT JOIN siswa s ON TRIM(k.nisn) = TRIM(s.nisn) 
+            LEFT JOIN siswa s ON k.nisn = s.nisn 
             ORDER BY k.id DESC 
             LIMIT ${LIMIT} OFFSET ${offset}
         `;
@@ -270,7 +274,6 @@ async function muatPelanggaranBK(page) {
             `).join('');
         }
 
-        // 3. Update UI Pagination
         if (pageInfo) pageInfo.textContent = `Halaman ${currentPage} dari ${totalPages} (Total: ${totalData} data)`;
         if (btnPrev) btnPrev.disabled = (currentPage <= 1);
         if (btnNext) btnNext.disabled = (currentPage >= totalPages);
@@ -304,7 +307,7 @@ async function simpanPenangananBK() {
         );
         alert("Catatan penanganan BK berhasil diperbarui!");
         tutupModalPenanganan();
-        muatPelanggaranBK(currentPage); // Refresh di halaman yang sama
+        muatPelanggaranBK(currentPage);
         if (!document.getElementById('modal-cari-siswa').classList.contains('hidden')) {
             eksekusiCariSiswaBK();
         }
@@ -321,6 +324,7 @@ function tutupModalCariSiswa() {
     document.getElementById('modal-cari-siswa').classList.add('hidden');
 }
 
+// OPTIMASI: Hapus TRIM() pada pencarian
 async function eksekusiCariSiswaBK() {
     const keyword = document.getElementById('cari-keyword-siswa').value.trim();
     const kelas = document.getElementById('cari-kelas-siswa').value.trim();
@@ -334,7 +338,7 @@ async function eksekusiCariSiswaBK() {
         let whereClause = [];
         let params = [];
         if (keyword) {
-            whereClause.push("(LOWER(s.nama) LIKE LOWER(?) OR TRIM(k.nisn) LIKE TRIM(?))");
+            whereClause.push("(LOWER(s.nama) LIKE LOWER(?) OR k.nisn LIKE ?)");
             params.push(`%${keyword}%`, `%${keyword}%`);
         }
         if (kelas) {
@@ -346,7 +350,7 @@ async function eksekusiCariSiswaBK() {
                    COALESCE(s.nama, 'Siswa') as nama, 
                    COALESCE(s.kelas, '-') as kelas 
             FROM kedisiplinan k 
-            LEFT JOIN siswa s ON TRIM(k.nisn) = TRIM(s.nisn) 
+            LEFT JOIN siswa s ON k.nisn = s.nisn 
             WHERE ${whereClause.join(' AND ')} 
             ORDER BY k.id DESC
         `;
@@ -381,8 +385,8 @@ async function eksekusiCariSiswaBK() {
 function cetakPDFLaporanBK() {
     window.print();
 }
-// ==================== LOGIKA LAPORAN BK ====================
 
+// ==================== LOGIKA LAPORAN BK ====================
 function bukaModalLaporanBK() {
     document.getElementById('modal-laporan-bk').classList.remove('hidden');
     muatLaporanBK();
@@ -391,23 +395,15 @@ function tutupModalLaporanBK() {
     document.getElementById('modal-laporan-bk').classList.add('hidden');
 }
 
-// Pastikan URL ini sesuai dengan URL Worker Anda
-const WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev/'; 
-
 async function muatLaporanBK() {
     const tbody = document.getElementById('tabel-laporan-body');
     tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data...</td></tr>';
-    
-    // Ambil token dari localStorage
     const token = localStorage.getItem('smada_token'); 
     
     try {
         const res = await fetch(`${WORKER_URL}/api/laporan`, {
             method: 'GET',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // Kirim token agar diizinkan Worker
-            }
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
         
@@ -448,16 +444,12 @@ async function simpanTindakLanjut() {
     const id = document.getElementById('tl-laporan-id').value;
     const status = document.getElementById('tl-status').value;
     const catatan = document.getElementById('tl-catatan').value;
-    
     const token = localStorage.getItem('smada_token');
 
     try {
         const res = await fetch(`${WORKER_URL}/api/laporan/tindaklanjut`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}` // Kirim token
-            },
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
             body: JSON.stringify({ id, status, tindak_lanjut: catatan })
         });
         const data = await res.json();
@@ -473,6 +465,8 @@ async function simpanTindakLanjut() {
         alert('Error: ' + e.message);
     }
 }
+
+// OPTIMASI: Hapus TRIM() di ekspor excel
 async function eksporExcelPelanggaranBK() {
     try {
         const sqlStr = `
@@ -480,7 +474,7 @@ async function eksporExcelPelanggaranBK() {
                    COALESCE(s.nama, '-') as nama, 
                    COALESCE(s.kelas, '-') as kelas 
             FROM kedisiplinan k 
-            LEFT JOIN siswa s ON TRIM(k.nisn) = TRIM(s.nisn) 
+            LEFT JOIN siswa s ON k.nisn = s.nisn 
             ORDER BY k.id DESC
         `;
         const data = await queryTurso(sqlStr);
