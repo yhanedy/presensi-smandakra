@@ -411,7 +411,7 @@
         </div>
       </div>
       
-      <form onsubmit="kirimLaporan(event)" class="space-y-4 mt-4">
+      <form id="form-lapor" onsubmit="kirimLaporan(event)" class="space-y-4 mt-4">
         <div>
           <label class="field-label">Kategori Laporan</label>
           <select id="lapor-kategori" class="input" required>
@@ -474,6 +474,7 @@
       };
 
       try {
+        // Pastikan API_URL sudah dideklarasikan di config.js atau file utama Anda
         const res = await fetch(`${API_URL}/api/laporan`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -481,12 +482,13 @@
         });
         const data = await res.json();
         
-        if(data.ok) {
+        // PERBAIKAN: Worker mengembalikan { success: true }, bukan { ok: true }
+        if(data.success) {
           alert(data.message);
           tutupModalLapor();
-          document.querySelector('form').reset(); // Reset form
+          document.getElementById('form-lapor').reset(); // Reset form yang benar
         } else {
-          alert('Gagal: ' + data.error);
+          alert('Gagal: ' + (data.error || 'Terjadi kesalahan'));
         }
       } catch (err) {
         alert('Error jaringan: ' + err.message);
