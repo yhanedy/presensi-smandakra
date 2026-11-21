@@ -18,7 +18,8 @@ window.onload = function () {
 /* ---------- SETTING SEKOLAH ---------- */
 async function muatSettingSekolah() {
   try {
-    const data = await queryTurso('SELECT * FROM setting_sekolah WHERE id = 1 LIMIT 1');
+    // OPTIMASI: Hanya ambil kolom yang dibutuhkan
+    const data = await queryTurso('SELECT latitude, longitude, radius_meter FROM setting_sekolah WHERE id = 1 LIMIT 1');
     if (data && data.length) {
       const c = data[0];
       const lat = parseFloat(c.latitude);
@@ -54,8 +55,9 @@ function muatPortalSiswa() {
 /* ---------- PENGUMUMAN ---------- */
 async function cekPengumumanKhususSiswa() {
   try {
+    // OPTIMASI: Hanya ambil kolom yang dibutuhkan
     const data = await queryTurso(
-      'SELECT * FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = "siswa" OR LOWER(target_role) = "semua") ORDER BY id DESC LIMIT 1'
+      'SELECT id, judul, isi FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = "siswa" OR LOWER(target_role) = "semua") ORDER BY id DESC LIMIT 1'
     );
     if (data && data.length) {
       const ann = data[0];
@@ -145,8 +147,9 @@ async function muatPresensiSiswaHariIni() {
   const tgl = getTanggalWIB();
 
   try {
+    // OPTIMASI: Hapus TRIM() di NISN, hanya ambil kolom yang perlu
     const data = await queryTurso(
-      'SELECT * FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ?',
+      'SELECT jam_masuk, jam_pulang FROM presensi WHERE nisn = ? AND tanggal = ?',
       [nisnVal, tgl]
     );
     const masuk = data?.find(p => p.jam_masuk);
@@ -213,8 +216,9 @@ async function prosesPresensiSiswa(jenis) {
     const tgl = getTanggalWIB();
 
     if (jenis === 'Hadir') {
+      // OPTIMASI: Hapus TRIM()
       const cek = await queryTurso(
-        'SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
+        'SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
         [nisnVal, tgl]
       );
       if (cek?.length) { alert("Sudah presensi masuk hari ini!"); return; }
@@ -225,8 +229,9 @@ async function prosesPresensiSiswa(jenis) {
         [nisnVal, tgl, jam, status, `Presensi Masuk GPS (${siswaDistanceMeters}m)`]
       );
     } else {
+      // OPTIMASI: Hapus TRIM()
       await queryTurso(
-        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_pulang IS NULL',
+        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ? AND jam_pulang IS NULL',
         [jam, `Presensi Pulang GPS (${siswaDistanceMeters}m)`, nisnVal, tgl]
       );
     }
@@ -317,8 +322,9 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
 
   try {
     if (jenis === 'Hadir') {
+      // OPTIMASI: Hapus TRIM()
       const cek = await queryTurso(
-        'SELECT id FROM presensi WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
+        'SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
         [nisnVal, tgl]
       );
       if (cek?.length) { alert("Sudah presensi masuk!"); tutupModalKamera(); return; }
@@ -329,8 +335,9 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
         [nisnVal, tgl, jam, status, 'Presensi Masuk Kamera (Liveness Valid)', '']
       );
     } else {
+      // OPTIMASI: Hapus TRIM()
       await queryTurso(
-        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE TRIM(nisn) = TRIM(?) AND tanggal = ? AND jam_pulang IS NULL',
+        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ? AND jam_pulang IS NULL',
         [jam, 'Presensi Pulang Kamera (Liveness Valid)', nisnVal, tgl]
       );
     }
@@ -351,9 +358,15 @@ async function muatRiwayatSiswa() {
   if (!container) return;
 
   try {
+    // OPTIMASI BESAR: Hapus SELECT * dan TRIM(), filter langsung tanggal 30 hari terakhir
+    const today = new Date();
+    const startDate = new Date();
+    startDate.setDate(today.getDate() - 30);
+    const tglMulai = startDate.toISOString().split('T')[0];
+
     const data = await queryTurso(
-      'SELECT * FROM presensi WHERE TRIM(nisn) = TRIM(?) ORDER BY tanggal DESC LIMIT 35',
-      [nisnVal]
+      'SELECT tanggal, status, jam_masuk, jam_pulang, keterangan FROM presensi WHERE nisn = ? AND tanggal >= ? ORDER BY tanggal DESC LIMIT 35',
+      [nisnVal, tglMulai]
     );
     
     const dataMap = {};
@@ -366,7 +379,6 @@ async function muatRiwayatSiswa() {
     }
 
     let html = '';
-    const today = new Date();
     
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today);
