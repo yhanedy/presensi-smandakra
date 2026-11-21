@@ -381,7 +381,94 @@ async function eksekusiCariSiswaBK() {
 function cetakPDFLaporanBK() {
     window.print();
 }
+// ==================== LOGIKA LAPORAN BK ====================
 
+function bukaModalLaporanBK() {
+    document.getElementById('modal-laporan-bk').classList.remove('hidden');
+    muatLaporanBK();
+}
+function tutupModalLaporanBK() {
+    document.getElementById('modal-laporan-bk').classList.add('hidden');
+}
+
+async function muatLaporanBK() {
+    const tbody = document.getElementById('tabel-laporan-body');
+    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data...</td></tr>';
+    
+    try {
+        const res = await fetch(`${API_URL}/api/laporan`);
+        const data = await res.json();
+        
+        if (data.ok && data.laporan.length > 0) {
+            tbody.innerHTML = data.laporan.map(l => {
+                // Logika anonim
+                let pelapor = "Anonim";
+                if (l.is_anonim == 0) {
+                    pelapor = `${l.pelapor_nama || 'Tanpa Nama'} (${l.pelapor_kelas || '-'})`;
+                }
+                
+                // Badge status
+                let badgeClass = 'bg-slate-200 text-slate-700';
+                if (l.status === 'pending') badgeClass = 'bg-red-100 text-red-700';
+                if (l.status === 'diproses') badgeClass = 'bg-amber-100 text-amber-700';
+                if (l.status === 'selesai') badgeClass = 'bg-emerald-100 text-emerald-700';
+
+                return `
+                <tr class="hover:bg-slate-50 border-b border-slate-200">
+                    <td class="p-2 whitespace-nowrap">${new Date(l.created_at).toLocaleDateString('id-ID')}</td>
+                    <td class="p-2 font-bold ${l.is_anonim == 1 ? 'text-purple-600' : 'text-slate-800'}">${pelapor}</td>
+                    <td class="p-2">${l.kategori}</td>
+                    <td class="p-2">${l.isi_laporan}</td>
+                    <td class="p-2"><span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${badgeClass}">${l.status}</span></td>
+                    <td class="p-2 text-center">
+                        <button onclick="bukaModalTindakLanjut('${l.id}', '${l.status}', '${(l.tindak_lanjut || '').replace(/'/g, "\\'")}')" class="bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-blue-700">Tindak Lanjut</button>
+                    </td>
+                </tr>`;
+            }).join('');
+        } else {
+            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada laporan masuk.</td></tr>';
+        }
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-red-400">Gagal memuat data.</td></tr>';
+    }
+}
+
+// --- Modal Tindak Lanjut ---
+function bukaModalTindakLanjut(id, status, catatan) {
+    document.getElementById('tl-laporan-id').value = id;
+    document.getElementById('tl-status').value = status;
+    document.getElementById('tl-catatan').value = catatan;
+    document.getElementById('modal-tindak-lanjut').classList.remove('hidden');
+}
+
+function tutupModalTindakLanjut() {
+    document.getElementById('modal-tindak-lanjut').classList.add('hidden');
+}
+
+async function simpanTindakLanjut() {
+    const id = document.getElementById('tl-laporan-id').value;
+    const status = document.getElementById('tl-status').value;
+    const catatan = document.getElementById('tl-catatan').value;
+
+    try {
+        const res = await fetch(`${API_URL}/api/laporan/tindaklanjut`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id, status, tindak_lanjut: catatan })
+        });
+        const data = await res.json();
+        
+        if (data.ok) {
+            alert(data.message);
+            tutupModalTindakLanjut();
+            muatLaporanBK(); // Refresh tabel
+        } else {
+            alert('Gagal: ' + data.error);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
 async function eksporExcelPelanggaranBK() {
     try {
         const sqlStr = `
