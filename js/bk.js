@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SMAN 2 KARANGANYAR - PORTAL BK & STP2K ENGINE (TURSO DB) - OPTIMIZED
+   SMAN 2 KARANGANYAR - PORTAL BK & STP2K ENGINE (SYNCHRONIZED)
    ========================================================================== */
 
 // PROTEKSI HALAMAN
@@ -28,7 +28,7 @@ let currentPage = 1;
 const LIMIT = 10;
 let totalPages = 1;
 let activeUser = null;
-const WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev'; // Sesuaikan jika perlu
+const WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
 
 document.addEventListener('DOMContentLoaded', async () => {
     const rawUser = localStorage.getItem('smada_user');
@@ -53,10 +53,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 function logout() {
     localStorage.removeItem('smada_user');
     localStorage.removeItem('smada_role');
+    localStorage.removeItem('smada_token');
     window.location.href = 'index.html';
 }
 
-// OPTIMASI: Menghapus TRIM() agar index database bekerja
 async function muatDaftarKelasSiswaBK() {
     const idsKelas = ['pelanggaran-kelas', 'bk-kelas', 'pulang-kelas', 'cari-kelas-siswa'];
     try {
@@ -82,26 +82,25 @@ async function muatDaftarKelasSiswaBK() {
     }
 }
 
-// OPTIMASI: Menghapus TRIM() dan hanya mengambil kolom yang perlu
 async function muatSiswaBerdasarkanKelas(idSelectKelas, idSelectSiswa) {
     const elKelas = document.getElementById(idSelectKelas);
     const selectSiswa = document.getElementById(idSelectSiswa);
     if (!elKelas || !selectSiswa) return;
-    
+
     const kelasSelected = elKelas.value;
     if (!kelasSelected) {
         selectSiswa.innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
         return;
     }
     selectSiswa.innerHTML = '<option value="">Memuat nama siswa...</option>';
-    
+
     try {
         const res = await queryTurso(
-            'SELECT nisn, nama FROM siswa WHERE kelas = ? ORDER BY nama ASC', 
+            'SELECT nisn, nama FROM siswa WHERE kelas = ? ORDER BY nama ASC',
             [kelasSelected]
         );
         if (res && res.length > 0) {
-            selectSiswa.innerHTML = '<option value="">-- Pilih Nama Siswa --</option>' + 
+            selectSiswa.innerHTML = '<option value="">-- Pilih Nama Siswa --</option>' +
                 res.map(s => `<option value="${s.nisn}">${s.nama} (${s.nisn})</option>`).join('');
         } else {
             selectSiswa.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
@@ -116,31 +115,30 @@ async function simpanPelanggaranBK() {
     const nisn = document.getElementById('pelanggaran-nisn').value;
     const tglInput = document.getElementById('pelanggaran-tanggal').value;
     const catatan = document.getElementById('pelanggaran-catatan').value.trim();
-    
+
     if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
     if (!tglInput) { alert("Tanggal kejadian wajib diisi!"); return; }
     if (!catatan) { alert("Catatan Pelanggaran Wajib diisi!"); return; }
 
     try {
-        // OPTIMASI: Hapus TRIM()
         const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
         const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
         const diinputOleh = activeUser ? (activeUser.nama || activeUser.username) : 'Guru BK';
-        
+
         await queryTurso(
             'INSERT INTO kedisiplinan (nisn, catatan_pelanggaran, diinput_oleh, created_at) VALUES (?, ?, ?, ?)',
             [nisn, catatan, diinputOleh, tglInput]
         );
-        
+
         alert(`Catatan kedisiplinan untuk SISWA (${namaSiswa}) berhasil disimpan!`);
-        
+
         document.getElementById('pelanggaran-kelas').value = '';
         document.getElementById('pelanggaran-nisn').innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
         document.getElementById('pelanggaran-catatan').value = '';
-        
+
         const hariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
         document.getElementById('pelanggaran-tanggal').value = hariIni;
-        
+
         muatPelanggaranBK(1);
     } catch (err) {
         alert("Gagal menyimpan catatan pelanggaran: " + err.message);
@@ -154,7 +152,6 @@ async function simpanPresensiBK() {
     if (!nisn) { alert("Silakan pilih Nama Siswa terlebih dahulu!"); return; }
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
     try {
-        // OPTIMASI: Hapus TRIM()
         const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
         if (!sCheck || sCheck.length === 0) {
             alert(`Data siswa tidak ditemukan!`);
@@ -191,10 +188,9 @@ async function simpanPulangMendahului() {
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
     const jamNow = new Intl.DateTimeFormat('id-ID', { timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).format(new Date()).replace(/\./g, ':');
     try {
-        // OPTIMASI: Hapus TRIM()
         const sCheck = await queryTurso('SELECT nama FROM siswa WHERE nisn = ?', [nisn]);
         const namaSiswa = (sCheck && sCheck.length > 0) ? sCheck[0].nama : 'Siswa';
-        
+
         const pCek = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 1', [nisn, today]);
         if (pCek && pCek.length > 0) {
             await queryTurso(
@@ -217,7 +213,6 @@ async function simpanPulangMendahului() {
     }
 }
 
-// OPTIMASI: Hapus TRIM() pada JOIN
 async function muatPelanggaranBK(page) {
     if (page < 1) page = 1;
     currentPage = page;
@@ -226,20 +221,18 @@ async function muatPelanggaranBK(page) {
     const btnPrev = document.getElementById('btn-prev-pelanggaran');
     const btnNext = document.getElementById('btn-next-pelanggaran');
     const pageInfo = document.getElementById('page-info-pelanggaran');
-    
+
     if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin"></i> Memuat catatan...</td></tr>';
 
     try {
-        // 1. Hitung Total Data
         const countRes = await queryTurso("SELECT COUNT(*) as total FROM kedisiplinan");
         const totalData = countRes[0] ? countRes[0].total : 0;
         totalPages = Math.ceil(totalData / LIMIT) || 1;
-        
+
         if (currentPage > totalPages) currentPage = totalPages;
         const offset = (currentPage - 1) * LIMIT;
 
-        // 2. Ambil Data (Hapus TRIM pada JOIN)
         const sqlStr = `
             SELECT k.id, k.created_at, k.nisn, k.catatan_pelanggaran, k.penanganan_bk, k.diinput_oleh, 
                    COALESCE(s.nama, 'Siswa') as nama, 
@@ -250,7 +243,7 @@ async function muatPelanggaranBK(page) {
             LIMIT ${LIMIT} OFFSET ${offset}
         `;
         const data = await queryTurso(sqlStr);
-        
+
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="9" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>';
         } else {
@@ -324,7 +317,6 @@ function tutupModalCariSiswa() {
     document.getElementById('modal-cari-siswa').classList.add('hidden');
 }
 
-// OPTIMASI: Hapus TRIM() pada pencarian
 async function eksekusiCariSiswaBK() {
     const keyword = document.getElementById('cari-keyword-siswa').value.trim();
     const kelas = document.getElementById('cari-kelas-siswa').value.trim();
@@ -356,145 +348,4 @@ async function eksekusiCariSiswaBK() {
         `;
         const data = await queryTurso(sqlStr, params);
         if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center text-amber-600 font-bold">Data pelanggaran siswa tidak ditemukan.</td></tr>';
-            return;
-        }
-        tbody.innerHTML = data.map(p => `
-            <tr class="hover:bg-slate-50 border-b border-slate-100">
-                <td class="p-2.5 border border-slate-200 font-mono text-slate-500">${p.created_at || '-'}</td>
-                <td class="p-2.5 border border-slate-200 font-mono font-bold text-slate-700">${p.nisn}</td>
-                <td class="p-2.5 border border-slate-200 font-bold text-slate-900">${p.nama}</td>
-                <td class="p-2.5 border border-slate-200 font-mono font-bold text-blue-900">${p.kelas}</td>
-                <td class="p-2.5 border border-slate-200 text-red-700 font-medium">${p.catatan_pelanggaran}</td>
-                <td class="p-2.5 border border-slate-200 text-emerald-800 font-medium bg-emerald-50/50">
-                    ${p.penanganan_bk ? `<i class="fa-solid fa-check text-emerald-600 mr-1"></i>${p.penanganan_bk}` : '<span class="text-slate-400 italic">Belum ada penanganan</span>'}
-                </td>
-                <td class="p-2.5 border border-slate-200 text-center no-print">
-                    <button onclick="bukaModalPenanganan(${p.id}, '${(p.nama || '').replace(/'/g, "\\'")}', '${(p.catatan_pelanggaran || '').replace(/'/g, "\\'")}', '${(p.penanganan_bk || '').replace(/'/g, "\\'")}')" class="bg-blue-900 hover:bg-blue-950 text-white px-2 py-1 rounded text-[11px] font-bold shadow transition cursor-pointer flex items-center justify-center gap-1 mx-auto">
-                        <i class="fa-solid fa-pen-to-square text-yellow-400"></i> Edit
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (err) {
-        console.error("Gagal cari siswa:", err);
-        tbody.innerHTML = `<tr><td colspan="7" class="p-4 text-center text-red-500 font-bold">Gagal mencari: ${err.message}</td></tr>`;
-    }
-}
-
-function cetakPDFLaporanBK() {
-    window.print();
-}
-
-// ==================== LOGIKA LAPORAN BK ====================
-function bukaModalLaporanBK() {
-    document.getElementById('modal-laporan-bk').classList.remove('hidden');
-    muatLaporanBK();
-}
-function tutupModalLaporanBK() {
-    document.getElementById('modal-laporan-bk').classList.add('hidden');
-}
-
-async function muatLaporanBK() {
-    const tbody = document.getElementById('tabel-laporan-body');
-    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data...</td></tr>';
-    const token = localStorage.getItem('smada_token'); 
-    
-    try {
-        const res = await fetch(`${WORKER_URL}/api/laporan`, {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        
-        if (res.ok && data.success && data.laporan.length > 0) {
-            tbody.innerHTML = data.laporan.map(l => {
-                let pelapor = "Anonim";
-                if (l.is_anonim == 0) {
-                    pelapor = `${l.pelapor_nama || 'Tanpa Nama'} (${l.pelapor_kelas || '-'})`;
-                }
-                
-                let badgeClass = 'bg-slate-200 text-slate-700';
-                if (l.status === 'pending') badgeClass = 'bg-red-100 text-red-700';
-                if (l.status === 'diproses') badgeClass = 'bg-amber-100 text-amber-700';
-                if (l.status === 'selesai') badgeClass = 'bg-emerald-100 text-emerald-700';
-
-                return `
-                <tr class="hover:bg-slate-50 border-b border-slate-200">
-                    <td class="p-2 whitespace-nowrap">${new Date(l.created_at).toLocaleDateString('id-ID')}</td>
-                    <td class="p-2 font-bold ${l.is_anonim == 1 ? 'text-purple-600' : 'text-slate-800'}">${pelapor}</td>
-                    <td class="p-2">${l.kategori}</td>
-                    <td class="p-2">${l.isi_laporan}</td>
-                    <td class="p-2"><span class="px-2 py-1 rounded text-[10px] font-bold uppercase ${badgeClass}">${l.status}</span></td>
-                    <td class="p-2 text-center">
-                        <button onclick="bukaModalTindakLanjut('${l.id}', '${l.status}', '${(l.tindak_lanjut || '').replace(/'/g, "\\'")}')" class="bg-blue-600 text-white px-2 py-1 rounded text-[10px] font-bold hover:bg-blue-700">Tindak Lanjut</button>
-                    </td>
-                </tr>`;
-            }).join('');
-        } else {
-            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada laporan masuk.</td></tr>';
-        }
-    } catch (e) {
-        console.error(e);
-        tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-red-400">Gagal memuat data.</td></tr>';
-    }
-}
-
-async function simpanTindakLanjut() {
-    const id = document.getElementById('tl-laporan-id').value;
-    const status = document.getElementById('tl-status').value;
-    const catatan = document.getElementById('tl-catatan').value;
-    const token = localStorage.getItem('smada_token');
-
-    try {
-        const res = await fetch(`${WORKER_URL}/api/laporan/tindaklanjut`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ id, status, tindak_lanjut: catatan })
-        });
-        const data = await res.json();
-        
-        if (res.ok && data.success) {
-            alert(data.message);
-            tutupModalTindakLanjut();
-            muatLaporanBK(); 
-        } else {
-            alert('Gagal: ' + (data.error || 'Terjadi kesalahan'));
-        }
-    } catch (e) {
-        alert('Error: ' + e.message);
-    }
-}
-
-// OPTIMASI: Hapus TRIM() di ekspor excel
-async function eksporExcelPelanggaranBK() {
-    try {
-        const sqlStr = `
-            SELECT k.created_at, k.nisn, k.catatan_pelanggaran, k.penanganan_bk, k.diinput_oleh, 
-                   COALESCE(s.nama, '-') as nama, 
-                   COALESCE(s.kelas, '-') as kelas 
-            FROM kedisiplinan k 
-            LEFT JOIN siswa s ON k.nisn = s.nisn 
-            ORDER BY k.id DESC
-        `;
-        const data = await queryTurso(sqlStr);
-        if (!data || data.length === 0) { alert("Tidak ada data kedisiplinan untuk diekspor!"); return; }
-        const listData = data.map((d, idx) => ({
-            "No": idx + 1,
-            "Tanggal / Waktu": d.created_at || '-',
-            "NISN": d.nisn,
-            "Nama Siswa": d.nama,
-            "Kelas": d.kelas,
-            "Catatan Pelanggaran": d.catatan_pelanggaran,
-            "Penanganan BK / Tindak Lanjut": d.penanganan_bk || 'Belum Ditangani',
-            "Diinput Oleh": d.diinput_oleh || '-'
-        }));
-        const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
-        const worksheet = XLSX.utils.json_to_sheet(listData);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Kedisiplinan & Penanganan BK");
-        XLSX.writeFile(workbook, `Laporan_Pelanggaran_Penanganan_BK_${today}.xlsx`);
-    } catch (err) {
-        alert("Gagal ekspor Excel: " + err.message);
-    }
-}
+            tbody.innerHTML = '<tr><td colspan="7" class="p-4 text-center
