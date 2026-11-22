@@ -18,7 +18,6 @@ window.onload = function () {
 /* ---------- SETTING SEKOLAH ---------- */
 async function muatSettingSekolah() {
   try {
-    // OPTIMASI: Hanya ambil kolom yang dibutuhkan
     const data = await queryTurso('SELECT latitude, longitude, radius_meter FROM setting_sekolah WHERE id = 1 LIMIT 1');
     if (data && data.length) {
       const c = data[0];
@@ -55,9 +54,9 @@ function muatPortalSiswa() {
 /* ---------- PENGUMUMAN ---------- */
 async function cekPengumumanKhususSiswa() {
   try {
-    // OPTIMASI: Hanya ambil kolom yang dibutuhkan
+    // Diselaraskan ke kutip tunggal ('siswa' & 'semua') agar kompatibel dengan PostgreSQL Supabase
     const data = await queryTurso(
-      'SELECT id, judul, isi FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = "siswa" OR LOWER(target_role) = "semua") ORDER BY id DESC LIMIT 1'
+      "SELECT id, judul, isi FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = 'siswa' OR LOWER(target_role) = 'semua') ORDER BY id DESC LIMIT 1"
     );
     if (data && data.length) {
       const ann = data[0];
@@ -147,7 +146,6 @@ async function muatPresensiSiswaHariIni() {
   const tgl = getTanggalWIB();
 
   try {
-    // OPTIMASI: Hapus TRIM() di NISN, hanya ambil kolom yang perlu
     const data = await queryTurso(
       'SELECT jam_masuk, jam_pulang FROM presensi WHERE nisn = ? AND tanggal = ?',
       [nisnVal, tgl]
@@ -180,6 +178,7 @@ async function muatPresensiSiswaHariIni() {
         btnPulang.disabled = true;
         catatan.textContent = "Presensi hari ini lengkap.";
         badge.textContent = "Selesai";
+        badge.className = "badge";
         badge.style.background = "rgba(16,185,129,.15)";
         badge.style.color = "#6ee7b7";
       }
@@ -216,7 +215,6 @@ async function prosesPresensiSiswa(jenis) {
     const tgl = getTanggalWIB();
 
     if (jenis === 'Hadir') {
-      // OPTIMASI: Hapus TRIM()
       const cek = await queryTurso(
         'SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
         [nisnVal, tgl]
@@ -229,7 +227,6 @@ async function prosesPresensiSiswa(jenis) {
         [nisnVal, tgl, jam, status, `Presensi Masuk GPS (${siswaDistanceMeters}m)`]
       );
     } else {
-      // OPTIMASI: Hapus TRIM()
       await queryTurso(
         'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ? AND jam_pulang IS NULL',
         [jam, `Presensi Pulang GPS (${siswaDistanceMeters}m)`, nisnVal, tgl]
@@ -322,7 +319,6 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
 
   try {
     if (jenis === 'Hadir') {
-      // OPTIMASI: Hapus TRIM()
       const cek = await queryTurso(
         'SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
         [nisnVal, tgl]
@@ -335,7 +331,6 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
         [nisnVal, tgl, jam, status, 'Presensi Masuk Kamera (Liveness Valid)', '']
       );
     } else {
-      // OPTIMASI: Hapus TRIM()
       await queryTurso(
         'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ? AND jam_pulang IS NULL',
         [jam, 'Presensi Pulang Kamera (Liveness Valid)', nisnVal, tgl]
@@ -358,7 +353,6 @@ async function muatRiwayatSiswa() {
   if (!container) return;
 
   try {
-    // OPTIMASI BESAR: Hapus SELECT * dan TRIM(), filter langsung tanggal 30 hari terakhir
     const today = new Date();
     const startDate = new Date();
     startDate.setDate(today.getDate() - 30);
@@ -368,7 +362,7 @@ async function muatRiwayatSiswa() {
       'SELECT tanggal, status, jam_masuk, jam_pulang, keterangan FROM presensi WHERE nisn = ? AND tanggal >= ? ORDER BY tanggal DESC LIMIT 35',
       [nisnVal, tglMulai]
     );
-    
+
     const dataMap = {};
     if (data && data.length) {
       data.forEach(d => {
@@ -379,17 +373,17 @@ async function muatRiwayatSiswa() {
     }
 
     let html = '';
-    
+
     for (let i = 29; i >= 0; i--) {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
-      
+
       const tglStr = d.toISOString().split('T')[0];
       const rec = dataMap[tglStr];
-      
+
       let bgClass = 'bg-empty';
       let statusText = 'Tidak ada data';
-      
+
       if (rec) {
         if (rec.status === 'Hadir') { bgClass = 'bg-hadir'; statusText = 'Hadir'; }
         else if (rec.status === 'Terlambat') { bgClass = 'bg-terlambat'; statusText = 'Terlambat'; }
@@ -412,20 +406,19 @@ async function muatRiwayatSiswa() {
     }
 
     container.innerHTML = html;
-    
+
   } catch (e) {
     console.error("Gagal muat riwayat:", e);
     container.innerHTML = `<p class="empty">Gagal memuat data kehadiran.</p>`;
   }
 }
 
-// Fungsi untuk membuka popup detail
 function bukaDetailRiwayat(tanggal, status, masuk, pulang, ket) {
   document.getElementById('detail-tanggal').innerText = tanggal;
-  
+
   const badge = document.getElementById('detail-badge');
   badge.innerText = status;
-  
+
   if (status === 'Hadir') badge.className = 'badge bg-hadir';
   else if (status === 'Terlambat') badge.className = 'badge bg-terlambat';
   else if (['Izin', 'Sakit', 'Dispensasi'].includes(status)) badge.className = 'badge bg-izin';
