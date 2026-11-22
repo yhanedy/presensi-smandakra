@@ -1,5 +1,5 @@
 /* ==========================================================================
-   PORTAL GURU PIKET — OPTIMIZED FOR TURSO (Hemat Kuota)
+   PORTAL GURU PIKET — OPTIMIZED FOR SPLIT READ/WRITE
    ========================================================================== */
 
 let currentUserSession = null;
@@ -27,19 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
 // 1. MEMUAT DAFTAR PRESENSI & PENGAJUAN IZIN HARI INI
 // =====================================================================
 async function muatPresensiHariIni() {
-    const tbody = document.getElementById('tabel-presensi-body'); // Sesuaikan ID tabel di HTML piket
+    const tbody = document.getElementById('tabel-presensi-body');
     if (!tbody) return;
 
     tbody.innerHTML = '<tr><td colspan="6" class="text-center p-4"><i class="fa-solid fa-spinner fa-spin"></i> Memuat data...</td></tr>';
     
-    // Ambil tanggal hari ini (WIB)
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
     try {
-        // OPTIMASI HEMAT KUOTA:
-        // 1. JANGAN SELECT * (karena kolom foto base64 bisa sangat besar)
-        // 2. Hapus TRIM() pada tanggal
-        // 3. Hanya ambil kolom yang dibutuhkan
         const data = await queryTurso(
             'SELECT id, nisn, jam_masuk, jam_pulang, status, keterangan FROM presensi WHERE tanggal = ? ORDER BY jam_masuk DESC', 
             [today]
@@ -51,7 +46,6 @@ async function muatPresensiHariIni() {
         }
 
         tbody.innerHTML = data.map((p, index) => {
-            // Cek apakah ada link bukti surat di dalam keterangan
             let linkBukti = '-';
             if (p.keterangan && p.keterangan.includes('Link: ')) {
                 const urlMatch = p.keterangan.match(/Link:\s*(https?:\/\/[^\s]+)/);
@@ -91,14 +85,13 @@ async function ubahStatusIzin(idPresensi, statusBaru) {
     if (!confirm(`Yakin ingin mengubah status menjadi ${statusBaru}?`)) return;
 
     try {
-        // OPTIMASI: Langsung update berdasarkan ID (Primary Key)
         await queryTurso(
             'UPDATE presensi SET status = ? WHERE id = ?',
             [statusBaru, idPresensi]
         );
         
         alert('Status berhasil diperbarui!');
-        muatPresensiHariIni(); // Refresh tabel
+        muatPresensiHariIni();
     } catch (err) {
         alert('Gagal memperbarui status: ' + err.message);
     }
@@ -119,9 +112,6 @@ async function cariDataSiswa() {
     tbody.innerHTML = '<tr><td colspan="5" class="text-center p-4">Mencari...</td></tr>';
 
     try {
-        // OPTIMASI: 
-        // 1. Hapus TRIM()
-        // 2. Batasi hasil pencarian (LIMIT 20) agar tidak menarik seluruh database
         const data = await queryTurso(
             'SELECT nisn, nama, kelas FROM siswa WHERE nisn LIKE ? OR LOWER(nama) LIKE LOWER(?) LIMIT 20',
             [`%${keyword}%`, `%${keyword}%`]
