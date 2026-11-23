@@ -87,30 +87,45 @@ async function muatSiswaBerdasarkanKelas(idSelectKelas, idSelectSiswa) {
     const selectSiswa = document.getElementById(idSelectSiswa);
     if (!elKelas || !selectSiswa) return;
     
-    const kelasSelected = elKelas.value;
+    const kelasSelected = elKelas.value.trim();
     if (!kelasSelected) {
         selectSiswa.innerHTML = '<option value="">-- Pilih Kelas Terlebih Dahulu --</option>';
         return;
     }
+    
     selectSiswa.innerHTML = '<option value="">Memuat nama siswa...</option>';
     
     try {
-        const res = await queryTurso(
-            'SELECT nisn, nama FROM siswa WHERE kelas = ? ORDER BY nama ASC', 
-            [kelasSelected]
-        );
-        if (res && res.length > 0) {
+        // PERBAIKAN: Gunakan pencarian LIKE agar lebih toleran terhadap spasi
+        // dan gunakan endpoint /api/query agar diarahkan ke Supabase (Read Mirror)
+        const res = await fetch(`${WORKER_URL}/api/query`, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('smada_token')}`
+            },
+            body: JSON.stringify({
+                sql: 'SELECT nisn, nama FROM siswa WHERE kelas LIKE ? ORDER BY nama ASC',
+                params: [`%${kelasSelected}%`]
+            })
+        });
+
+        const data = await res.json();
+        
+        // Cek apakah data berupa array (format Worker baru) atau objek
+        const rows = Array.isArray(data) ? data : (data.rows || data.results || []);
+
+        if (rows && rows.length > 0) {
             selectSiswa.innerHTML = '<option value="">-- Pilih Nama Siswa --</option>' + 
-                res.map(s => `<option value="${s.nisn}">${s.nama} (${s.nisn})</option>`).join('');
+                rows.map(s => `<option value="${s.nisn}">${s.nama} (${s.nisn})</option>`).join('');
         } else {
             selectSiswa.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
         }
     } catch (e) {
         console.error("Gagal muat siswa:", e);
-        selectSiswa.innerHTML = '<option value="">Gagal memuat daftar siswa</option>';
+        selectSiswa.innerHTML = '<option value="">Gagal memuat daftar siswa (Cek Koneksi)</option>';
     }
 }
-
 async function simpanPelanggaranBK() {
     const nisn = document.getElementById('pelanggaran-nisn').value;
     const tglInput = document.getElementById('pelanggaran-tanggal').value;
