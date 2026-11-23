@@ -1,7 +1,9 @@
 /* =========================================================
-   SISWA-UTILS.JS — Helper & fungsi bersama
+   SISWA-UTILS.JS — Helper, API Gateway & fungsi bersama
    ========================================================= */
 
+const API_URL = "https://smada-api-gateway.yhanedy.workers.dev";
+const WORKER_URL = API_URL;
 const GAS_UPLOAD_IJIN_URL = "https://script.google.com/macros/s/AKfycbyU7HbAA_LBirKOAmkMWLqmuPYcEJa4W6rHMQ0nHRv09J-Fj2qMGM6YPArf538oJPuo6w/exec";
 const DRIVE_FOLDER_ID = "1Bvm7R0noUG_x8zYEOtneOQIQw-1o9_-v";
 
@@ -19,6 +21,53 @@ let fileDispenBase64 = null;
 let fileDispenMime = 'image/jpeg';
 let fileDispenExt = 'jpg';
 let activeAnnouncementId = null;
+
+/* ---------- HELPER SESI & NISN AKTIF ---------- */
+function getSiswaSession() {
+  if (currentActiveUser && (currentActiveUser.nisn || currentActiveUser.username)) {
+    return currentActiveUser;
+  }
+  const raw = localStorage.getItem('smada_siswa') || localStorage.getItem('smada_user');
+  if (!raw || raw === 'null' || raw === 'undefined') return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && (parsed.nisn || parsed.username)) {
+      currentActiveUser = parsed;
+      return parsed;
+    }
+  } catch (_) {}
+  return null;
+}
+
+function getActiveNisn() {
+  const u = getSiswaSession();
+  if (!u) return '';
+  return String(u.nisn || u.username || '').trim();
+}
+
+/* ---------- FUNGSI QUERY TURSO TERPADU ---------- */
+async function queryTurso(sql, params = []) {
+  const token = localStorage.getItem('smada_token') || '';
+  const res = await fetch(`${API_URL}/api/query`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+    },
+    body: JSON.stringify({ sql, params })
+  });
+
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || (data && data.success === false && data.error)) {
+    throw new Error(data.error || `HTTP Error ${res.status}`);
+  }
+
+  if (Array.isArray(data)) return data;
+  if (data.rows && Array.isArray(data.rows)) return data.rows;
+  if (data.results && Array.isArray(data.results)) return data.results;
+  if (data.data && Array.isArray(data.data)) return data.data;
+  return [];
+}
 
 /* ---------- WAKTU ---------- */
 function getTanggalWIB(d = new Date()) {
@@ -56,8 +105,11 @@ function handleLogoutSiswa() {
   }
   localStorage.removeItem('smada_siswa');
   localStorage.removeItem('smada_user');
+  localStorage.removeItem('smada_token');
+  localStorage.removeItem('smada_role');
   window.location.replace('index.html');
 }
+
 /* ---------- KOMPRES GAMBAR ---------- */
 function kompresGambar(file, maxSize = 800, quality = 0.7) {
   return new Promise((resolve, reject) => {
@@ -95,7 +147,7 @@ async function uploadKeDriveGAS(base64Data, prefix, mimeType = 'image/jpeg', ext
   }
   try {
     const clean = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
-    const nisnVal = currentActiveUser ? String(currentActiveUser.nisn || currentActiveUser.username) : 'siswa';
+    const nisnVal = getActiveNisn() || 'siswa';
 
     const res = await fetch(GAS_UPLOAD_IJIN_URL, {
       method: 'POST',
