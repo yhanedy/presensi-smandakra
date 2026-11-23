@@ -3,12 +3,12 @@
    ========================================================= */
 
 window.onload = function () {
-  const saved = localStorage.getItem('smada_siswa');
-  if (!saved) { window.location.replace('index.html'); return; }
-
-  try { currentActiveUser = JSON.parse(saved); }
-  catch { handleLogoutSiswa(); return; }
-  if (!currentActiveUser) { window.location.replace('index.html'); return; }
+  const user = getSiswaSession();
+  if (!user) {
+    window.location.replace('index.html');
+    return;
+  }
+  currentActiveUser = user;
 
   muatSettingSekolah();
   muatPortalSiswa();
@@ -35,7 +35,7 @@ async function muatSettingSekolah() {
 
 /* ---------- PORTAL ---------- */
 function muatPortalSiswa() {
-  const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username || '-').trim();
+  const nisnVal = getActiveNisn() || '-';
   document.getElementById('siswa-profil-nama').textContent = currentActiveUser.nama || currentActiveUser.username || '-';
   document.getElementById('siswa-profil-kelas').textContent = currentActiveUser.kelas || '-';
   document.getElementById('siswa-profil-nisn').textContent = nisnVal;
@@ -54,7 +54,6 @@ function muatPortalSiswa() {
 /* ---------- PENGUMUMAN ---------- */
 async function cekPengumumanKhususSiswa() {
   try {
-    // Diselaraskan ke kutip tunggal ('siswa' & 'semua') agar kompatibel dengan PostgreSQL Supabase
     const data = await queryTurso(
       "SELECT id, judul, isi FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = 'siswa' OR LOWER(target_role) = 'semua') ORDER BY id DESC LIMIT 1"
     );
@@ -141,8 +140,8 @@ function perbaruiTampilanGPS(jarak, limit) {
 
 /* ---------- PRESENSI HARI INI ---------- */
 async function muatPresensiSiswaHariIni() {
-  if (!currentActiveUser) return;
-  const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+  const nisnVal = getActiveNisn();
+  if (!nisnVal) return;
   const tgl = getTanggalWIB();
 
   try {
@@ -150,8 +149,8 @@ async function muatPresensiSiswaHariIni() {
       'SELECT jam_masuk, jam_pulang FROM presensi WHERE nisn = ? AND tanggal = ?',
       [nisnVal, tgl]
     );
-    const masuk = data?.find(p => p.jam_masuk);
-    const pulang = data?.find(p => p.jam_pulang);
+    const masuk = data?.find(p => p.jam_masuk && p.jam_masuk !== '-');
+    const pulang = data?.find(p => p.jam_pulang && p.jam_pulang !== '-');
 
     const btnMasuk = document.getElementById('btn-siswa-masuk');
     const btnPulang = document.getElementById('btn-siswa-pulang');
@@ -201,6 +200,13 @@ async function prosesPresensiSiswa(jenis) {
   btnPulang.disabled = true;
 
   try {
+    const nisnVal = getActiveNisn();
+    if (!nisnVal) {
+      alert("Sesi login tidak valid (NISN kosong). Silakan login ulang.");
+      handleLogoutSiswa();
+      return;
+    }
+
     if (siswaDistanceMeters === null) {
       alert("GPS belum terdeteksi. Gunakan 'Presensi Kamera' jika perlu.");
       return;
@@ -211,7 +217,6 @@ async function prosesPresensiSiswa(jenis) {
     }
 
     const jam = getJamWIB();
-    const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
     const tgl = getTanggalWIB();
 
     if (jenis === 'Hadir') {
@@ -307,14 +312,20 @@ async function prosesAmbilFotoSiswa() {
   const btn = document.getElementById('btn-ambil-foto');
   btn.disabled = true;
   btn.classList.add('opacity-50');
-  await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih);
+  await eksekusiPresensiOtomatisKamera(modePresensiKameraDipilih || 'Hadir');
   btn.disabled = false;
   btn.classList.remove('opacity-50');
 }
 
 async function eksekusiPresensiOtomatisKamera(jenis) {
+  const nisnVal = getActiveNisn();
+  if (!nisnVal) {
+    alert("Sesi login tidak valid (NISN tidak ditemukan). Silakan login ulang.");
+    handleLogoutSiswa();
+    return;
+  }
+
   const jam = getJamWIB();
-  const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
   const tgl = getTanggalWIB();
 
   try {
@@ -347,10 +358,9 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
 
 /* ---------- RIWAYAT (GRAFIK KONTRIBUSI) ---------- */
 async function muatRiwayatSiswa() {
-  if (!currentActiveUser) return;
-  const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
+  const nisnVal = getActiveNisn();
   const container = document.getElementById('grafik-kehadiran');
-  if (!container) return;
+  if (!nisnVal || !container) return;
 
   try {
     const today = new Date();
@@ -387,7 +397,7 @@ async function muatRiwayatSiswa() {
       if (rec) {
         if (rec.status === 'Hadir') { bgClass = 'bg-hadir'; statusText = 'Hadir'; }
         else if (rec.status === 'Terlambat') { bgClass = 'bg-terlambat'; statusText = 'Terlambat'; }
-        else if (['Izin', 'Sakit', 'Dispensasi'].includes(rec.status)) { bgClass = 'bg-izin'; statusText = rec.status; }
+        else if (['Izin', 'Sakit', 'Dispensasi', 'Pending Izin'].includes(rec.status)) { bgClass = 'bg-izin'; statusText = rec.status; }
         else if (['Alpa', 'Alpha'].includes(rec.status)) { bgClass = 'bg-alpa'; statusText = 'Alpa'; }
         else { bgClass = 'bg-hadir'; statusText = rec.status; }
       }
@@ -421,7 +431,7 @@ function bukaDetailRiwayat(tanggal, status, masuk, pulang, ket) {
 
   if (status === 'Hadir') badge.className = 'badge bg-hadir';
   else if (status === 'Terlambat') badge.className = 'badge bg-terlambat';
-  else if (['Izin', 'Sakit', 'Dispensasi'].includes(status)) badge.className = 'badge bg-izin';
+  else if (['Izin', 'Sakit', 'Dispensasi', 'Pending Izin'].includes(status)) badge.className = 'badge bg-izin';
   else if (['Alpa', 'Alpha'].includes(status)) badge.className = 'badge bg-alpa';
   else badge.className = 'badge';
 
@@ -433,7 +443,7 @@ function bukaDetailRiwayat(tanggal, status, masuk, pulang, ket) {
 }
 
 /* ---------- GANTI PASSWORD ---------- */
-async function gantiPasswordSiswa() {
+async function gantiPasswordSiswa(e) {
   const lama = document.getElementById('siswa-pass-lama').value;
   const baru = document.getElementById('siswa-pass-baru').value;
   const konfirm = document.getElementById('siswa-pass-konfirm').value;
@@ -443,14 +453,16 @@ async function gantiPasswordSiswa() {
   if (baru !== konfirm) { alert("Konfirmasi tidak cocok!"); return; }
   if (baru.length < 6) { alert("Password minimal 6 karakter!"); return; }
 
-  const nisnVal = String(currentActiveUser.nisn || currentActiveUser.username).trim();
-  const btn = event.target;
-  const original = btn.innerHTML;
-  btn.disabled = true;
-  btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  const nisnVal = getActiveNisn();
+  const btn = (e && e.currentTarget) ? e.currentTarget : document.querySelector('button[onclick*="gantiPasswordSiswa"]');
+  const original = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...`;
+  }
 
   try {
-    const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/change-password', {
+    const res = await fetch(`${API_URL}/api/auth/change-password`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ nisn: nisnVal, oldPassword: lama, newPassword: baru })
@@ -460,10 +472,12 @@ async function gantiPasswordSiswa() {
 
     alert("Password berhasil diperbarui! Silakan login ulang.");
     handleLogoutSiswa();
-  } catch (e) {
-    alert(e.message);
+  } catch (err) {
+    alert(err.message);
   } finally {
-    btn.disabled = false;
-    btn.innerHTML = original;
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = original;
+    }
   }
 }
