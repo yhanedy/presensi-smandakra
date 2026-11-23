@@ -2,6 +2,8 @@
    SMAN 2 KARANGANYAR - PORTAL GURU PIKET (SPLIT READ/WRITE EDITION)
    ========================================================================== */
 
+const PIKET_WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
+
 let allSiswaPiket = [];
 let siswaMapPiket = {};
 
@@ -29,29 +31,61 @@ function getNowTimeWIB() {
     }
 }
 
-async function execPiketQuery(sql, args = []) {
-    if (typeof queryTurso === 'function') {
-        return await queryTurso(sql, args);
+function getPetugasPiketName() {
+    if (typeof currentUserSession !== 'undefined' && currentUserSession) {
+        return currentUserSession.nama || currentUserSession.username || 'Piket';
     }
-    if (typeof tursoQuery === 'function') {
-        return await tursoQuery(sql, args);
-    }
-    const baseUrl = (typeof WORKER_URL !== 'undefined' ? WORKER_URL : 'https://smada-api-gateway.yhanedy.workers.dev').replace(/\/$/, '');
+    try {
+        const rawUser = localStorage.getItem('smada_user');
+        if (rawUser) {
+            const u = JSON.parse(rawUser);
+            return u.nama || u.username || 'Piket';
+        }
+    } catch (_) {}
+    return 'Piket';
+}
+
+function normalizeKelas(val) {
+    return String(val || '').replace(/\s+/g, ' ').trim();
+}
+
+// ============================================================================
+// FUNGSI API TERPADU (MENGIRIM PAYLOAD { sql, params } KE WORKER)
+// ============================================================================
+async function execPiketQuery(sql, params = []) {
+    const baseUrl = (typeof WORKER_URL !== 'undefined' ? WORKER_URL : PIKET_WORKER_URL).replace(/\/$/, '');
     const token = localStorage.getItem('smada_token') || (typeof currentUserSession !== 'undefined' && currentUserSession?.token) || '';
+
     const res = await fetch(`${baseUrl}/api/query`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ sql, args })
+        body: JSON.stringify({ sql, params })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
-    return data;
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || (data && data.success === false && data.error)) {
+        throw new Error(data.error || `HTTP Error ${res.status}`);
+    }
+
+    if (Array.isArray(data)) return data;
+    if (data.rows && Array.isArray(data.rows)) return data.rows;
+    if (data.results && Array.isArray(data.results)) return data.results;
+    if (data.data && Array.isArray(data.data)) return data.data;
+    return [];
 }
 
+// Alias kompatibilitas jika ada skrip luar memanggil queryTurso / tursoQuery
+const queryTurso = execPiketQuery;
+const tursoQuery = execPiketQuery;
+
 document.addEventListener('DOMContentLoaded', async () => {
+    // Tampilkan nama petugas jika elemen tersedia
+    const nameEl = document.getElementById('display-piket-name') || document.getElementById('display-user-name');
+    if (nameEl) nameEl.textContent = getPetugasPiketName();
+
     // Set tanggal hari ini WIB pada filter rekap
     const filterTanggal = document.getElementById('filter-piket-tanggal');
     if (filterTanggal && !filterTanggal.value) {
@@ -75,13 +109,19 @@ async function muatDaftarKelasPiket() {
     const kelasSelectIds = ['piket-masuk-kelas', 'piket-sakit-kelas', 'pulang-kelas'];
     try {
         const rows = await execPiketQuery('SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC', []);
-        allSiswaPiket = Array.isArray(rows) ? rows : [];
+        allSiswaPiket = (Array.isArray(rows) ? rows : []).map(s => ({
+            ...s,
+            nisn: String(s.nisn || '').trim(),
+            nama: String(s.nama || '').trim(),
+            kelas: normalizeKelas(s.kelas)
+        }));
+
         siswaMapPiket = {};
         allSiswaPiket.forEach(s => {
-            siswaMapPiket[String(s.nisn)] = s;
+            siswaMapPiket[s.nisn] = s;
         });
 
-        const daftarKelas = [...new Set(allSiswaPiket.map(s => String(s.kelas || '').trim()).filter(Boolean))].sort((a, b) =>
+        const daftarKelas = [...new Set(allSiswaPiket.map(s => s.kelas).filter(Boolean))].sort((a, b) =>
             a.localeCompare(b, 'id', { numeric: true })
         );
 
@@ -106,15 +146,15 @@ function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
     const siswaEl = document.getElementById(siswaSelectId);
     if (!kelasEl || !siswaEl) return;
 
-    const kelasDipilih = kelasEl.value;
+    const kelasDipilih = normalizeKelas(kelasEl.value);
     if (!kelasDipilih) {
         siswaEl.innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
         return;
     }
 
-    const siswaKelas = allSiswaPiket.filter(s => String(s.kelas || '').trim() === kelasDipilih);
+    const siswaKelas = allSiswaPiket.filter(s => s.kelas === kelasDipilih);
     if (siswaKelas.length === 0) {
-        siswaEl.innerHTML = '<option value="">-- Tidak ada siswa --</option>';
+        siswaEl.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
         return;
     }
 
@@ -127,7 +167,7 @@ function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
 // ============================================================================
 async function simpanPresensiPiket(status) {
     const isPulangMendahului = status === 'Pulang Mendahului';
-    const nisn = document.getElementById(isPulangMendahului ? 'pulang-nisn' : 'piket-masuk-nisn')?.value;
+    const nisn = String(document.getElementById(isPulangMendahului ? 'pulang-nisn' : 'piket-masuk-nisn')?.value || '').trim();
     const ketRaw = document.getElementById(isPulangMendahului ? 'pulang-alasan' : 'piket-masuk-ket')?.value.trim() || '';
 
     if (!nisn) {
@@ -142,9 +182,7 @@ async function simpanPresensiPiket(status) {
 
     const tanggal = getTodayWIB();
     const jamSekarang = getNowTimeWIB();
-    const petugas = (typeof currentUserSession !== 'undefined' && currentUserSession)
-        ? (currentUserSession.nama || currentUserSession.username || 'Piket')
-        : 'Piket';
+    const petugas = getPetugasPiketName();
 
     try {
         if (isPulangMendahului) {
@@ -165,7 +203,8 @@ async function simpanPresensiPiket(status) {
                     [nisn, tanggal, '-', jamSekarang, 'Pulang Mendahului', ketFinal]
                 );
             }
-            document.getElementById('pulang-alasan').value = '';
+            const alasanEl = document.getElementById('pulang-alasan');
+            if (alasanEl) alasanEl.value = '';
         } else {
             const ketFinal = ketRaw
                 ? `[Piket: ${petugas}] ${ketRaw}`
@@ -180,7 +219,8 @@ async function simpanPresensiPiket(status) {
                  keterangan = excluded.keterangan`,
                 [nisn, tanggal, jamSekarang, status, ketFinal]
             );
-            document.getElementById('piket-masuk-ket').value = '';
+            const ketEl = document.getElementById('piket-masuk-ket');
+            if (ketEl) ketEl.value = '';
         }
 
         alert(`Berhasil mencatat ${status} untuk siswa terpilih!`);
@@ -192,7 +232,7 @@ async function simpanPresensiPiket(status) {
 }
 
 async function simpanPulangSusulanPiket() {
-    const nisn = document.getElementById('piket-masuk-nisn')?.value;
+    const nisn = String(document.getElementById('piket-masuk-nisn')?.value || '').trim();
     const ketRaw = document.getElementById('piket-masuk-ket')?.value.trim() || '';
 
     if (!nisn) {
@@ -202,9 +242,7 @@ async function simpanPulangSusulanPiket() {
 
     const tanggal = getTodayWIB();
     const jamSekarang = getNowTimeWIB();
-    const petugas = (typeof currentUserSession !== 'undefined' && currentUserSession)
-        ? (currentUserSession.nama || currentUserSession.username || 'Piket')
-        : 'Piket';
+    const petugas = getPetugasPiketName();
 
     try {
         const existing = await execPiketQuery(
@@ -229,7 +267,8 @@ async function simpanPulangSusulanPiket() {
             );
         }
 
-        document.getElementById('piket-masuk-ket').value = '';
+        const ketEl = document.getElementById('piket-masuk-ket');
+        if (ketEl) ketEl.value = '';
         alert('Jam pulang susulan berhasil dicatat!');
         await muatRekapPiketHarian();
     } catch (err) {
@@ -242,7 +281,7 @@ async function simpanPulangSusulanPiket() {
 // 3. SIMPAN KETIDAKHADIRAN (SAKIT / IZIN / ALPA / DISPENSASI)
 // ============================================================================
 async function simpanKetidakhadiranPiket() {
-    const nisn = document.getElementById('piket-sakit-nisn')?.value;
+    const nisn = String(document.getElementById('piket-sakit-nisn')?.value || '').trim();
     const status = document.getElementById('piket-sakit-status')?.value || 'Sakit';
     const ketRaw = document.getElementById('piket-sakit-ket')?.value.trim() || '';
 
@@ -252,9 +291,7 @@ async function simpanKetidakhadiranPiket() {
     }
 
     const tanggal = getTodayWIB();
-    const petugas = (typeof currentUserSession !== 'undefined' && currentUserSession)
-        ? (currentUserSession.nama || currentUserSession.username || 'Piket')
-        : 'Piket';
+    const petugas = getPetugasPiketName();
     const ketFinal = ketRaw
         ? `[Piket: ${petugas}] ${ketRaw}`
         : `[Piket: ${petugas}] Dicatat ${status} oleh Piket`;
@@ -269,7 +306,8 @@ async function simpanKetidakhadiranPiket() {
             [nisn, tanggal, status, ketFinal]
         );
 
-        document.getElementById('piket-sakit-ket').value = '';
+        const ketEl = document.getElementById('piket-sakit-ket');
+        if (ketEl) ketEl.value = '';
         alert(`Status ${status} berhasil disimpan!`);
         await muatRekapPiketHarian();
     } catch (err) {
@@ -307,7 +345,7 @@ async function muatRekapPiketHarian() {
         }
 
         tbody.innerHTML = rows.map(r => {
-            const siswa = siswaMapPiket[String(r.nisn)] || {};
+            const siswa = siswaMapPiket[String(r.nisn).trim()] || {};
             const namaSiswa = siswa.nama || '-';
             const kelasSiswa = siswa.kelas || '-';
             const jamInfo = r.jam_pulang && r.jam_pulang !== '-'
@@ -364,12 +402,11 @@ async function muatAntreanIzinSiswa() {
         }
 
         tbody.innerHTML = rows.map(r => {
-            const siswa = siswaMapPiket[String(r.nisn)] || {};
+            const siswa = siswaMapPiket[String(r.nisn).trim()] || {};
             const namaSiswa = siswa.nama || '-';
             const kelasSiswa = siswa.kelas || '-';
             const ketRaw = String(r.keterangan || '');
 
-            // Ekstrak link bukti surat jika ada
             const urlMatch = ketRaw.match(/(https?:\/\/[^\s]+)/);
             const linkFotoHtml = urlMatch
                 ? `<a href="${urlMatch[1]}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-2.5 py-1 rounded-lg font-bold text-[11px]"><i class="fa-solid fa-image"></i> Lihat Bukti</a>`
@@ -413,9 +450,7 @@ async function verifikasiPengajuanIzin(idPresensi) {
 
     if (!confirm(`Verifikasi pengajuan ini dengan status "${statusBaru}"?`)) return;
 
-    const petugas = (typeof currentUserSession !== 'undefined' && currentUserSession)
-        ? (currentUserSession.nama || currentUserSession.username || 'Piket')
-        : 'Piket';
+    const petugas = getPetugasPiketName();
 
     try {
         await execPiketQuery(
