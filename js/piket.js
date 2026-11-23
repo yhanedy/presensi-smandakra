@@ -7,6 +7,42 @@ const PIKET_WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
 let allSiswaPiket = [];
 let siswaMapPiket = {};
 
+// ============================================================================
+// FUNGSI API TERPADU (POLA SAMA DENGAN BK.JS & ADMIN.JS)
+// ============================================================================
+async function apiQuery(sql, params = []) {
+    const baseUrl = (typeof WORKER_URL !== 'undefined' ? WORKER_URL : PIKET_WORKER_URL).replace(/\/$/, '');
+    const token = localStorage.getItem('smada_token') || (typeof currentUserSession !== 'undefined' && currentUserSession?.token) || '';
+
+    const response = await fetch(`${baseUrl}/api/query`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ sql, params })
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || (data && data.success === false && data.error)) {
+        throw new Error(data.error || `HTTP Error ${response.status}`);
+    }
+
+    if (Array.isArray(data)) return data;
+    if (data.rows && Array.isArray(data.rows)) return data.rows;
+    if (data.results && Array.isArray(data.results)) return data.results;
+    if (data.data && Array.isArray(data.data)) return data.data;
+    return [];
+}
+
+// Alias agar seluruh pemanggilan lama tetap kompatibel
+const execPiketQuery = apiQuery;
+const queryTurso = apiQuery;
+const tursoQuery = apiQuery;
+
+// ============================================================================
+// HELPER WAKTU, SESI PETUGAS & NORMALISASI KELAS
+// ============================================================================
 function getTodayWIB() {
     try {
         return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
@@ -37,7 +73,7 @@ function getPetugasPiketName() {
     }
     try {
         const rawUser = localStorage.getItem('smada_user');
-        if (rawUser) {
+        if (rawUser && rawUser !== 'null' && rawUser !== 'undefined') {
             const u = JSON.parse(rawUser);
             return u.nama || u.username || 'Piket';
         }
@@ -50,65 +86,38 @@ function normalizeKelas(val) {
 }
 
 // ============================================================================
-// FUNGSI API TERPADU (MENGIRIM PAYLOAD { sql, params } KE WORKER)
+// INISIALISASI HALAMAN PIKET
 // ============================================================================
-async function execPiketQuery(sql, params = []) {
-    const baseUrl = (typeof WORKER_URL !== 'undefined' ? WORKER_URL : PIKET_WORKER_URL).replace(/\/$/, '');
-    const token = localStorage.getItem('smada_token') || (typeof currentUserSession !== 'undefined' && currentUserSession?.token) || '';
-
-    const res = await fetch(`${baseUrl}/api/query`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ sql, params })
-    });
-
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok || (data && data.success === false && data.error)) {
-        throw new Error(data.error || `HTTP Error ${res.status}`);
-    }
-
-    if (Array.isArray(data)) return data;
-    if (data.rows && Array.isArray(data.rows)) return data.rows;
-    if (data.results && Array.isArray(data.results)) return data.results;
-    if (data.data && Array.isArray(data.data)) return data.data;
-    return [];
-}
-
-// Alias kompatibilitas jika ada skrip luar memanggil queryTurso / tursoQuery
-const queryTurso = execPiketQuery;
-const tursoQuery = execPiketQuery;
-
-document.addEventListener('DOMContentLoaded', async () => {
-    // Tampilkan nama petugas jika elemen tersedia
+async function initHalamanPiket() {
     const nameEl = document.getElementById('display-piket-name') || document.getElementById('display-user-name');
     if (nameEl) nameEl.textContent = getPetugasPiketName();
 
-    // Set tanggal hari ini WIB pada filter rekap
     const filterTanggal = document.getElementById('filter-piket-tanggal');
     if (filterTanggal && !filterTanggal.value) {
         filterTanggal.value = getTodayWIB();
     }
 
-    // Muat data master siswa untuk semua dropdown kelas
     await muatDaftarKelasPiket();
 
-    // Muat tabel rekap harian & antrean verifikasi izin siswa secara paralel
     await Promise.all([
         muatRekapPiketHarian(),
         muatAntreanIzinSiswa()
     ]);
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initHalamanPiket);
+} else {
+    initHalamanPiket();
+}
 
 // ============================================================================
-// 1. MEMUAT DATA MASTER SISWA & DROPDOWN KELAS
+// 1. MEMUAT DATA MASTER SISWA & DROPDOWN KELAS (DENGAN FALLBACK QUERY)
 // ============================================================================
 async function muatDaftarKelasPiket() {
     const kelasSelectIds = ['piket-masuk-kelas', 'piket-sakit-kelas', 'pulang-kelas'];
     try {
-        const rows = await execPiketQuery('SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC', []);
+        const rows = await apiQuery('SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC', []);
         allSiswaPiket = (Array.isArray(rows) ? rows : []).map(s => ({
             ...s,
             nisn: String(s.nisn || '').trim(),
@@ -121,9 +130,18 @@ async function muatDaftarKelasPiket() {
             siswaMapPiket[s.nisn] = s;
         });
 
-        const daftarKelas = [...new Set(allSiswaPiket.map(s => s.kelas).filter(Boolean))].sort((a, b) =>
+        let daftarKelas = [...new Set(allSiswaPiket.map(s => s.kelas).filter(Boolean))].sort((a, b) =>
             a.localeCompare(b, 'id', { numeric: true })
         );
+
+        // Fallback jika SELECT siswa belum mengembalikan kelas (sama seperti bk.js)
+        if (daftarKelas.length === 0) {
+            const kelasRows = await apiQuery('SELECT DISTINCT kelas FROM siswa ORDER BY kelas ASC', []);
+            daftarKelas = (Array.isArray(kelasRows) ? kelasRows : [])
+                .map(k => normalizeKelas(k.kelas))
+                .filter(Boolean)
+                .sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
+        }
 
         const optionsHtml = '<option value="">-- Pilih Kelas --</option>' +
             daftarKelas.map(k => `<option value="${k}">${k}</option>`).join('');
@@ -133,7 +151,7 @@ async function muatDaftarKelasPiket() {
             if (el) el.innerHTML = optionsHtml;
         });
     } catch (err) {
-        console.error('Gagal memuat daftar kelas:', err);
+        console.error('Gagal memuat daftar kelas piket:', err);
         kelasSelectIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.innerHTML = `<option value="">Gagal memuat kelas</option>`;
@@ -141,7 +159,7 @@ async function muatDaftarKelasPiket() {
     }
 }
 
-function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
+async function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
     const kelasEl = document.getElementById(kelasSelectId);
     const siswaEl = document.getElementById(siswaSelectId);
     if (!kelasEl || !siswaEl) return;
@@ -152,7 +170,24 @@ function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
         return;
     }
 
-    const siswaKelas = allSiswaPiket.filter(s => s.kelas === kelasDipilih);
+    let siswaKelas = allSiswaPiket.filter(s => s.kelas === kelasDipilih);
+
+    // Fallback langsung ke database jika cache memori kosong (sama seperti bk.js)
+    if (siswaKelas.length === 0) {
+        siswaEl.innerHTML = '<option value="">Memuat siswa...</option>';
+        try {
+            const rows = await apiQuery('SELECT nisn, nama, kelas FROM siswa WHERE kelas = ? ORDER BY nama ASC', [kelasDipilih]);
+            siswaKelas = (Array.isArray(rows) ? rows : []).map(s => ({
+                nisn: String(s.nisn || '').trim(),
+                nama: String(s.nama || '').trim(),
+                kelas: normalizeKelas(s.kelas)
+            }));
+            siswaKelas.forEach(s => { siswaMapPiket[s.nisn] = s; });
+        } catch (err) {
+            console.error('Gagal memuat siswa kelas:', err);
+        }
+    }
+
     if (siswaKelas.length === 0) {
         siswaEl.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
         return;
@@ -186,19 +221,19 @@ async function simpanPresensiPiket(status) {
 
     try {
         if (isPulangMendahului) {
-            const existing = await execPiketQuery(
+            const existing = await apiQuery(
                 'SELECT id, jam_masuk FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 1',
                 [nisn, tanggal]
             );
             const ketFinal = `[Piket: ${petugas}] Pulang Mendahului: ${ketRaw}`;
 
             if (existing.length > 0) {
-                await execPiketQuery(
+                await apiQuery(
                     'UPDATE presensi SET jam_pulang = ?, status = ?, keterangan = ? WHERE nisn = ? AND tanggal = ?',
                     [jamSekarang, 'Pulang Mendahului', ketFinal, nisn, tanggal]
                 );
             } else {
-                await execPiketQuery(
+                await apiQuery(
                     'INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?, ?)',
                     [nisn, tanggal, '-', jamSekarang, 'Pulang Mendahului', ketFinal]
                 );
@@ -210,7 +245,7 @@ async function simpanPresensiPiket(status) {
                 ? `[Piket: ${petugas}] ${ketRaw}`
                 : `[Piket: ${petugas}] Presensi masuk susulan`;
 
-            await execPiketQuery(
+            await apiQuery(
                 `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan)
                  VALUES (?, ?, ?, ?, ?)
                  ON CONFLICT (nisn, tanggal) DO UPDATE SET
@@ -245,7 +280,7 @@ async function simpanPulangSusulanPiket() {
     const petugas = getPetugasPiketName();
 
     try {
-        const existing = await execPiketQuery(
+        const existing = await apiQuery(
             'SELECT id, status, keterangan FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 1',
             [nisn, tanggal]
         );
@@ -256,12 +291,12 @@ async function simpanPulangSusulanPiket() {
 
         if (existing.length > 0) {
             const ketGabung = existing[0].keterangan ? `${existing[0].keterangan} | ${catatanPulang}` : catatanPulang;
-            await execPiketQuery(
+            await apiQuery(
                 'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ?',
                 [jamSekarang, ketGabung, nisn, tanggal]
             );
         } else {
-            await execPiketQuery(
+            await apiQuery(
                 'INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?, ?)',
                 [nisn, tanggal, '-', jamSekarang, 'Hadir', catatanPulang]
             );
@@ -297,7 +332,7 @@ async function simpanKetidakhadiranPiket() {
         : `[Piket: ${petugas}] Dicatat ${status} oleh Piket`;
 
     try {
-        await execPiketQuery(
+        await apiQuery(
             `INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan)
              VALUES (?, ?, '-', '-', ?, ?)
              ON CONFLICT (nisn, tanggal) DO UPDATE SET
@@ -327,7 +362,7 @@ async function muatRekapPiketHarian() {
     tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat data...</td></tr>';
 
     try {
-        const rows = await execPiketQuery(
+        const rows = await apiQuery(
             `SELECT id, nisn, tanggal, jam_masuk, jam_pulang, status, keterangan
              FROM presensi
              WHERE tanggal = ?
@@ -388,7 +423,7 @@ async function muatAntreanIzinSiswa() {
     tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean izin...</td></tr>';
 
     try {
-        const rows = await execPiketQuery(
+        const rows = await apiQuery(
             `SELECT id, nisn, tanggal, jam_masuk, status, keterangan
              FROM presensi
              WHERE status = 'Pending Izin' OR LOWER(status) LIKE '%pending%'
@@ -453,7 +488,7 @@ async function verifikasiPengajuanIzin(idPresensi) {
     const petugas = getPetugasPiketName();
 
     try {
-        await execPiketQuery(
+        await apiQuery(
             `UPDATE presensi
              SET status = ?,
                  keterangan = COALESCE(keterangan, '') || ' [Diverifikasi Piket: ' || ? || ']'
