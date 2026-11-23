@@ -108,7 +108,7 @@ function filterMasterTable() {
 }
 
 // ============================================================================
-// 1. PENGATURAN LOKASI GPS & JADWAL
+// 1. PENGATURAN LOKASI GPS & JADWAL PRESENSI
 // ============================================================================
 async function muatSettingSekolah() {
     try {
@@ -118,9 +118,18 @@ async function muatSettingSekolah() {
             if (data.latitude) document.getElementById('gps-lat').value = String(data.latitude);
             if (data.longitude) document.getElementById('gps-long').value = String(data.longitude);
             if (data.radius_meter) document.getElementById('gps-radius').value = String(data.radius_meter);
+            if (data.jam_masuk && document.getElementById('jam-masuk')) {
+                document.getElementById('jam-masuk').value = String(data.jam_masuk).substring(0, 5);
+            }
+            if (data.jam_pulang_senin_kamis && document.getElementById('jam-pulang-senin-kamis')) {
+                document.getElementById('jam-pulang-senin-kamis').value = String(data.jam_pulang_senin_kamis).substring(0, 5);
+            }
+            if (data.jam_pulang_jumat && document.getElementById('jam-pulang-jumat')) {
+                document.getElementById('jam-pulang-jumat').value = String(data.jam_pulang_jumat).substring(0, 5);
+            }
         }
     } catch (e) {
-        console.log("Setting lokasi default digunakan.");
+        console.log("Setting sekolah default digunakan.");
     }
 }
 
@@ -143,7 +152,19 @@ async function simpanSettingLokasi() {
 }
 
 async function simpanSettingJadwalLengkap() {
-    alert("Pengaturan Jadwal Berhasil Disimpan.");
+    const jamMasuk = document.getElementById('jam-masuk')?.value || '07:00';
+    const jamPulangSK = document.getElementById('jam-pulang-senin-kamis')?.value || '15:01';
+    const jamPulangJumat = document.getElementById('jam-pulang-jumat')?.value || '14:00';
+
+    try {
+        await queryTurso(
+            'UPDATE setting_sekolah SET jam_masuk = ?, jam_pulang_senin_kamis = ?, jam_pulang_jumat = ? WHERE id = 1',
+            [jamMasuk, jamPulangSK, jamPulangJumat]
+        );
+        alert(`Pengaturan Jadwal Berhasil Disimpan!\nMasuk: ${jamMasuk} | Pulang S-K: ${jamPulangSK} | Jumat: ${jamPulangJumat}`);
+    } catch (err) {
+        alert("Gagal menyimpan pengaturan jadwal: " + err.message);
+    }
 }
 
 // ============================================================================
@@ -155,16 +176,17 @@ async function batalkanStatusPulangSiswa() {
 
     const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 
+    if (!confirm(`Batalkan status pulang NISN: ${nisn} untuk hari ini (${today})?`)) return;
+
     try {
-        const rows = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ?', [nisn, today]);
-        if (!rows || rows.length === 0) {
-            alert(`Tidak ditemukan presensi hari ini untuk NISN: ${nisn}`);
+        const updated = await queryTurso(
+            'UPDATE presensi SET jam_pulang = NULL, status = ? WHERE nisn = ? AND tanggal = ?',
+            ['Hadir', nisn, today]
+        );
+        if (!updated || updated.length === 0) {
+            alert(`Tidak ditemukan data presensi hari ini (${today}) untuk NISN: ${nisn}`);
             return;
         }
-
-        if (!confirm(`Batalkan status pulang NISN: ${nisn} untuk hari ini (${today})?`)) return;
-
-        await queryTurso('UPDATE presensi SET jam_pulang = NULL, status = ? WHERE nisn = ? AND tanggal = ?', ['Hadir', nisn, today]);
         alert(`Status pulang NISN ${nisn} berhasil dibatalkan.`);
         document.getElementById('reset-pulang-nisn').value = '';
     } catch (err) {
@@ -182,7 +204,7 @@ async function tambahSiswaManual() {
 
     try {
         await queryTurso(
-            'INSERT INTO siswa (nisn, nama, kelas, password) VALUES (?, ?, ?, ?) ON CONFLICT(nisn) DO UPDATE SET nama = excluded.nama, kelas = excluded.kelas, password = excluded.password',
+            'INSERT INTO siswa (nisn, nama, kelas, password, password_hash, password_salt) VALUES (?, ?, ?, ?, NULL, NULL) ON CONFLICT(nisn) DO UPDATE SET nama = excluded.nama, kelas = excluded.kelas, password = excluded.password, password_hash = NULL, password_salt = NULL',
             [nisn, nama, kelas, pass]
         );
 
@@ -192,6 +214,7 @@ async function tambahSiswaManual() {
         document.getElementById('admin-siswa-kelas').value = '';
         document.getElementById('admin-siswa-pass').value = '';
         muatDaftarSiswa(1, '');
+        muatDropdownKelasPenyesuaian();
     } catch (err) {
         alert("Gagal menambahkan siswa: " + err.message);
     }
@@ -535,7 +558,7 @@ async function muatDropdownKelasPenyesuaian() {
             selectKelas.innerHTML = '<option value="">-- Pilih Kelas --</option>' +
                 dataKelas.map(k => `<option value="${k.kelas}">${k.kelas}</option>`).join('');
 
-            selectKelas.addEventListener('change', async (e) => {
+            selectKelas.onchange = async (e) => {
                 const kls = e.target.value;
                 const selectSiswa = document.getElementById('penyesuaian-nisn');
                 if (!kls) {
@@ -547,7 +570,7 @@ async function muatDropdownKelasPenyesuaian() {
                     selectSiswa.innerHTML = '<option value="">-- Pilih Siswa --</option>' +
                         (dataSiswa ? dataSiswa.map(s => `<option value="${s.nisn}">${s.nama}</option>`).join('') : '');
                 }
-            });
+            };
         }
     } catch (e) {
         console.log("Gagal memuat dropdown kelas", e);
@@ -559,22 +582,26 @@ async function prosesPenyesuaianPresensi(e) {
     const kelas = document.getElementById('penyesuaian-kelas').value;
     const nisn = document.getElementById('penyesuaian-nisn').value;
     const jenis = document.getElementById('penyesuaian-jenis').value;
-    const jam = document.getElementById('penyesuaian-jam').value;
+    const jamRaw = document.getElementById('penyesuaian-jam').value;
     const ket = document.getElementById('penyesuaian-ket').value.trim();
 
     if (!kelas) { alert("Pilih kelas terlebih dahulu!"); return; }
     if (tipe === 'siswa' && !nisn) { alert("Pilih siswa terlebih dahulu!"); return; }
-    if (!jam) { alert("Tentukan jam khusus!"); return; }
+    if (!jamRaw) { alert("Tentukan jam khusus!"); return; }
 
+    const jam = jamRaw.length === 5 ? `${jamRaw}:00` : jamRaw;
     const tglHariIni = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
     const ketFinal = ket ? `Penyesuaian: ${ket}` : 'Penyesuaian Khusus';
 
     const labelJenis = jenis === 'masuk' ? 'Masuk Telat (Tugas)' : 'Pulang Lebih Awal';
     if (!confirm(`Proses penyesuaian?\nTarget: ${tipe === 'kelas' ? 'Kelas ' + kelas : 'Siswa terpilih'}\nJenis: ${labelJenis}\nJam: ${jam}\nKet: ${ketFinal}`)) return;
 
-    const btn = e ? e.currentTarget : document.activeElement;
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+    // Simpan referensi tombol sebelum await agar tidak menjadi null
+    const btn = (e && e.currentTarget) ? e.currentTarget : document.querySelector('button[onclick*="prosesPenyesuaianPresensi"]');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Memproses...`;
+    }
 
     try {
         let targetNisnList = [];
@@ -589,32 +616,39 @@ async function prosesPenyesuaianPresensi(e) {
 
         let sukses = 0;
         for (const n of targetNisnList) {
-            const cekPresensi = await queryTurso('SELECT id FROM presensi WHERE nisn = ? AND tanggal = ?', [n, tglHariIni]);
-
-            if (cekPresensi && cekPresensi.length > 0) {
-                if (jenis === 'masuk') {
-                    await queryTurso('UPDATE presensi SET jam_masuk = ?, status = ?, keterangan = ? WHERE id = ?', [jam, 'Hadir', ketFinal, cekPresensi[0].id]);
-                } else {
-                    await queryTurso('UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE id = ?', [jam, ketFinal, cekPresensi[0].id]);
-                }
+            if (jenis === 'masuk') {
+                await queryTurso(
+                    `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan)
+                     VALUES (?, ?, ?, 'Hadir', ?)
+                     ON CONFLICT (nisn, tanggal) DO UPDATE SET
+                     jam_masuk = excluded.jam_masuk,
+                     status = 'Hadir',
+                     keterangan = excluded.keterangan`,
+                    [n, tglHariIni, jam, ketFinal]
+                );
             } else {
-                if (jenis === 'masuk') {
-                    await queryTurso('INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)', [n, tglHariIni, jam, 'Hadir', ketFinal]);
-                } else {
-                    await queryTurso('INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?, ?)', [n, tglHariIni, '07:00:00', jam, 'Hadir', ketFinal]);
-                }
+                await queryTurso(
+                    `INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan)
+                     VALUES (?, ?, '07:00:00', ?, 'Hadir', ?)
+                     ON CONFLICT (nisn, tanggal) DO UPDATE SET
+                     jam_pulang = excluded.jam_pulang,
+                     keterangan = excluded.keterangan`,
+                    [n, tglHariIni, jam, ketFinal]
+                );
             }
             sukses++;
         }
 
         alert(`Berhasil memproses penyesuaian untuk ${sukses} siswa.`);
         document.getElementById('penyesuaian-ket').value = '';
-        muatSemuaDataMaster();
 
     } catch (err) {
+        console.error("Penyesuaian error:", err);
         alert("Gagal memproses penyesuaian: " + err.message);
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-check-double"></i> <span>Simpan Penyesuaian</span>`;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = `<i class="fa-solid fa-check-double"></i> <span>Simpan Penyesuaian</span>`;
+        }
     }
 }
