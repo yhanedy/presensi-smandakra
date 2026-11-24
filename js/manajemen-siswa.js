@@ -31,6 +31,7 @@ let jumlahKelasXiiAktif = 0;
 window.onload = async function() {
     setTombolBackDinamis();
     await pastikanTabelPengaturanSistem();
+    await pastikanKolomTabelSiswa();
     await muatTahunAjaranAktif();
     await Promise.all([
         muatOpsiKelasDropdown(),
@@ -42,6 +43,9 @@ window.onload = async function() {
     ]);
 };
 
+// ============================================================================
+// AUTO-MIGRASI SKEMA DATABASE (PENGATURAN SISTEM & KOLOM TABEL SISWA)
+// ============================================================================
 async function pastikanTabelPengaturanSistem() {
     try {
         await queryTurso("CREATE TABLE IF NOT EXISTS pengaturan_sistem (kunci TEXT PRIMARY KEY, nilai TEXT NOT NULL)", []);
@@ -49,6 +53,18 @@ async function pastikanTabelPengaturanSistem() {
     } catch (_) {}
 }
 
+async function pastikanKolomTabelSiswa() {
+    try {
+        await queryTurso("ALTER TABLE siswa ADD COLUMN status_siswa TEXT DEFAULT 'Aktif'", []);
+    } catch (_) {}
+    try {
+        await queryTurso("ALTER TABLE siswa ADD COLUMN status_presensi TEXT DEFAULT 'Normal'", []);
+    } catch (_) {}
+}
+
+// ============================================================================
+// PENGELOLAAN TAHUN AJARAN DINAMIS (2026/2027 -> 2027/2028)
+// ============================================================================
 function hitungTahunAjaranBerikutnya(taStr) {
     const match = String(taStr || '').trim().match(/^(\d{4})\s*\/\s*(\d{4})$/);
     if (match) {
