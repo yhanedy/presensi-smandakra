@@ -632,45 +632,42 @@ async function toggleStatusBebasPresensi(nisn, currentStatus) {
     }
 }
 
-// ============================================================================
-// TAB 4: KELOLA DATA GURU
-// ============================================================================
-async function simpanGuruManual(btnEl) {
-    // Cari kartu form tempat tombol "Simpan Data Guru" berada
-    const card = (btnEl && btnEl.closest('div.bg-white, div.rounded-xl, div.rounded-2xl'))
-        || document.getElementById('tab4')
-        || document;
+// ==========================================
+// MANAJEMEN DATA GURU & MULTI-ROLE (TAB 4)
+// ==========================================
 
-    // Ambil semua input yang visible (bukan hidden, checkbox, radio, file)
-    const visibleInputs = Array.from(card.querySelectorAll('input')).filter(
-        inp => !['hidden', 'checkbox', 'radio', 'file', 'submit', 'button'].includes((inp.type || '').toLowerCase())
-    );
+async function pastikanKolomTabelSiswa() {
+    try {
+        const info = await queryTurso("PRAGMA table_info(siswa)");
+        const kolomAda = (info || []).map(c => String(c.name || '').toLowerCase());
 
-    // Urutan visual di form Anda: [0] Username/NIP, [1] Password Default, [2] Nama Lengkap Guru
-    const elUser = document.getElementById('manual-guru-user') || visibleInputs[0];
-    const elPass = document.getElementById('manual-guru-pass') || visibleInputs.find(i => i.type === 'password') || visibleInputs[1];
-    const elNama = document.getElementById('manual-guru-nama') || visibleInputs.find(i => i !== elUser && i !== elPass) || visibleInputs[2];
+        if (!kolomAda.includes('status_siswa')) {
+            await queryTurso("ALTER TABLE siswa ADD COLUMN status_siswa TEXT DEFAULT 'AKTIF'");
+        }
+        if (!kolomAda.includes('status_presensi')) {
+            await queryTurso("ALTER TABLE siswa ADD COLUMN status_presensi TEXT DEFAULT 'AKTIF'");
+        }
+    } catch (e) {
+        console.warn("Info kolom siswa:", e.message);
+    }
+}
+
+async function simpanGuruManual() {
+    const elUser = document.getElementById('manual-guru-user');
+    const elNama = document.getElementById('manual-guru-nama');
+    const elPass = document.getElementById('manual-guru-pass');
 
     const user = String(elUser ? elUser.value : '').trim();
     const nama = String(elNama ? elNama.value : '').trim();
     const pass = String(elPass ? elPass.value : '').trim() || 'guru123';
 
-    const roleChecked = Array.from(
-        card.querySelectorAll('input[type="checkbox"]:checked')
-    ).map(cb => String(cb.value || '').trim().toLowerCase()).filter(Boolean);
+    const roleChecked = Array.from(document.querySelectorAll('.cb-manual-guru-role:checked'))
+        .map(cb => String(cb.value || '').trim().toLowerCase())
+        .filter(Boolean);
 
-    if (!user) {
-        alert("Username / NIP wajib diisi!");
-        return;
-    }
-    if (!nama) {
-        alert("Nama Lengkap Guru wajib diisi!");
-        return;
-    }
-    if (roleChecked.length === 0) {
-        alert("Pilih minimal 1 Peran / Hak Akses untuk Guru!");
-        return;
-    }
+    if (!user) return alert("Username / NIP wajib diisi!");
+    if (!nama) return alert("Nama Lengkap Guru wajib diisi!");
+    if (roleChecked.length === 0) return alert("Pilih minimal 1 Peran / Hak Akses!");
 
     const roleString = roleChecked.join(',');
 
@@ -692,65 +689,69 @@ async function simpanGuruManual(btnEl) {
             );
         }
 
-        alert(`Guru "${nama}" (${user}) berhasil disimpan dengan role: ${roleString}`);
+        alert(`Berhasil menyimpan akun "${nama}" (${user}) dengan role: ${roleString}`);
         if (elUser) elUser.value = '';
         if (elNama) elNama.value = '';
-        if (elPass) elPass.value = '';
-        card.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        if (elPass) elPass.value = 'guru123';
+        document.querySelectorAll('.cb-manual-guru-role').forEach(cb => cb.checked = false);
         muatDataGuruTab4();
     } catch (err) {
         alert("Gagal menyimpan guru: " + err.message);
     }
 }
-async function muatDataGuruTab4() {
-    const tbody = document.getElementById('tabel-tab4-body');
-    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data guru...</td></tr>';
 
-    try {
-        const data = await queryTurso("SELECT * FROM users ORDER BY nama ASC", []);
-        if (!data || data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data akun guru.</td></tr>';
-            return;
-        }
-
-        tbody.innerHTML = data.map(g => {
-            const rolesList = (g.role || '').split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
-            const badgesHtml = rolesList.map(r => {
-                if (r === 'mapel') return `<span class="bg-emerald-100 text-emerald-800 border border-emerald-300 px-1.5 py-0.5 rounded text-[10px] font-bold">MAPEL</span>`;
-                if (r === 'piket') return `<span class="bg-blue-100 text-blue-800 border border-blue-300 px-1.5 py-0.5 rounded text-[10px] font-bold">PIKET</span>`;
-                if (r === 'bk' || r === 'stp2k') return `<span class="bg-purple-100 text-purple-800 border border-purple-300 px-1.5 py-0.5 rounded text-[10px] font-bold">BK</span>`;
-                if (r === 'admin' || r === 'superadmin' || r === 'super_admin') return `<span class="bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded text-[10px] font-bold">ADMIN</span>`;
-                return `<span class="bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded text-[10px] font-bold">${escapeHtml(r.toUpperCase())}</span>`;
-            }).join(' ');
-
-            return `
-                <tr class="hover:bg-slate-50 border-b border-slate-100">
-                    <td class="p-3 font-mono font-medium">${escapeHtml(g.username)}</td>
-                    <td class="p-3 font-bold text-slate-800">${escapeHtml(g.nama)}</td>
-                    <td class="p-3 text-center space-x-1">${badgesHtml || '-'}</td>
-                    <td class="p-3 text-center">
-                        <button onclick="bukaModalEditRole('${escapeHtml(g.username)}', '${escapeHtml(g.nama)}', '${escapeHtml(g.role || '')}')" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-2.5 py-1 rounded text-xs font-bold border border-indigo-300 transition cursor-pointer">
-                            <i class="fa-solid fa-user-pen"></i> Edit Role
-                        </button>
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="resetPasswordGuru('${escapeHtml(g.username)}', '${escapeHtml(g.nama)}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 px-2.5 py-1 rounded text-xs font-bold border border-amber-300 transition cursor-pointer">
-                            <i class="fa-solid fa-key"></i> Reset Pass
-                        </button>
-                    </td>
-                    <td class="p-3 text-center">
-                        <button onclick="hapusGuru('${escapeHtml(g.username)}', '${escapeHtml(g.nama)}')" class="bg-red-100 hover:bg-red-200 text-red-700 px-2.5 py-1 rounded text-xs font-bold transition cursor-pointer">
-                            <i class="fa-solid fa-trash"></i> Hapus
-                        </button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
-    } catch (err) {
-        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">Error: ${escapeHtml(err.message)}</td></tr>`;
-    }
+function formatBadgeRole(roleStr) {
+    const roles = String(roleStr || '').split(',').map(r => r.trim().toLowerCase()).filter(Boolean);
+    const badgeMap = {
+        admin: '<span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 font-bold text-[10px]">ADMIN</span>',
+        admin_jurnal: '<span class="px-2 py-0.5 rounded bg-teal-100 text-teal-800 font-bold text-[10px]">ADMIN JURNAL</span>',
+        kepsek: '<span class="px-2 py-0.5 rounded bg-indigo-100 text-indigo-800 font-bold text-[10px]">KEPSEK</span>',
+        mapel: '<span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-bold text-[10px]">MAPEL</span>',
+        piket: '<span class="px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-bold text-[10px]">PIKET</span>',
+        bk: '<span class="px-2 py-0.5 rounded bg-purple-100 text-purple-800 font-bold text-[10px]">BK</span>'
+    };
+    return roles.map(r => badgeMap[r] || `<span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-bold text-[10px]">${r.toUpperCase()}</span>`).join(' ');
 }
 
+function bukaModalEditRole(username, nama, currentRoleStr) {
+    document.getElementById('edit-role-guru-user').value = username;
+    const labelNama = document.getElementById('edit-role-guru-nama');
+    if (labelNama) labelNama.textContent = `${nama} (${username})`;
+
+    const roleList = String(currentRoleStr || '')
+        .split(',')
+        .map(r => r.trim().toLowerCase())
+        .filter(Boolean);
+
+    document.querySelectorAll('.cb-edit-role-item').forEach(cb => {
+        cb.checked = roleList.includes(cb.value.toLowerCase());
+    });
+
+    const modal = document.getElementById('modal-edit-role');
+    if (modal) modal.classList.remove('hidden');
+}
+
+async function simpanPerubahanRole() {
+    const user = document.getElementById('edit-role-guru-user').value.trim();
+    const roleChecked = Array.from(document.querySelectorAll('.cb-edit-role-item:checked'))
+        .map(cb => cb.value.trim().toLowerCase())
+        .filter(Boolean);
+
+    if (!user) return;
+    if (roleChecked.length === 0) return alert("Pilih minimal 1 Hak Akses!");
+
+    try {
+        await queryTurso(
+            "UPDATE users SET role = ? WHERE LOWER(TRIM(username)) = LOWER(?)",
+            [roleChecked.join(','), user]
+        );
+        const modal = document.getElementById('modal-edit-role');
+        if (modal) modal.classList.add('hidden');
+        muatDataGuruTab4();
+    } catch (err) {
+        alert("Gagal memperbarui role: " + err.message);
+    }
+}
 function bukaModalEditRole(username, nama, currentRoles) {
     document.getElementById('edit-role-guru-user').value = username;
     document.getElementById('edit-role-guru-nama').textContent = `${nama} (${username})`;
@@ -765,44 +766,6 @@ function tutupModalEditRole() {
     document.getElementById('modal-edit-role-guru').classList.add('hidden');
 }
 
-async function simpanEditRoleGuru() {
-    const username = document.getElementById('edit-role-guru-user').value;
-    const checkedRoles = Array.from(document.querySelectorAll('.cb-edit-role-item:checked')).map(cb => cb.value);
-    if (checkedRoles.length === 0) {
-        alert("Pilih minimal 1 Peran (Role)!");
-        return;
-    }
-    const newRoleString = checkedRoles.join(',');
-    try {
-        await queryTurso("UPDATE users SET role = ? WHERE username = ?", [newRoleString, username]);
-        alert("Role guru berhasil diperbarui menjadi: " + newRoleString);
-        tutupModalEditRole();
-        muatDataGuruTab4();
-    } catch (err) {
-        alert("Gagal update role: " + err.message);
-    }
-}
-
-async function resetPasswordGuru(username, nama) {
-    if (!confirm(`Reset password guru "${nama}" kembali ke "guru123"?`)) return;
-    try {
-        await queryTurso("UPDATE users SET password_hash = 'guru123' WHERE username = ?", [username]);
-        alert(`Password untuk "${nama}" berhasil direset ke "guru123".`);
-    } catch (err) {
-        alert("Gagal reset: " + err.message);
-    }
-}
-
-async function hapusGuru(username, nama) {
-    if (!confirm(`Hapus akun guru "${nama}" (${username})?`)) return;
-    try {
-        await queryTurso("DELETE FROM users WHERE username = ?", [username]);
-        alert(`Akun "${nama}" dihapus.`);
-        muatDataGuruTab4();
-    } catch (err) {
-        alert("Gagal hapus: " + err.message);
-    }
-}
 
 // ============================================================================
 // TAB 5: MUTASI SISWA
