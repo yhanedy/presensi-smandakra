@@ -636,24 +636,59 @@ async function toggleStatusBebasPresensi(nisn, currentStatus) {
 // TAB 4: KELOLA DATA GURU
 // ============================================================================
 async function simpanGuruManual() {
-    const user = document.getElementById('manual-guru-user').value.trim();
-    const nama = document.getElementById('manual-guru-nama').value.trim();
-    const pass = document.getElementById('manual-guru-pass').value.trim() || 'guru123';
-    const roleChecked = Array.from(document.querySelectorAll('.cb-manual-guru-role:checked')).map(cb => cb.value);
+    const elUser = document.getElementById('manual-guru-user') || document.getElementById('manual-guru-username');
+    const elNama = document.getElementById('manual-guru-nama');
+    const elPass = document.getElementById('manual-guru-pass') || document.getElementById('manual-guru-password');
 
-    if (!user || !nama) { alert("Username/NIP dan Nama Wajib diisi!"); return; }
-    if (roleChecked.length === 0) { alert("Pilih minimal 1 Peran (Role) untuk Guru!"); return; }
+    const user = String(elUser ? elUser.value : '').trim();
+    const nama = String(elNama ? elNama.value : '').trim();
+    const pass = String(elPass ? elPass.value : '').trim() || 'guru123';
+
+    const roleChecked = Array.from(
+        document.querySelectorAll('.cb-manual-guru-role:checked, input[name="manual-guru-role"]:checked')
+    ).map(cb => cb.value.trim().toLowerCase()).filter(Boolean);
+
+    if (!user) {
+        alert("Username / NIP wajib diisi!");
+        if (elUser) elUser.focus();
+        return;
+    }
+    if (!nama) {
+        alert("Nama Lengkap Guru wajib diisi!");
+        if (elNama) elNama.focus();
+        return;
+    }
+    if (roleChecked.length === 0) {
+        alert("Pilih minimal 1 Peran / Hak Akses untuk Guru!");
+        return;
+    }
 
     const roleString = roleChecked.join(',');
+
     try {
-        await queryTurso(
-            "INSERT INTO users (username, nama, password_hash, role) VALUES (?, ?, ?, ?) ON CONFLICT(username) DO UPDATE SET nama=excluded.nama, role=excluded.role",
-            [user, nama, pass, roleString]
+        // Cek apakah username sudah ada (aman meski kolom username tidak memiliki UNIQUE index)
+        const existing = await queryTurso(
+            "SELECT username FROM users WHERE LOWER(TRIM(username)) = LOWER(?) LIMIT 1",
+            [user]
         );
-        alert(`Guru ${nama} berhasil ditambahkan dengan role: ${roleString}`);
-        document.getElementById('manual-guru-user').value = '';
-        document.getElementById('manual-guru-nama').value = '';
-        document.querySelectorAll('.cb-manual-guru-role').forEach(cb => cb.checked = false);
+
+        if (existing && existing.length > 0) {
+            await queryTurso(
+                "UPDATE users SET nama = ?, password_hash = ?, role = ? WHERE LOWER(TRIM(username)) = LOWER(?)",
+                [nama, pass, roleString, user]
+            );
+        } else {
+            await queryTurso(
+                "INSERT INTO users (username, nama, password_hash, role) VALUES (?, ?, ?, ?)",
+                [user, nama, pass, roleString]
+            );
+        }
+
+        alert(`Guru "${nama}" (${user}) berhasil disimpan dengan role: ${roleString}`);
+        if (elUser) elUser.value = '';
+        if (elNama) elNama.value = '';
+        if (elPass) elPass.value = '';
+        document.querySelectorAll('.cb-manual-guru-role, input[name="manual-guru-role"]').forEach(cb => cb.checked = false);
         muatDataGuruTab4();
     } catch (err) {
         alert("Gagal menyimpan guru: " + err.message);
