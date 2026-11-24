@@ -694,7 +694,10 @@ async function simpanGuruManual() {
         if (elNama) elNama.value = '';
         if (elPass) elPass.value = 'guru123';
         document.querySelectorAll('.cb-manual-guru-role').forEach(cb => cb.checked = false);
-        muatDataGuruTab4();
+
+        // Panggil ulang fungsi pemuat daftar guru yang ada di file ini
+        const btnRefresh = document.querySelector('#tab4 button[onclick*="Guru"], #tab4 button[onclick*="guru"]');
+        if (btnRefresh) btnRefresh.click();
     } catch (err) {
         alert("Gagal menyimpan guru: " + err.message);
     }
