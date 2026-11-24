@@ -31,9 +31,8 @@ async function handleLogin(e) {
     e.preventDefault();
 
     const usernameInput = document.getElementById('input-username').value.trim();
-    const passwordInput = document.getElementById('input-password').value.trim();
+    const passwordInput = document.getElementById('input-password').value;
     const errorBox = document.getElementById('error-msg');
-    const errorText = document.getElementById('error-text');
     const btnLogin = document.getElementById('btn-login');
 
     if (!usernameInput || !passwordInput) {
@@ -46,7 +45,7 @@ async function handleLogin(e) {
     btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
 
     try {
-        // Satu pintu endpoint /api/auth/login untuk Siswa, Guru, Piket, BK, & Admin
+        // Satu pintu endpoint /api/auth/login untuk Siswa, Guru, Piket, BK, Admin & Super Admin
         const response = await fetch(`${SSO_WORKER_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -89,7 +88,7 @@ async function handleLogin(e) {
             return;
         }
 
-        // B. JIKA AKUN STAFF / GURU / ADMIN
+        // B. JIKA AKUN STAFF / GURU / ADMIN / SUPER ADMIN
         const userSession = {
             id: data.user.id,
             username: data.user.username,
@@ -99,16 +98,17 @@ async function handleLogin(e) {
         };
         localStorage.setItem('smada_user', JSON.stringify(userSession));
 
-        const hasAdmin = roleStr.includes('admin') || roleStr.includes('superadmin') || roleStr.includes('super_admin');
+        const hasSuperAdmin = roleStr.includes('superadmin') || roleStr.includes('super_admin');
+        const hasAdmin = hasSuperAdmin || roleStr.includes('admin');
         const hasPiket = roleStr.includes('piket');
         const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
         const hasMapel = roleStr.includes('mapel') || roleStr.includes('guru') || roleStr.includes('jurnal');
 
-        const totalRoleCount = [hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
+        const totalRoleCount = [hasSuperAdmin, hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
 
-        // Jika punya lebih dari 1 peran atau Admin, tampilkan pilihan modul
-        if (totalRoleCount > 1 || hasAdmin) {
-            tampilkanModalPilihPeran(userSession, { hasAdmin, hasPiket, hasBK, hasMapel });
+        // Jika punya lebih dari 1 peran, Admin, atau Super Admin, tampilkan pilihan modul
+        if (totalRoleCount > 1 || hasAdmin || hasSuperAdmin) {
+            tampilkanModalPilihPeran(userSession, { hasSuperAdmin, hasAdmin, hasPiket, hasBK, hasMapel });
             return;
         }
 
@@ -117,7 +117,13 @@ async function handleLogin(e) {
         } else if (hasPiket) {
             window.location.replace('piket.html');
         } else {
-            const ssoPayload = { u: userSession.username, n: userSession.nama, r: userSession.role || 'guru', t: Date.now() };
+            const ssoPayload = {
+                u: userSession.username,
+                n: userSession.nama,
+                r: userSession.role || 'guru',
+                token: userSession.token,
+                t: Date.now()
+            };
             const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
             window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}`);
         }
@@ -144,7 +150,7 @@ function tampilkanErrorLogin(pesan) {
 
 function tampilkanModalPilihPeran(user, roles) {
     let modal = document.getElementById('modalPilihPeranMulti');
-    
+
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'modalPilihPeranMulti';
@@ -152,7 +158,13 @@ function tampilkanModalPilihPeran(user, roles) {
         document.body.appendChild(modal);
     }
 
-    const ssoPayload = { u: user.username, n: user.nama, r: user.role, t: Date.now() };
+    const ssoPayload = {
+        u: user.username,
+        n: user.nama,
+        r: user.role,
+        token: user.token || localStorage.getItem('smada_token') || '',
+        t: Date.now()
+    };
     const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
 
     modal.innerHTML = `
@@ -164,6 +176,13 @@ function tampilkanModalPilihPeran(user, roles) {
             </div>
 
             <div class="space-y-2.5 text-xs font-black">
+                ${roles.hasSuperAdmin ? `
+                    <button onclick="window.location.href='super-admin.html'" class="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 p-3.5 rounded-2xl flex items-center justify-between shadow-lg transition border-2 border-amber-300 cursor-pointer">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-crown text-base text-slate-950"></i> Control Panel Super Admin</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                ` : ''}
+
                 ${roles.hasAdmin ? `
                     <button onclick="window.location.href='admin.html'" class="w-full bg-slate-950 hover:bg-slate-900 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-yellow-400 cursor-pointer">
                         <span class="flex items-center gap-2.5"><i class="fa-solid fa-shield-halved text-base text-yellow-400"></i> Panel Administrator Presensi</span>
