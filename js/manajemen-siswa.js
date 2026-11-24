@@ -636,41 +636,32 @@ async function toggleStatusBebasPresensi(nisn, currentStatus) {
 // TAB 4: KELOLA DATA GURU
 // ============================================================================
 async function simpanGuruManual(btnEl) {
-    // 1. Coba cari lewat berbagai kemungkinan ID
-    let elUser = document.getElementById('manual-guru-user')
-        || document.getElementById('manual-guru-username')
-        || document.getElementById('guru-username')
-        || document.getElementById('input-guru-username');
+    const card = (btnEl && btnEl.closest('.bg-white')) || document.getElementById('tab4') || document;
+    const allInputs = Array.from(card.querySelectorAll('input'));
 
-    let elNama = document.getElementById('manual-guru-nama')
-        || document.getElementById('guru-nama')
-        || document.getElementById('input-guru-nama');
+    // Cari input Username/NIP (bukan password, bukan checkbox, bukan file)
+    const elUser = document.getElementById('manual-guru-user')
+        || allInputs.find(inp => inp.type === 'text' && (inp.id.includes('user') || inp.id.includes('nip') || inp.placeholder.toLowerCase().includes('nip') || inp.placeholder.toLowerCase().includes('user')))
+        || allInputs.find(inp => inp.type === 'text');
 
-    let elPass = document.getElementById('manual-guru-pass')
-        || document.getElementById('manual-guru-password')
-        || document.getElementById('guru-password')
-        || document.getElementById('input-guru-password');
+    // Cari input Nama Guru
+    const elNama = document.getElementById('manual-guru-nama')
+        || allInputs.find(inp => inp.type === 'text' && inp !== elUser);
 
-    // 2. Fallback cerdas: ambil langsung dari kartu form tempat tombol diklik
-    const card = (btnEl && btnEl.closest('div')) || document.getElementById('tab4');
-    if (card) {
-        const textInputs = card.querySelectorAll('input[type="text"], input:not([type])');
-        if ((!elUser || !elUser.value.trim()) && textInputs.length > 0) elUser = textInputs[0];
-        if ((!elNama || !elNama.value.trim()) && textInputs.length > 1) elNama = textInputs[1];
-        if (!elPass) elPass = card.querySelector('input[type="password"]');
-    }
+    // Cari input Password
+    const elPass = document.getElementById('manual-guru-pass')
+        || allInputs.find(inp => inp.type === 'password');
 
     const user = String(elUser ? elUser.value : '').trim();
     const nama = String(elNama ? elNama.value : '').trim();
     const pass = String(elPass ? elPass.value : '').trim() || 'guru123';
 
-    const scope = card || document;
     const roleChecked = Array.from(
-        scope.querySelectorAll('input[type="checkbox"]:checked')
+        card.querySelectorAll('input[type="checkbox"]:checked')
     ).map(cb => String(cb.value || '').trim().toLowerCase()).filter(Boolean);
 
     if (!user) {
-        alert("Username / NIP wajib diisi! (Pastikan kolom Username/NIP terisi)");
+        alert("Username / NIP wajib diisi! (Input terbaca kosong)");
         return;
     }
     if (!nama) {
@@ -706,13 +697,12 @@ async function simpanGuruManual(btnEl) {
         if (elUser) elUser.value = '';
         if (elNama) elNama.value = '';
         if (elPass) elPass.value = '';
-        scope.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+        card.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
         muatDataGuruTab4();
     } catch (err) {
         alert("Gagal menyimpan guru: " + err.message);
     }
 }
-
 async function prosesImportGuruExcel() {
     const fileInput = document.getElementById('excel-guru-file');
     if (!fileInput.files.length) { alert("Pilih file Excel guru terlebih dahulu!"); return; }
