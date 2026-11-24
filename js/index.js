@@ -45,7 +45,7 @@ async function handleLogin(e) {
     btnLogin.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akun...</span>`;
 
     try {
-        // Satu pintu endpoint /api/auth/login untuk Siswa, Guru, Piket, BK, Admin & Super Admin
+        // Satu pintu endpoint /api/auth/login untuk Siswa, Guru, Piket, BK, Kepsek, Admin & Super Admin
         const response = await fetch(`${SSO_WORKER_URL}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -68,13 +68,14 @@ async function handleLogin(e) {
         }
 
         const roleStr = String(data.role || data.user.role || '').toLowerCase();
+        const roleTokens = roleStr.split(',').map(r => r.trim()).filter(Boolean);
 
         // Simpan token & sesi standar ke localStorage
         localStorage.setItem('smada_token', data.token);
         localStorage.setItem('smada_role', roleStr);
 
         // A. JIKA AKUN SISWA
-        if (roleStr === 'siswa') {
+        if (roleTokens.includes('siswa')) {
             const siswaSession = {
                 nisn: data.user.nisn,
                 nama: data.user.nama || 'Siswa SMADA',
@@ -88,7 +89,7 @@ async function handleLogin(e) {
             return;
         }
 
-        // B. JIKA AKUN STAFF / GURU / ADMIN / SUPER ADMIN
+        // B. JIKA AKUN STAFF / GURU / KEPSEK / ADMIN / SUPER ADMIN
         const userSession = {
             id: data.user.id,
             username: data.user.username,
@@ -98,33 +99,59 @@ async function handleLogin(e) {
         };
         localStorage.setItem('smada_user', JSON.stringify(userSession));
 
-        const hasSuperAdmin = roleStr.includes('superadmin') || roleStr.includes('super_admin');
-        const hasAdmin = hasSuperAdmin || roleStr.includes('admin');
-        const hasPiket = roleStr.includes('piket');
-        const hasBK = roleStr.includes('bk') || roleStr.includes('stp2k');
-        const hasMapel = roleStr.includes('mapel') || roleStr.includes('guru') || roleStr.includes('jurnal');
+        const ssoPayload = {
+            u: userSession.username,
+            n: userSession.nama,
+            r: userSession.role || 'guru',
+            token: userSession.token,
+            t: Date.now()
+        };
+        const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
 
-        const totalRoleCount = [hasSuperAdmin, hasAdmin, hasPiket, hasBK, hasMapel].filter(Boolean).length;
+        // Pemisahan role berbasis token agar 'admin_jurnal' tidak tertukar dengan 'admin'
+        const hasSuperAdmin = roleTokens.includes('superadmin') || roleTokens.includes('super_admin');
+        const hasAdmin = hasSuperAdmin || roleTokens.includes('admin');
+        const hasAdminJurnal = hasAdmin || roleTokens.includes('admin_jurnal');
+        const hasKepsek = roleTokens.includes('kepsek') || roleTokens.includes('kepala');
+        const hasPiket = roleTokens.includes('piket');
+        const hasBK = roleTokens.includes('bk') || roleTokens.includes('stp2k');
+        const hasMapel = roleTokens.includes('mapel') || roleTokens.includes('guru') || roleTokens.includes('jurnal');
 
-        // Jika punya lebih dari 1 peran, Admin, atau Super Admin, tampilkan pilihan modul
-        if (totalRoleCount > 1 || hasAdmin || hasSuperAdmin) {
-            tampilkanModalPilihPeran(userSession, { hasSuperAdmin, hasAdmin, hasPiket, hasBK, hasMapel });
+        // Hitung peran unik untuk menentukan langsung redirect atau tampilkan modal
+        const activeRoles = [
+            hasSuperAdmin,
+            roleTokens.includes('admin'),
+            roleTokens.includes('admin_jurnal'),
+            hasKepsek,
+            hasPiket,
+            hasBK,
+            hasMapel
+        ].filter(Boolean);
+
+        // Jika punya lebih dari 1 peran atau Admin penuh / Super Admin, tampilkan modal pilihan modul
+        if (activeRoles.length > 1 || hasAdmin || hasSuperAdmin) {
+            tampilkanModalPilihPeran(userSession, {
+                hasSuperAdmin,
+                hasAdmin,
+                hasAdminJurnal,
+                hasKepsek,
+                hasPiket,
+                hasBK,
+                hasMapel
+            });
             return;
         }
 
-        if (hasBK) {
+        // Routing tunggal (Single Role) langsung menuju halamannya masing-masing
+        if (hasAdminJurnal) {
+            window.location.replace(`https://yhanedy.github.io/jurnalmengajar/admin-jurnal.html?sso_token=${ssoToken}`);
+        } else if (hasKepsek) {
+            window.location.replace('kepsek.html');
+        } else if (hasBK) {
             window.location.replace('bk.html');
         } else if (hasPiket) {
             window.location.replace('piket.html');
         } else {
-            const ssoPayload = {
-                u: userSession.username,
-                n: userSession.nama,
-                r: userSession.role || 'guru',
-                token: userSession.token,
-                t: Date.now()
-            };
-            const ssoToken = encodeURIComponent(btoa(JSON.stringify(ssoPayload)));
             window.location.replace(`https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}`);
         }
 
@@ -188,13 +215,23 @@ function tampilkanModalPilihPeran(user, roles) {
                         <span class="flex items-center gap-2.5"><i class="fa-solid fa-shield-halved text-base text-yellow-400"></i> Panel Administrator Presensi</span>
                         <i class="fa-solid fa-arrow-right"></i>
                     </button>
+                ` : ''}
+
+                ${roles.hasAdminJurnal ? `
                     <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/admin-jurnal.html?sso_token=${ssoToken}'" class="w-full bg-amber-700 hover:bg-amber-800 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-amber-600 cursor-pointer">
                         <span class="flex items-center gap-2.5"><i class="fa-solid fa-user-shield text-base text-yellow-300"></i> Admin Control Jurnal KBM</span>
                         <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 ` : ''}
 
-                ${roles.hasMapel || (!roles.hasPiket && !roles.hasBK && !roles.hasAdmin) ? `
+                ${roles.hasKepsek || roles.hasSuperAdmin ? `
+                    <button onclick="window.location.href='kepsek.html'" class="w-full bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-800 hover:to-indigo-800 text-cyan-200 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-cyan-400 cursor-pointer">
+                        <span class="flex items-center gap-2.5"><i class="fa-solid fa-chart-line text-base text-cyan-300"></i> Dashboard Kepala Sekolah</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                ` : ''}
+
+                ${roles.hasMapel || (!roles.hasPiket && !roles.hasBK && !roles.hasAdmin && !roles.hasAdminJurnal && !roles.hasKepsek) ? `
                     <button onclick="window.location.href='https://yhanedy.github.io/jurnalmengajar/jurnal.html?sso_token=${ssoToken}'" class="w-full bg-blue-900 hover:bg-blue-950 text-white p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-blue-700 cursor-pointer">
                         <span class="flex items-center gap-2.5"><i class="fa-solid fa-book-bookmark text-yellow-300 text-base"></i> Portal Jurnal Mengajar Guru</span>
                         <i class="fa-solid fa-arrow-right"></i>
@@ -214,12 +251,6 @@ function tampilkanModalPilihPeran(user, roles) {
                         <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 ` : ''}
-                ${roles.hasKepsek || roles.hasSuperAdmin ? `
-                   <button onclick="window.location.href='kepsek.html'" class="w-full bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-800 hover:to-indigo-800 text-cyan-200 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-cyan-400 cursor-pointer">
-                    <span class="flex items-center gap-2.5"><i class="fa-solid fa-chart-line text-base text-cyan-300"></i> Dashboard Kepala Sekolah</span>
-                    <i class="fa-solid fa-arrow-right"></i>
-                   </button>
-               ` : ''}
 
                 <button onclick="window.location.href='laporan-publik.html'" class="w-full bg-indigo-900 hover:bg-indigo-950 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-indigo-700 cursor-pointer">
                     <span class="flex items-center gap-2.5"><i class="fa-solid fa-chart-pie text-base text-yellow-400"></i> Laporan & Rekapitulasi Publik</span>
