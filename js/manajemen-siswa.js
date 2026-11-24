@@ -636,18 +636,20 @@ async function toggleStatusBebasPresensi(nisn, currentStatus) {
 // TAB 4: KELOLA DATA GURU
 // ============================================================================
 async function simpanGuruManual(btnEl) {
-    const card = (btnEl && btnEl.closest('.bg-white')) || document.getElementById('tab4') || document;
-    const allInputs = Array.from(card.querySelectorAll('input'));
+    // Cari kartu form tempat tombol "Simpan Data Guru" berada
+    const card = (btnEl && btnEl.closest('div.bg-white, div.rounded-xl, div.rounded-2xl'))
+        || document.getElementById('tab4')
+        || document;
 
-    const elUser = document.getElementById('manual-guru-user')
-        || allInputs.find(inp => inp.type === 'text' && (inp.id.includes('user') || inp.id.includes('nip') || (inp.placeholder || '').toLowerCase().includes('nip') || (inp.placeholder || '').toLowerCase().includes('user')))
-        || allInputs.find(inp => inp.type === 'text');
+    // Ambil semua input yang visible (bukan hidden, checkbox, radio, file)
+    const visibleInputs = Array.from(card.querySelectorAll('input')).filter(
+        inp => !['hidden', 'checkbox', 'radio', 'file', 'submit', 'button'].includes((inp.type || '').toLowerCase())
+    );
 
-    const elNama = document.getElementById('manual-guru-nama')
-        || allInputs.find(inp => inp.type === 'text' && inp !== elUser);
-
-    const elPass = document.getElementById('manual-guru-pass')
-        || allInputs.find(inp => inp.type === 'password');
+    // Urutan visual di form Anda: [0] Username/NIP, [1] Password Default, [2] Nama Lengkap Guru
+    const elUser = document.getElementById('manual-guru-user') || visibleInputs[0];
+    const elPass = document.getElementById('manual-guru-pass') || visibleInputs.find(i => i.type === 'password') || visibleInputs[1];
+    const elNama = document.getElementById('manual-guru-nama') || visibleInputs.find(i => i !== elUser && i !== elPass) || visibleInputs[2];
 
     const user = String(elUser ? elUser.value : '').trim();
     const nama = String(elNama ? elNama.value : '').trim();
@@ -700,44 +702,6 @@ async function simpanGuruManual(btnEl) {
         alert("Gagal menyimpan guru: " + err.message);
     }
 }
-async function prosesImportGuruExcel() {
-    const fileInput = document.getElementById('excel-guru-file');
-    if (!fileInput.files.length) { alert("Pilih file Excel guru terlebih dahulu!"); return; }
-
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        try {
-            const data = new Uint8Array(e.target.result);
-            const workbook = XLSX.read(data, { type: 'array' });
-            const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-
-            let imported = 0;
-            for (const item of jsonData) {
-                const username = String(item.username || item.nip || '').trim();
-                const nama = String(item.nama || '').trim();
-                const pass = String(item.password || 'guru123').trim();
-                const role = String(item.role || 'mapel').trim().toLowerCase();
-
-                if (username && nama) {
-                    await queryTurso(
-                        "INSERT INTO users (username, nama, password_hash, role) VALUES (?, ?, ?, ?) ON CONFLICT(username) DO UPDATE SET nama=excluded.nama, role=excluded.role",
-                        [username, nama, pass, role]
-                    );
-                    imported++;
-                }
-            }
-
-            alert(`Berhasil mengimpor ${imported} akun guru!`);
-            fileInput.value = '';
-            muatDataGuruTab4();
-        } catch (err) {
-            alert("Error Excel Guru: " + err.message);
-        }
-    };
-    reader.readAsArrayBuffer(fileInput.files[0]);
-}
-
 async function muatDataGuruTab4() {
     const tbody = document.getElementById('tabel-tab4-body');
     tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data guru...</td></tr>';
