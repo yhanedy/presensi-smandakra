@@ -635,27 +635,46 @@ async function toggleStatusBebasPresensi(nisn, currentStatus) {
 // ============================================================================
 // TAB 4: KELOLA DATA GURU
 // ============================================================================
-async function simpanGuruManual() {
-    const elUser = document.getElementById('manual-guru-user') || document.getElementById('manual-guru-username');
-    const elNama = document.getElementById('manual-guru-nama');
-    const elPass = document.getElementById('manual-guru-pass') || document.getElementById('manual-guru-password');
+async function simpanGuruManual(btnEl) {
+    // 1. Coba cari lewat berbagai kemungkinan ID
+    let elUser = document.getElementById('manual-guru-user')
+        || document.getElementById('manual-guru-username')
+        || document.getElementById('guru-username')
+        || document.getElementById('input-guru-username');
+
+    let elNama = document.getElementById('manual-guru-nama')
+        || document.getElementById('guru-nama')
+        || document.getElementById('input-guru-nama');
+
+    let elPass = document.getElementById('manual-guru-pass')
+        || document.getElementById('manual-guru-password')
+        || document.getElementById('guru-password')
+        || document.getElementById('input-guru-password');
+
+    // 2. Fallback cerdas: ambil langsung dari kartu form tempat tombol diklik
+    const card = (btnEl && btnEl.closest('div')) || document.getElementById('tab4');
+    if (card) {
+        const textInputs = card.querySelectorAll('input[type="text"], input:not([type])');
+        if ((!elUser || !elUser.value.trim()) && textInputs.length > 0) elUser = textInputs[0];
+        if ((!elNama || !elNama.value.trim()) && textInputs.length > 1) elNama = textInputs[1];
+        if (!elPass) elPass = card.querySelector('input[type="password"]');
+    }
 
     const user = String(elUser ? elUser.value : '').trim();
     const nama = String(elNama ? elNama.value : '').trim();
     const pass = String(elPass ? elPass.value : '').trim() || 'guru123';
 
+    const scope = card || document;
     const roleChecked = Array.from(
-        document.querySelectorAll('.cb-manual-guru-role:checked, input[name="manual-guru-role"]:checked')
-    ).map(cb => cb.value.trim().toLowerCase()).filter(Boolean);
+        scope.querySelectorAll('input[type="checkbox"]:checked')
+    ).map(cb => String(cb.value || '').trim().toLowerCase()).filter(Boolean);
 
     if (!user) {
-        alert("Username / NIP wajib diisi!");
-        if (elUser) elUser.focus();
+        alert("Username / NIP wajib diisi! (Pastikan kolom Username/NIP terisi)");
         return;
     }
     if (!nama) {
         alert("Nama Lengkap Guru wajib diisi!");
-        if (elNama) elNama.focus();
         return;
     }
     if (roleChecked.length === 0) {
@@ -666,7 +685,6 @@ async function simpanGuruManual() {
     const roleString = roleChecked.join(',');
 
     try {
-        // Cek apakah username sudah ada (aman meski kolom username tidak memiliki UNIQUE index)
         const existing = await queryTurso(
             "SELECT username FROM users WHERE LOWER(TRIM(username)) = LOWER(?) LIMIT 1",
             [user]
@@ -688,7 +706,7 @@ async function simpanGuruManual() {
         if (elUser) elUser.value = '';
         if (elNama) elNama.value = '';
         if (elPass) elPass.value = '';
-        document.querySelectorAll('.cb-manual-guru-role, input[name="manual-guru-role"]').forEach(cb => cb.checked = false);
+        scope.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
         muatDataGuruTab4();
     } catch (err) {
         alert("Gagal menyimpan guru: " + err.message);
