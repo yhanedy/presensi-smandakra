@@ -639,16 +639,13 @@ async function simpanGuruManual(btnEl) {
     const card = (btnEl && btnEl.closest('.bg-white')) || document.getElementById('tab4') || document;
     const allInputs = Array.from(card.querySelectorAll('input'));
 
-    // Cari input Username/NIP (bukan password, bukan checkbox, bukan file)
     const elUser = document.getElementById('manual-guru-user')
-        || allInputs.find(inp => inp.type === 'text' && (inp.id.includes('user') || inp.id.includes('nip') || inp.placeholder.toLowerCase().includes('nip') || inp.placeholder.toLowerCase().includes('user')))
+        || allInputs.find(inp => inp.type === 'text' && (inp.id.includes('user') || inp.id.includes('nip') || (inp.placeholder || '').toLowerCase().includes('nip') || (inp.placeholder || '').toLowerCase().includes('user')))
         || allInputs.find(inp => inp.type === 'text');
 
-    // Cari input Nama Guru
     const elNama = document.getElementById('manual-guru-nama')
         || allInputs.find(inp => inp.type === 'text' && inp !== elUser);
 
-    // Cari input Password
     const elPass = document.getElementById('manual-guru-pass')
         || allInputs.find(inp => inp.type === 'password');
 
@@ -661,7 +658,7 @@ async function simpanGuruManual(btnEl) {
     ).map(cb => String(cb.value || '').trim().toLowerCase()).filter(Boolean);
 
     if (!user) {
-        alert("Username / NIP wajib diisi! (Input terbaca kosong)");
+        alert("Username / NIP wajib diisi!");
         return;
     }
     if (!nama) {
