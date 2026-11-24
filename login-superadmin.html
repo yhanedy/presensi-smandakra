@@ -9,6 +9,22 @@
 </head>
 <body class="bg-slate-900 font-sans min-h-screen flex items-center justify-center p-4 text-slate-800">
 
+    <script>
+        (function cekSesiAktif() {
+            const rawUser = localStorage.getItem('smada_user');
+            const token = localStorage.getItem('smada_token');
+            if (rawUser && token) {
+                try {
+                    const user = JSON.parse(rawUser);
+                    const r = String(user.role || '').toLowerCase();
+                    if (user.username && (r.includes('superadmin') || r.includes('super_admin'))) {
+                        window.location.replace('super-admin.html');
+                    }
+                } catch (_) {}
+            }
+        })();
+    </script>
+
     <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 space-y-6 border border-slate-700">
         <div class="text-center space-y-2">
             <div class="inline-flex p-3 bg-amber-500/10 rounded-full text-amber-500 mb-1 border border-amber-500/20">
@@ -25,7 +41,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                         <i class="fa-solid fa-user"></i>
                     </span>
-                    <input type="text" id="sa-username" required placeholder="Masukkan username..." class="w-full pl-10 pr-3 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none font-mono">
+                    <input type="text" id="sa-username" autocomplete="username" required placeholder="Masukkan username..." class="w-full pl-10 pr-3 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none font-mono">
                 </div>
             </div>
 
@@ -35,7 +51,10 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                         <i class="fa-solid fa-lock"></i>
                     </span>
-                    <input type="password" id="sa-password" required placeholder="••••••••" class="w-full pl-10 pr-3 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+                    <input type="password" id="sa-password" autocomplete="current-password" required placeholder="••••••••" class="w-full pl-10 pr-10 py-2.5 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+                    <button type="button" onclick="togglePasswordSa()" title="Lihat/Sembunyikan Password" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-700 cursor-pointer">
+                        <i id="icon-eye-sa" class="fa-solid fa-eye text-xs"></i>
+                    </button>
                 </div>
             </div>
 
@@ -44,7 +63,7 @@
                 <span id="error-text"></span>
             </div>
 
-            <button type="submit" id="btn-login-sa" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center justify-center space-x-2">
+            <button type="submit" id="btn-login-sa" class="w-full py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-bold rounded-xl text-xs transition shadow-lg flex items-center justify-center space-x-2 cursor-pointer">
                 <i class="fa-solid fa-right-to-bracket"></i>
                 <span>Masuk ke Panel Super Admin</span>
             </button>
@@ -59,61 +78,66 @@
     </div>
 
     <script>
+        function togglePasswordSa() {
+            const input = document.getElementById('sa-password');
+            const icon = document.getElementById('icon-eye-sa');
+            if (!input || !icon) return;
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.className = 'fa-solid fa-eye-slash text-xs';
+            } else {
+                input.type = 'password';
+                icon.className = 'fa-solid fa-eye text-xs';
+            }
+        }
+
         async function handleLoginSuperAdmin(e) {
             e.preventDefault();
             const username = document.getElementById('sa-username').value.trim();
-            const password = document.getElementById('sa-password').value; // Jangan di-trim
+            const password = document.getElementById('sa-password').value;
             const errorBox = document.getElementById('error-msg');
             const errorText = document.getElementById('error-text');
             const btn = document.getElementById('btn-login-sa');
 
             if (!username || !password) {
-                if (errorText && errorBox) {
-                    errorText.textContent = "Username dan Password Super Admin wajib diisi!";
-                    errorBox.classList.remove('hidden');
-                }
+                errorText.textContent = "Username dan Password Super Admin wajib diisi!";
+                errorBox.classList.remove('hidden');
                 return;
             }
 
-            if (errorBox) errorBox.classList.add('hidden');
+            errorBox.classList.add('hidden');
             btn.disabled = true;
             btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>Memeriksa Akses...</span>`;
 
             try {
-                // Panggil API Worker untuk verifikasi aman
                 const res = await fetch('https://smada-api-gateway.yhanedy.workers.dev/api/auth/login-admin', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: username, password: password })
                 });
 
-                const data = await res.json();
-
-                if (!res.ok) {
-                    throw new Error(data.error || "Login gagal.");
+                const data = await res.json().catch(() => ({}));
+                if (!res.ok || !data.user) {
+                    throw new Error(data.error || "Kredensial Super Admin tidak valid.");
                 }
 
-                // Simpan sesi
-                localStorage.setItem('smada_user', JSON.stringify({
-    username: data.user.username,
-    nama: data.user.nama || 'System Administrator',
-    role: data.user.role,
-    token: data.token // Simpan token dari Worker
-}));
-                }));
-                localStorage.setItem('smada_role', data.user.role);
+                const token = data.token || '';
+                const userPayload = {
+                    username: data.user.username,
+                    nama: data.user.nama || 'System Administrator',
+                    role: data.user.role || 'superadmin',
+                    token: token
+                };
 
-                // Redirect ke dashboard
+                localStorage.setItem('smada_user', JSON.stringify(userPayload));
+                localStorage.setItem('smada_role', userPayload.role);
+                if (token) localStorage.setItem('smada_token', token);
+
                 window.location.replace('super-admin.html');
-
             } catch (err) {
                 console.error("Superadmin login error:", err);
-                if (errorText && errorBox) {
-                    errorText.textContent = err.message || "Gagal melakukan verifikasi kredensial.";
-                    errorBox.classList.remove('hidden');
-                } else {
-                    alert(err.message || "Gagal login Super Admin!");
-                }
+                errorText.textContent = err.message || "Gagal melakukan verifikasi kredensial.";
+                errorBox.classList.remove('hidden');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> <span>Masuk ke Panel Super Admin</span>`;
