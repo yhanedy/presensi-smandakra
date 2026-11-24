@@ -214,6 +214,12 @@ function tampilkanModalPilihPeran(user, roles) {
                         <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 ` : ''}
+                ${roles.hasKepsek || roles.hasSuperAdmin ? `
+                   <button onclick="window.location.href='kepsek.html'" class="w-full bg-gradient-to-r from-blue-900 to-indigo-900 hover:from-blue-800 hover:to-indigo-800 text-cyan-200 p-3.5 rounded-2xl flex items-center justify-between shadow transition border-2 border-cyan-400 cursor-pointer">
+                    <span class="flex items-center gap-2.5"><i class="fa-solid fa-chart-line text-base text-cyan-300"></i> Dashboard Kepala Sekolah</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                   </button>
+               ` : ''}
 
                 <button onclick="window.location.href='laporan-publik.html'" class="w-full bg-indigo-900 hover:bg-indigo-950 text-yellow-300 p-3.5 rounded-2xl flex items-center justify-between shadow transition border border-indigo-700 cursor-pointer">
                     <span class="flex items-center gap-2.5"><i class="fa-solid fa-chart-pie text-base text-yellow-400"></i> Laporan & Rekapitulasi Publik</span>
