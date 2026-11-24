@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Dashboard Kepala Sekolah - SMAN 2 Karanganyar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="js/config.js?v=kepsek_v1"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #06112b; }
+        ::-webkit-scrollbar-thumb { background: #1d4ed8; border-radius: 99px; }
+        .glass-card {
+            background: linear-gradient(145deg, rgba(15, 35, 88, 0.72), rgba(7, 20, 56, 0.88));
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(96, 165, 250, 0.24);
+        }
+        .glass-card-hover {
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .glass-card-hover:hover {
+            transform: translateY(-2px);
+            border-color: rgba(147, 197, 253, 0.55);
+            box-shadow: 0 14px 30px -10px rgba(37, 99, 235, 0.45);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between font-sans text-slate-100 bg-gradient-to-br from-[#040d26] via-[#0a2463] to-[#071538] selection:bg-cyan-400 selection:text-slate-950">
+
+    <!-- PROTEKSI AKSES KEPALA SEKOLAH / SUPER ADMIN -->
+    <script>
+        let currentUserSession = null;
+        const PORTAL_SSO_URL = "index.html";
+
+        (function verifikasiKepsek() {
+            const rawUser = localStorage.getItem('smada_user');
+            if (rawUser && rawUser !== "null" && rawUser !== "undefined") {
+                try {
+                    currentUserSession = JSON.parse(rawUser);
+                    const r = String(currentUserSession.role || '').toLowerCase().trim();
+                    const isAllowed = r.includes('kepsek') || r.includes('kepala') || r.includes('superadmin') || r.includes('super_admin') || r.includes('admin');
+                    if (currentUserSession.username && isAllowed) return;
+                } catch (_) {
+                    localStorage.removeItem('smada_user');
+                }
+            }
+            alert("Akses Terbatas! Halaman ini khusus Kepala Sekolah / Pimpinan.");
+            window.location.replace(PORTAL_SSO_URL);
+        })();
+    </script>
+
+    <!-- HEADER GRADASI BIRU TUA MODERN -->
+    <header class="sticky top-0 z-40 bg-gradient-to-r from-[#051236]/95 via-[#0c2d7a]/95 to-[#061844]/95 backdrop-blur-md border-b border-blue-400/25 shadow-[0_8px_30px_rgba(3,10,34,0.65)]">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-blue-500/20 border border-cyan-300/40 p-1.5 flex items-center justify-center shrink-0 shadow-inner">
+                    <img src="https://lh3.googleusercontent.com/d/1YQYf0kgtLInAzpSJKJ_3Da86dIoVXU6n"
+                         onError="this.onerror=null;this.src='https://placehold.co/100x100/0a2463/ffffff?text=SMADA'"
+                         class="w-full h-full object-contain" alt="Logo SMADA">
+                </div>
+                <div class="min-w-0">
+                    <div class="flex items-center gap-2">
+                        <h1 class="font-black text-sm sm:text-lg tracking-wide text-white truncate">DASHBOARD KEPALA SEKOLAH</h1>
+                        <span class="hidden md:inline-block bg-gradient-to-r from-cyan-400 to-blue-400 text-slate-950 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">Executive Live</span>
+                    </div>
+                    <p class="text-[11px] sm:text-xs text-cyan-200/90 font-medium truncate">SMAN 2 Karanganyar &bull; TA <span id="kepsek-ta-aktif" class="font-mono font-bold text-amber-300">2026/2027</span></p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <div class="hidden lg:block text-right mr-1">
+                    <span id="kepsek-nama-user" class="text-xs font-bold text-white block">Kepala Sekolah</span>
+                    <span class="text-[10px] text-cyan-300 font-mono uppercase">Executive Monitoring</span>
+                </div>
+                <button id="btn-back-superadmin" onclick="window.location.href='super-admin.html'" class="hidden bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 font-bold px-2.5 sm:px-3 py-2 rounded-xl text-xs transition items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-crown"></i>
+                    <span class="hidden sm:inline">Super Admin</span>
+                </button>
+                <button onclick="muatSemuaDataKepsek()" title="Segarkan Data" class="bg-blue-500/25 hover:bg-blue-500/40 text-cyan-200 border border-cyan-400/30 font-bold px-2.5 sm:px-3 py-2 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer">
+                    <i id="icon-refresh-kepsek" class="fa-solid fa-arrows-rotate"></i>
+                    <span class="hidden sm:inline">Refresh</span>
+                </button>
+                <button onclick="logoutKepsek()" title="Keluar" class="bg-rose-500/20 hover:bg-rose-500/35 text-rose-300 border border-rose-400/35 font-bold p-2 sm:px-3 sm:py-2 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer">
+                    <i class="fa-solid fa-power-off"></i>
+                    <span class="hidden sm:inline">Keluar</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT -->
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-6 w-full flex-grow space-y-5 sm:space-y-6">
+
+        <!-- BAR KALENDER & NAVIGASI TANGGAL HISTORIS -->
+        <section class="glass-card rounded-3xl p-4 sm:p-5 shadow-2xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div class="space-y-1">
+                <div class="flex items-center gap-2">
+                    <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping"></span>
+                    <span class="text-[11px] font-bold uppercase tracking-wider text-cyan-300">Ringkasan Terpadu Seluruh Sistem</span>
+                </div>
+                <h2 id="display-tanggal-kepsek" class="text-base sm:text-xl font-black text-white leading-snug">Memuat tanggal...</h2>
+                <p class="text-[11px] sm:text-xs text-blue-200/80">Klik pada bagian grafik atau kotak kelas mana saja untuk menelusuri rincian data.</p>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-2 bg-[#040e29]/80 border border-blue-400/30 p-2 rounded-2xl">
+                <button type="button" onclick="geserTanggalKepsek(-1)" title="Hari Sebelumnya" class="bg-blue-900/70 hover:bg-blue-800 text-cyan-200 px-2.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="flex items-center gap-1.5 px-2">
+                    <i class="fa-solid fa-calendar-days text-cyan-400 text-xs"></i>
+                    <input type="date" id="kepsek-filter-tanggal" onchange="muatSemuaDataKepsek()" class="bg-transparent text-white font-mono font-bold text-xs sm:text-sm outline-none cursor-pointer">
+                </div>
+                <button type="button" onclick="geserTanggalKepsek(1)" title="Hari Berikutnya" class="bg-blue-900/70 hover:bg-blue-800 text-cyan-200 px-2.5 py-2 rounded-xl text-xs font-bold transition cursor-pointer">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+                <button type="button" onclick="setTanggalHariIniKepsek()" class="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black px-3 py-2 rounded-xl text-xs transition shadow cursor-pointer">
+                    Hari Ini
+                </button>
+            </div>
+        </section>
+
+        <!-- 4 KARTU KPI UTAMA (KLIK UNTUK DETAIL) -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <!-- KPI 1: Kehadiran Siswa -->
+            <div onclick="bukaDetailPresensiKategori('HADIR')" class="glass-card glass-card-hover rounded-2xl sm:rounded-3xl p-4 sm:p-5 cursor-pointer relative overflow-hidden">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-cyan-300 block">Siswa Hadir</span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpi-hadir-angka" class="text-2xl sm:text-3xl font-black text-white font-mono">0</span>
+                            <span id="kpi-hadir-persen" class="text-xs font-bold text-emerald-300 bg-emerald-500/20 px-2 py-0.5 rounded-full">0%</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-emerald-300 shrink-0">
+                        <i class="fa-solid fa-user-check text-sm sm:text-lg"></i>
+                    </div>
+                </div>
+                <p class="text-[10px] sm:text-[11px] text-blue-200/80 mt-3 flex items-center justify-between">
+                    <span>Total <b id="kpi-total-siswa" class="text-white">0</b> siswa aktif</span>
+                    <span class="text-cyan-300 font-bold">Detail &rarr;</span>
+                </p>
+            </div>
+
+            <!-- KPI 2: Terlambat & Alpha -->
+            <div onclick="bukaDetailPresensiKategori('TERLAMBAT_ALPHA')" class="glass-card glass-card-hover rounded-2xl sm:rounded-3xl p-4 sm:p-5 cursor-pointer relative overflow-hidden">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-amber-300 block">Terlambat & Alpha</span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpi-terlambat-angka" class="text-2xl sm:text-3xl font-black text-amber-300 font-mono">0</span>
+                            <span class="text-xs text-slate-400 font-bold">/</span>
+                            <span id="kpi-alpha-angka" class="text-xl sm:text-2xl font-black text-rose-400 font-mono">0</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center text-amber-300 shrink-0">
+                        <i class="fa-solid fa-clock text-sm sm:text-lg"></i>
+                    </div>
+                </div>
+                <p class="text-[10px] sm:text-[11px] text-blue-200/80 mt-3 flex items-center justify-between">
+                    <span>Terlambat / Tanpa Ket.</span>
+                    <span class="text-amber-300 font-bold">Detail &rarr;</span>
+                </p>
+            </div>
+
+            <!-- KPI 3: Pelanggaran & Aduan Anonim -->
+            <div onclick="bukaDetailPelanggaranDanAnonim('ALL')" class="glass-card glass-card-hover rounded-2xl sm:rounded-3xl p-4 sm:p-5 cursor-pointer relative overflow-hidden">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-rose-300 block">BK & Aduan Anonim</span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpi-pelanggaran-angka" class="text-2xl sm:text-3xl font-black text-white font-mono">0</span>
+                            <span id="kpi-anonim-badge" class="text-[10px] font-bold text-purple-200 bg-purple-500/30 border border-purple-400/40 px-2 py-0.5 rounded-full">0 Aduan</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-rose-500/20 border border-rose-400/30 flex items-center justify-center text-rose-300 shrink-0">
+                        <i class="fa-solid fa-shield-cat text-sm sm:text-lg"></i>
+                    </div>
+                </div>
+                <p class="text-[10px] sm:text-[11px] text-blue-200/80 mt-3 flex items-center justify-between">
+                    <span>Kasus & Laporan Masuk</span>
+                    <span class="text-rose-300 font-bold">Detail &rarr;</span>
+                </p>
+            </div>
+
+            <!-- KPI 4: Jurnal Mengajar Guru -->
+            <div onclick="scrollKeMonitoringGuru()" class="glass-card glass-card-hover rounded-2xl sm:rounded-3xl p-4 sm:p-5 cursor-pointer relative overflow-hidden">
+                <div class="flex items-start justify-between gap-2">
+                    <div>
+                        <span class="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-sky-300 block">Jurnal KBM Terisi</span>
+                        <div class="flex items-baseline gap-2 mt-1">
+                            <span id="kpi-jurnal-terisi" class="text-2xl sm:text-3xl font-black text-white font-mono">0</span>
+                            <span id="kpi-guru-belum" class="text-[10px] font-bold text-amber-200 bg-amber-500/25 border border-amber-400/30 px-2 py-0.5 rounded-full">0 Blm Isi</span>
+                        </div>
+                    </div>
+                    <div class="w-9 h-9 sm:w-11 sm:h-11 rounded-2xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-300 shrink-0">
+                        <i class="fa-solid fa-book-open-reader text-sm sm:text-lg"></i>
+                    </div>
+                </div>
+                <p class="text-[10px] sm:text-[11px] text-blue-200/80 mt-3 flex items-center justify-between">
+                    <span>Entri KBM pada tanggal ini</span>
+                    <span class="text-sky-300 font-bold">Pantau &rarr;</span>
+                </p>
+            </div>
+        </section>
+
+        <!-- 3 GRAFIK UTAMA INTERAKTIF (KLIK GRAFIK UNTUK RINCIAN) -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+            <!-- GRAFIK 1: KOMPOSISI KEHADIRAN SISWA -->
+            <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col justify-between space-y-3">
+                <div class="flex items-center justify-between border-b border-blue-400/20 pb-2.5">
+                    <div>
+                        <h3 class="font-black text-sm text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-pie text-cyan-400"></i>
+                            <span>Grafik Kehadiran Siswa</span>
+                        </h3>
+                        <p class="text-[10px] text-blue-200/75">Klik segmen grafik untuk daftar nama siswa</p>
+                    </div>
+                    <span class="text-[10px] bg-blue-500/25 text-cyan-200 px-2 py-0.5 rounded-full font-bold">Klik Detail</span>
+                </div>
+                <div class="relative h-56 sm:h-60 w-full flex items-center justify-center">
+                    <canvas id="chartPresensiSiswa"></canvas>
+                </div>
+                <div class="grid grid-cols-4 gap-1.5 text-center text-[10px] font-bold pt-1">
+                    <button onclick="bukaDetailPresensiKategori('HADIR')" class="bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-400/30 rounded-xl py-1.5 text-emerald-300 cursor-pointer">Hadir</button>
+                    <button onclick="bukaDetailPresensiKategori('TERLAMBAT')" class="bg-amber-500/15 hover:bg-amber-500/30 border border-amber-400/30 rounded-xl py-1.5 text-amber-300 cursor-pointer">Telat</button>
+                    <button onclick="bukaDetailPresensiKategori('ALPHA')" class="bg-rose-500/15 hover:bg-rose-500/30 border border-rose-400/30 rounded-xl py-1.5 text-rose-300 cursor-pointer">Alpha</button>
+                    <button onclick="bukaDetailPresensiKategori('SI')" class="bg-sky-500/15 hover:bg-sky-500/30 border border-sky-400/30 rounded-xl py-1.5 text-sky-300 cursor-pointer">S/I/D</button>
+                </div>
+            </div>
+
+            <!-- GRAFIK 2: PELANGGARAN & LAPORAN ANONIM -->
+            <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col justify-between space-y-3">
+                <div class="flex items-center justify-between border-b border-blue-400/20 pb-2.5">
+                    <div>
+                        <h3 class="font-black text-sm text-white flex items-center gap-2">
+                            <i class="fa-solid fa-chart-column text-rose-400"></i>
+                            <span>Pelanggaran & Aduan Anonim</span>
+                        </h3>
+                        <p class="text-[10px] text-blue-200/75">Klik batang grafik untuk membaca laporan</p>
+                    </div>
+                    <span class="text-[10px] bg-rose-500/25 text-rose-200 px-2 py-0.5 rounded-full font-bold">BK & Aduan</span>
+                </div>
+                <div class="relative h-56 sm:h-60 w-full flex items-center justify-center">
+                    <canvas id="chartPelanggaranAnonim"></canvas>
+                </div>
+                <div class="grid grid-cols-2 gap-2 text-center text-[10px] font-bold pt-1">
+                    <button onclick="bukaDetailPelanggaranDanAnonim('PELANGGARAN')" class="bg-rose-500/15 hover:bg-rose-500/30 border border-rose-400/30 rounded-xl py-1.5 text-rose-300 cursor-pointer">
+                        <i class="fa-solid fa-triangle-exclamation mr-1"></i>Rincian Pelanggaran
+                    </button>
+                    <button onclick="bukaDetailPelanggaranDanAnonim('ANONIM')" class="bg-purple-500/15 hover:bg-purple-500/30 border border-purple-400/30 rounded-xl py-1.5 text-purple-300 cursor-pointer">
+                        <i class="fa-solid fa-envelope-open-text mr-1"></i>Baca Aduan Anonim
+                    </button>
+                </div>
+            </div>
+
+            <!-- GRAFIK 3: TOP GURU PALING SERING ISI JURNAL -->
+            <div class="glass-card rounded-3xl p-4 sm:p-5 shadow-xl flex flex-col justify-between space-y-3">
+                <div class="flex items-center justify-between border-b border-blue-400/20 pb-2.5">
+                    <div>
+                        <h3 class="font-black text-sm text-white flex items-center gap-2">
+                            <i class="fa-solid fa-ranking-star text-amber-300"></i>
+                            <span>Guru Terajin Isi Jurnal</span>
+                        </h3>
+                        <p class="text-[10px] text-blue-200/75">Akumulasi pengisian jurnal (Klik batang guru)</p>
+                    </div>
+                    <span class="text-[10px] bg-amber-500/25 text-amber-200 px-2 py-0.5 rounded-full font-bold">Top Aktif</span>
+                </div>
+                <div class="relative h-56 sm:h-60 w-full flex items-center justify-center">
+                    <canvas id="chartTopGuruJurnal"></canvas>
+                </div>
+                <div class="pt-1">
+                    <button onclick="bukaDetailSemuaJurnalHariIni()" class="w-full bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-400/30 rounded-xl py-1.5 text-[11px] font-bold text-cyan-200 cursor-pointer transition">
+                        <i class="fa-solid fa-list-ul mr-1"></i>Lihat Semua Jurnal Terisi Tanggal Ini
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- PANEL MONITORING KELAS & GURU BELUM MENGISI JURNAL -->
+        <section id="section-monitoring-kelas-guru" class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5">
+            <!-- KOLOM KIRI (2/3): MONITORING STATUS KELAS (SISWA + JURNAL) -->
+            <div class="lg:col-span-2 glass-card rounded-3xl p-4 sm:p-6 shadow-xl space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-blue-400/20 pb-3">
+                    <div>
+                        <h3 class="font-black text-sm sm:text-base text-white flex items-center gap-2">
+                            <i class="fa-solid fa-school-flag text-cyan-400"></i>
+                            <span>Monitoring Kelas (Kehadiran Siswa & Jurnal Guru)</span>
+                        </h3>
+                        <p class="text-[11px] text-blue-200/80">Klik kotak kelas untuk melihat detail siswa & guru yang mengajar di kelas tersebut.</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2 text-[10px] font-bold">
+                        <span class="flex items-center gap-1 bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-400/30">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Jurnal Ada
+                        </span>
+                        <span class="flex items-center gap-1 bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded-full border border-rose-400/30">
+                            <span class="w-2 h-2 rounded-full bg-rose-400"></span> Belum Ada Jurnal
+                        </span>
+                    </div>
+                </div>
+
+                <div id="grid-monitoring-kelas" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
+                    <div class="col-span-full text-center text-blue-200/70 text-xs py-8">Memuat data monitoring kelas...</div>
+                </div>
+            </div>
+
+            <!-- KOLOM KANAN (1/3): DAFTAR GURU BELUM MENGISI JURNAL HARI ITU -->
+            <div class="glass-card rounded-3xl p-4 sm:p-6 shadow-xl flex flex-col justify-between space-y-3">
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between border-b border-blue-400/20 pb-3">
+                        <div>
+                            <h3 class="font-black text-sm sm:text-base text-white flex items-center gap-2">
+                                <i class="fa-solid fa-user-clock text-amber-300"></i>
+                                <span>Guru Belum Isi Jurnal</span>
+                            </h3>
+                            <p class="text-[11px] text-blue-200/75">Pada tanggal yang dipilih di kalender</p>
+                        </div>
+                        <span id="badge-count-guru-belum" class="bg-amber-400 text-slate-950 font-mono font-black text-xs px-2.5 py-0.5 rounded-full">0</span>
+                    </div>
+
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-blue-300/70 text-xs"></i>
+                        <input type="text" id="search-guru-belum" onkeyup="filterDaftarGuruBelum()" placeholder="Cari nama guru..." class="w-full pl-8 pr-3 py-2 bg-[#040e29]/80 border border-blue-400/30 rounded-xl text-xs text-white placeholder-blue-300/60 outline-none focus:border-cyan-400">
+                    </div>
+
+                    <div id="list-guru-belum-jurnal" class="max-h-[420px] overflow-y-auto space-y-2 pr-1">
+                        <p class="text-center text-blue-200/70 text-xs py-6">Memuat daftar guru...</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL DETAIL INTERAKTIF (DRILL-DOWN DARI GRAFIK & KARTU) -->
+    <div id="modalDetailKepsek" class="hidden fixed inset-0 bg-[#020817]/85 backdrop-blur-md z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-gradient-to-b from-[#0a1f56] to-[#061235] border border-blue-400/35 rounded-t-3xl sm:rounded-3xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden text-slate-100">
+            <div class="px-5 py-4 bg-[#051030]/90 border-b border-blue-400/25 flex items-center justify-between gap-3 shrink-0">
+                <div>
+                    <span id="modal-detail-subtitle" class="text-[10px] font-black uppercase tracking-wider text-cyan-300 block">Rincian Data</span>
+                    <h3 id="modal-detail-title" class="font-black text-sm sm:text-base text-white">Detail Monitoring</h3>
+                </div>
+                <button onclick="tutupModalDetailKepsek()" class="w-8 h-8 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center text-lg cursor-pointer">&times;</button>
+            </div>
+
+            <div class="p-4 sm:p-5 overflow-y-auto flex-grow space-y-3">
+                <div class="flex items-center justify-between gap-2">
+                    <input type="text" id="modal-search-input" onkeyup="filterIsiModalDetail()" placeholder="Filter / cari nama di daftar ini..." class="w-full sm:w-72 bg-[#040c24] border border-blue-400/30 rounded-xl px-3 py-2 text-xs text-white placeholder-blue-300/60 outline-none focus:border-cyan-400">
+                    <span id="modal-detail-count" class="text-xs font-mono font-bold text-cyan-300 shrink-0">0 Data</span>
+                </div>
+                <div id="modal-detail-body" class="space-y-2 text-xs"></div>
+            </div>
+
+            <div class="px-5 py-3 bg-[#051030]/90 border-t border-blue-400/25 flex justify-end shrink-0">
+                <button onclick="tutupModalDetailKepsek()" class="bg-blue-600 hover:bg-blue-500 text-white font-bold px-5 py-2 rounded-xl text-xs transition cursor-pointer">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-[#03091c]/90 border-t border-blue-400/20 text-blue-300/75 text-xs text-center py-4 mt-6">
+        <p>&copy; yhanedy@2026 SMAN 2 Karanganyar &bull; Executive Principal Dashboard</p>
+    </footer>
+
+    <script src="js/kepsek.js?v=kepsek_v1"></script>
+</body>
+</html>
