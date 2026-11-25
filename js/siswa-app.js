@@ -15,22 +15,33 @@ window.onload = function () {
   cekPengumumanKhususSiswa();
 };
 
-/* ---------- SETTING SEKOLAH ---------- */
+/* ---------- SETTING SEKOLAH (DENGAN CACHE SESI HEMAT KUOTA) ---------- */
 async function muatSettingSekolah() {
+  const lim = document.getElementById('siswa-radius-limit');
   try {
-    const data = await queryTurso('SELECT latitude, longitude, radius_meter FROM setting_sekolah WHERE id = 1 LIMIT 1');
-    if (data && data.length) {
-      const c = data[0];
+    const cached = sessionStorage.getItem('smada_setting_sekolah');
+    let c = cached ? JSON.parse(cached) : null;
+
+    if (!c) {
+      const data = await queryTurso('SELECT latitude, longitude, radius_meter FROM setting_sekolah WHERE id = 1 LIMIT 1');
+      if (data && data.length) {
+        c = data[0];
+        sessionStorage.setItem('smada_setting_sekolah', JSON.stringify(c));
+      }
+    }
+
+    if (c) {
       const lat = parseFloat(c.latitude);
       const lon = parseFloat(c.longitude);
-      const rad = parseInt(c.radius_meter);
+      const rad = parseInt(c.radius_meter, 10);
       if (Number.isFinite(lat)) latSekolah = lat;
       if (Number.isFinite(lon)) longSekolah = lon;
       if (Number.isFinite(rad)) maxRadius = rad;
-      const lim = document.getElementById('siswa-radius-limit');
       if (lim) lim.textContent = `${maxRadius}m`;
     }
-  } catch { /* pakai default */ }
+  } catch {
+    if (lim) lim.textContent = `${maxRadius}m`;
+  }
 }
 
 /* ---------- PORTAL ---------- */
@@ -146,7 +157,7 @@ async function muatPresensiSiswaHariIni() {
 
   try {
     const data = await queryTurso(
-      'SELECT jam_masuk, jam_pulang FROM presensi WHERE nisn = ? AND tanggal = ?',
+      'SELECT jam_masuk, jam_pulang FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 2',
       [nisnVal, tgl]
     );
     const masuk = data?.find(p => p.jam_masuk && p.jam_masuk !== '-');
@@ -356,7 +367,11 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
   }
 }
 
-/* ---------- RIWAYAT (GRAFIK KONTRIBUSI) ---------- */
+/* ---------- RIWAYAT (GRAFIK KONTRIBUSI - ZONA WAKTU WIB AKURAT) ---------- */
+function formatTanggalWIBFromDate(dateObj) {
+  return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(dateObj);
+}
+
 async function muatRiwayatSiswa() {
   const nisnVal = getActiveNisn();
   const container = document.getElementById('grafik-kehadiran');
@@ -366,7 +381,7 @@ async function muatRiwayatSiswa() {
     const today = new Date();
     const startDate = new Date();
     startDate.setDate(today.getDate() - 30);
-    const tglMulai = startDate.toISOString().split('T')[0];
+    const tglMulai = formatTanggalWIBFromDate(startDate);
 
     const data = await queryTurso(
       'SELECT tanggal, status, jam_masuk, jam_pulang, keterangan FROM presensi WHERE nisn = ? AND tanggal >= ? ORDER BY tanggal DESC LIMIT 35',
@@ -388,7 +403,7 @@ async function muatRiwayatSiswa() {
       const d = new Date(today);
       d.setDate(today.getDate() - i);
 
-      const tglStr = d.toISOString().split('T')[0];
+      const tglStr = formatTanggalWIBFromDate(d);
       const rec = dataMap[tglStr];
 
       let bgClass = 'bg-empty';
@@ -402,8 +417,8 @@ async function muatRiwayatSiswa() {
         else { bgClass = 'bg-hadir'; statusText = rec.status; }
       }
 
-      const tglIndo = d.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-      const safeKet = rec && rec.keterangan ? rec.keterangan.replace(/'/g, "\\'").replace(/"/g, '&quot;') : '-';
+      const tglIndo = d.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', year: 'numeric' });
+      const safeKet = rec && rec.keterangan ? String(rec.keterangan).replace(/'/g, "\\'").replace(/"/g, '&quot;') : '-';
       const safeMasuk = rec && rec.jam_masuk ? rec.jam_masuk : '-';
       const safePulang = rec && rec.jam_pulang ? rec.jam_pulang : '-';
 
@@ -444,16 +459,27 @@ function bukaDetailRiwayat(tanggal, status, masuk, pulang, ket) {
 
 /* ---------- GANTI PASSWORD ---------- */
 async function gantiPasswordSiswa(e) {
-  const lama = document.getElementById('siswa-pass-lama').value;
-  const baru = document.getElementById('siswa-pass-baru').value;
-  const konfirm = document.getElementById('siswa-pass-konfirm').value;
+  const elLama = document.getElementById('siswa-pass-lama');
+  const elBaru = document.getElementById('siswa-pass-baru');
+  const elKonfirm = document.getElementById('siswa-pass-konfirm');
 
-  if (!lama) { alert("Masukkan password lama!"); return; }
-  if (!baru || !konfirm) { alert("Password baru & konfirmasi wajib!"); return; }
-  if (baru !== konfirm) { alert("Konfirmasi tidak cocok!"); return; }
-  if (baru.length < 6) { alert("Password minimal 6 karakter!"); return; }
+  const lama = String(elLama ? elLama.value : '').trim();
+  const baru = String(elBaru ? elBaru.value : '').trim();
+  const konfirm = String(elKonfirm ? elKonfirm.value : '').trim();
 
-  const nisnVal = getActiveNisn();
+  if (!lama) { alert("Masukkan password lama!"); if (elLama) elLama.focus(); return; }
+  if (!baru || !konfirm) { alert("Password baru & konfirmasi wajib diisi!"); if (elBaru) elBaru.focus(); return; }
+  if (baru !== konfirm) { alert("Konfirmasi password baru tidak cocok!"); if (elKonfirm) elKonfirm.focus(); return; }
+  if (baru.length < 6) { alert("Password baru minimal 6 karakter!"); if (elBaru) elBaru.focus(); return; }
+  if (lama === baru) { alert("Password baru tidak boleh sama dengan password lama!"); if (elBaru) elBaru.focus(); return; }
+
+  const nisnVal = String(getActiveNisn() || '').trim();
+  if (!nisnVal) {
+    alert("Sesi siswa tidak ditemukan. Silakan login ulang.");
+    handleLogoutSiswa();
+    return;
+  }
+
   const btn = (e && e.currentTarget) ? e.currentTarget : document.querySelector('button[onclick*="gantiPasswordSiswa"]');
   const original = btn ? btn.innerHTML : '';
   if (btn) {
@@ -462,18 +488,35 @@ async function gantiPasswordSiswa(e) {
   }
 
   try {
-    const res = await fetch(`${API_URL}/api/auth/change-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ nisn: nisnVal, oldPassword: lama, newPassword: baru })
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Gagal mengganti password.");
+    const baseApi = String(typeof API_URL !== 'undefined' ? API_URL : 'https://smada-api-gateway.yhanedy.workers.dev').replace(/\/+$/, '');
+    const token = localStorage.getItem('smada_token') || '';
 
-    alert("Password berhasil diperbarui! Silakan login ulang.");
+    const res = await fetch(`${baseApi}/api/auth/change-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify({
+        nisn: nisnVal,
+        oldPassword: lama,
+        newPassword: baru
+      })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || "Gagal mengganti password. Pastikan password lama benar.");
+    }
+
+    if (elLama) elLama.value = '';
+    if (elBaru) elBaru.value = '';
+    if (elKonfirm) elKonfirm.value = '';
+
+    alert("Password berhasil diperbarui! Silakan login ulang menggunakan password baru Anda.");
     handleLogoutSiswa();
   } catch (err) {
-    alert(err.message);
+    alert(err.message || "Terjadi kesalahan saat menghubungi server.");
   } finally {
     if (btn) {
       btn.disabled = false;
