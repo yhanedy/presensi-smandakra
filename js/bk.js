@@ -1,6 +1,8 @@
 /* ==========================================================================
    SMAN 2 KARANGANYAR - PORTAL BIMBINGAN KONSELING & STP2K (js/bk.js)
-   100% Terhubung dengan seluruh ID & Event Onclick di bk.html
+   - Proteksi Anti NULL pada NISN (Mencegah NOT NULL constraint failed)
+   - Auto-Create Tabel laporan_bk (Mencegah no such table: laporan_bk)
+   - 100% Sinkron dengan seluruh ID & Event Onclick di bk.html
    ========================================================================== */
 
 let daftarSiswaBK = [];
@@ -97,6 +99,7 @@ async function insertDinamis(namaTabel, kandidatData) {
     const nilaiInsert = [];
 
     for (const [key, val] of Object.entries(kandidatData)) {
+        if (val === undefined || val === null) continue;
         if (cols.length === 0 || cols.includes(key.toLowerCase())) {
             kolomInsert.push(key);
             nilaiInsert.push(val);
@@ -120,6 +123,7 @@ async function updateDinamis(namaTabel, id, kandidatData) {
     const nilaiUpdate = [];
 
     for (const [key, val] of Object.entries(kandidatData)) {
+        if (val === undefined) continue;
         if (cols.length === 0 || cols.includes(key.toLowerCase())) {
             setClauses.push(`${key} = ?`);
             nilaiUpdate.push(val);
@@ -153,23 +157,31 @@ async function inisialisasiPortalBK() {
 
 async function muatDaftarKelasDanSiswaBK() {
     try {
-        const cached = sessionStorage.getItem('smada_bk_siswa_cache');
+        // Hapus cache lama jika formatnya tidak lengkap
+        const cached = sessionStorage.getItem('smada_bk_siswa_cache_v2');
         let rows = cached ? JSON.parse(cached) : null;
 
         if (!Array.isArray(rows) || rows.length === 0) {
             rows = await queryTurso("SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC");
             if (Array.isArray(rows) && rows.length > 0) {
-                sessionStorage.setItem('smada_bk_siswa_cache', JSON.stringify(rows));
+                sessionStorage.setItem('smada_bk_siswa_cache_v2', JSON.stringify(rows));
             }
         }
 
         daftarSiswaBK = (rows || [])
             .filter(r => !r.status_siswa || String(r.status_siswa).toUpperCase() === 'AKTIF')
-            .map(r => ({
-                nisn: String(r.nisn || '').trim(),
-                nama: String(r.nama || '').trim(),
-                kelas: String(r.kelas || '').trim()
-            }))
+            .map(r => {
+                // Pastikan NISN selalu string valid 10 digit jika asalnya angka tanpa leading zero
+                let rawNisn = String(r.nisn ?? r.NISN ?? '').trim();
+                if (/^\d{8,9}$/.test(rawNisn)) {
+                    rawNisn = rawNisn.padStart(10, '0');
+                }
+                return {
+                    nisn: rawNisn,
+                    nama: String(r.nama ?? r.NAMA ?? '').trim(),
+                    kelas: String(r.kelas ?? r.KELAS ?? '').trim()
+                };
+            })
             .filter(s => s.nisn && s.nama && s.kelas);
 
         siswaMapByNisn = {};
@@ -182,7 +194,6 @@ async function muatDaftarKelasDanSiswaBK() {
             a.localeCompare(b, 'id', { numeric: true })
         );
 
-        // Isi semua dropdown kelas di bk.html
         ['pelanggaran-kelas', 'bk-kelas', 'pulang-kelas'].forEach(id => {
             const el = document.getElementById(id);
             if (!el) return;
@@ -195,7 +206,6 @@ async function muatDaftarKelasDanSiswaBK() {
             });
         });
 
-        // Isi dropdown filter kelas pada modal pencarian siswa
         const elCariKelas = document.getElementById('cari-kelas-siswa');
         if (elCariKelas) {
             elCariKelas.innerHTML = '<option value="">-- Semua Kelas --</option>';
@@ -228,13 +238,53 @@ window.muatSiswaBerdasarkanKelas = function (idSelectKelas, idSelectNisn) {
     siswaKelas.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.nisn;
+        opt.dataset.nisn = s.nisn;
         opt.dataset.nama = s.nama;
         opt.textContent = `${s.nama} (${s.nisn})`;
         elNisn.appendChild(opt);
     });
 };
 
-function ambilInfoSiswa(kelas, nisn) {
+function ambilInfoSiswaDariSelect(elKelas, elNisn) {
+    const kelas = String(elKelas ? elKelas.value : '').trim();
+    const rawVal = String(elNisn ? elNisn.value : '').trim();
+    const opt = (elNisn && elNisn.selectedIndex >= 0) ? elNisn.options[elNisn.selectedIndex] : null;
+
+    let nisn = rawVal || (opt ? String(opt.dataset.nisn || '').trim() : '');
+    let nama = opt ? String(opt.dataset.nama || '').trim() : '';
+
+    // Cadangan 1: Ekstrak NISN dari teks option "NAMA SISWA (0096525239)" jika value kosong
+    if (!nisn && opt && opt.textContent) {
+        const m = opt.textContent.match(/\((\d{6,})\)/);
+        if (m) nisn = m[1];
+        if (!nama) nama = opt.textContent.replace(/\s*\(\d{6,}\)\s*$/, '').trim();
+    }
+
+    // Cadangan 2: Cari di memori daftarSiswaBK berdasarkan kelas & nama
+    if (!nisn && kelas && nama) {
+        const found = daftarSiswaBK.find(
+            s => s.kelas.toUpperCase() === kelas.toUpperCase() && s.nama.toLowerCase() === nama.toLowerCase()
+        );
+        if (found) {
+            nisn = found.nisn;
+            nama = found.nama;
+        }
+    }
+
+    const mapped = siswaMapByNisn[nisn] || siswaMapByNisn[nisn.replace(/^0+/, '')];
+    if (mapped) {
+        if (!nama) nama = mapped.nama;
+        if (!nisn) nisn = mapped.nisn;
+    }
+
+    return {
+        nisn: String(nisn || '').trim(),
+        nama: nama || '-',
+        kelas: kelas || (mapped ? mapped.kelas : '-')
+    };
+}
+
+function ambilInfoSiswaByNisn(kelas, nisn) {
     const cleanNisn = String(nisn || '').trim();
     const s = siswaMapByNisn[cleanNisn] || siswaMapByNisn[cleanNisn.replace(/^0+/, '')];
     return {
@@ -254,11 +304,11 @@ window.simpanPelanggaranBK = async function () {
     const elCatatan = document.getElementById('pelanggaran-catatan');
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
-    const nisn = String(elNisn ? elNisn.value : '').trim();
     const tanggal = String(elTgl ? elTgl.value : '').trim() || getTanggalHariIniWIB();
     const catatan = String(elCatatan ? elCatatan.value : '').trim();
+    const siswa = ambilInfoSiswaDariSelect(elKelas, elNisn);
 
-    if (!kelas || !nisn) {
+    if (!kelas || !siswa.nisn) {
         alert("Silakan pilih Kelas dan Nama Siswa terlebih dahulu!");
         return;
     }
@@ -268,7 +318,6 @@ window.simpanPelanggaranBK = async function () {
     }
 
     try {
-        const siswa = ambilInfoSiswa(kelas, nisn);
         const userLogin = JSON.parse(localStorage.getItem('smada_user') || '{}');
         const pencatat = userLogin.nama || userLogin.username || 'Guru BK';
         const waktuLengkap = `${getTanggalHariIniWIB()} ${getWaktuSekarangWIB()}`;
@@ -310,17 +359,16 @@ window.simpanPresensiBK = async function () {
     const elKet = document.getElementById('bk-keterangan');
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
-    const nisn = String(elNisn ? elNisn.value : '').trim();
     const status = String(elStatus ? elStatus.value : '').trim();
     const keterangan = String(elKet ? elKet.value : '').trim();
+    const siswa = ambilInfoSiswaDariSelect(elKelas, elNisn);
 
-    if (!kelas || !nisn || !status) {
+    if (!kelas || !siswa.nisn || !status) {
         alert("Silakan pilih Kelas, Nama Siswa, dan Status Kehadiran!");
         return;
     }
 
     try {
-        const siswa = ambilInfoSiswa(kelas, nisn);
         const userLogin = JSON.parse(localStorage.getItem('smada_user') || '{}');
         const pencatat = userLogin.nama || userLogin.username || 'Guru BK';
         const tanggal = getTanggalHariIniWIB();
@@ -328,8 +376,8 @@ window.simpanPresensiBK = async function () {
         const ketLengkap = `${keterangan || status} [Input BK: ${pencatat}]`;
 
         const cek = await queryTurso(
-            "SELECT id FROM presensi WHERE tanggal = ? AND nisn = ? LIMIT 1",
-            [tanggal, siswa.nisn]
+            "SELECT id FROM presensi WHERE tanggal = ? AND TRIM(CAST(nisn AS TEXT)) IN (?, ?) LIMIT 1",
+            [tanggal, siswa.nisn, siswa.nisn.replace(/^0+/, '')]
         );
 
         if (cek && cek.length > 0) {
@@ -377,16 +425,15 @@ window.simpanPulangMendahului = async function () {
     const elAlasan = document.getElementById('pulang-alasan');
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
-    const nisn = String(elNisn ? elNisn.value : '').trim();
     const alasan = String(elAlasan ? elAlasan.value : '').trim();
+    const siswa = ambilInfoSiswaDariSelect(elKelas, elNisn);
 
-    if (!kelas || !nisn || !alasan) {
+    if (!kelas || !siswa.nisn || !alasan) {
         alert("Silakan pilih Kelas, Nama Siswa, dan isi Alasan Pulang!");
         return;
     }
 
     try {
-        const siswa = ambilInfoSiswa(kelas, nisn);
         const userLogin = JSON.parse(localStorage.getItem('smada_user') || '{}');
         const pencatat = userLogin.nama || userLogin.username || 'Guru BK';
         const tanggal = getTanggalHariIniWIB();
@@ -394,8 +441,8 @@ window.simpanPulangMendahului = async function () {
         const ketBaru = `Pulang Mendahului (${jamPulang}): ${alasan} [oleh ${pencatat}]`;
 
         const cek = await queryTurso(
-            "SELECT id FROM presensi WHERE tanggal = ? AND nisn = ? LIMIT 1",
-            [tanggal, siswa.nisn]
+            "SELECT id FROM presensi WHERE tanggal = ? AND TRIM(CAST(nisn AS TEXT)) IN (?, ?) LIMIT 1",
+            [tanggal, siswa.nisn, siswa.nisn.replace(/^0+/, '')]
         );
 
         if (cek && cek.length > 0) {
@@ -479,7 +526,7 @@ function renderTabelPelanggaran() {
     const slice = semuaPelanggaranBK.slice(start, start + PER_HALAMAN_PELANGGARAN);
 
     tbody.innerHTML = slice.map(r => {
-        const info = ambilInfoSiswa(r.kelas, r.nisn);
+        const info = ambilInfoSiswaByNisn(r.kelas, r.nisn);
         const tanggal = r.tanggal || (r.created_at ? String(r.created_at).slice(0, 10) : '-');
         const waktu = r.waktu_input || r.created_at || '-';
         const nama = r.nama_siswa || r.nama || info.nama;
@@ -515,7 +562,7 @@ window.bukaModalPenanganan = function (id) {
     const item = semuaPelanggaranBK.find(r => Number(r.id) === Number(id));
     if (!item) return;
 
-    const info = ambilInfoSiswa(item.kelas, item.nisn);
+    const info = ambilInfoSiswaByNisn(item.kelas, item.nisn);
     document.getElementById('modal-pelanggaran-id').value = item.id;
     document.getElementById('modal-nama-siswa').textContent = `${item.nama_siswa || item.nama || info.nama} (${item.kelas || info.kelas})`;
     document.getElementById('modal-catatan-pelanggaran').textContent = item.catatan_pelanggaran || item.keterangan || '-';
@@ -568,7 +615,7 @@ window.eksporExcelPelanggaranBK = function () {
         return;
     }
     const dataExport = semuaPelanggaranBK.map((r, idx) => {
-        const info = ambilInfoSiswa(r.kelas, r.nisn);
+        const info = ambilInfoSiswaByNisn(r.kelas, r.nisn);
         return {
             No: idx + 1,
             Tanggal: r.tanggal || '-',
@@ -589,7 +636,7 @@ window.eksporExcelPelanggaranBK = function () {
 };
 
 // ==========================================================================
-// 6. MODAL LAPORAN ANONIM & TINDAK LANJUT
+// 6. MODAL LAPORAN ANONIM & TINDAK LANJUT (AUTO-CREATE TABEL JIKA BELUM ADA)
 // ==========================================================================
 let daftarLaporanMasuk = [];
 let tabelLaporanAktif = 'laporan_bk';
@@ -612,7 +659,26 @@ async function muatDaftarLaporanAnonim() {
 
     try {
         const tblCheck = await queryTurso("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('laporan_bk', 'pengaduan', 'laporan') LIMIT 1");
-        tabelLaporanAktif = (tblCheck && tblCheck.length > 0) ? tblCheck[0].name : 'laporan_bk';
+        if (tblCheck && tblCheck.length > 0) {
+            tabelLaporanAktif = tblCheck[0].name;
+        } else {
+            tabelLaporanAktif = 'laporan_bk';
+            await queryTurso(`
+                CREATE TABLE IF NOT EXISTS laporan_bk (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    tanggal TEXT,
+                    waktu_input TEXT,
+                    nisn TEXT,
+                    nama TEXT,
+                    kelas TEXT,
+                    kategori TEXT,
+                    tempat TEXT,
+                    kronologi TEXT,
+                    status TEXT DEFAULT 'pending',
+                    tindak_lanjut TEXT
+                )
+            `);
+        }
 
         const rows = await queryTurso(`SELECT * FROM ${tabelLaporanAktif} ORDER BY id DESC LIMIT 100`);
         daftarLaporanMasuk = rows || [];
@@ -706,7 +772,7 @@ window.eksekusiCariSiswaBK = function () {
     const filterKelas = String(document.getElementById('cari-kelas-siswa')?.value || '').trim().toUpperCase();
 
     const hasil = semuaPelanggaranBK.filter(r => {
-        const info = ambilInfoSiswa(r.kelas, r.nisn);
+        const info = ambilInfoSiswaByNisn(r.kelas, r.nisn);
         const nama = String(r.nama_siswa || r.nama || info.nama).toLowerCase();
         const kelas = String(r.kelas || info.kelas).toUpperCase();
         const nisn = String(info.nisn).toLowerCase();
@@ -722,7 +788,7 @@ window.eksekusiCariSiswaBK = function () {
     }
 
     tbody.innerHTML = hasil.map(r => {
-        const info = ambilInfoSiswa(r.kelas, r.nisn);
+        const info = ambilInfoSiswaByNisn(r.kelas, r.nisn);
         const waktu = r.waktu_input || r.created_at || r.tanggal || '-';
         const nama = r.nama_siswa || r.nama || info.nama;
         const kelas = r.kelas || info.kelas;
@@ -756,6 +822,7 @@ window.cetakPDFLaporanBK = function () {
 // ==========================================================================
 window.logout = function () {
     sessionStorage.removeItem('smada_bk_siswa_cache');
+    sessionStorage.removeItem('smada_bk_siswa_cache_v2');
     localStorage.removeItem('smada_token');
     localStorage.removeItem('smada_user');
     localStorage.removeItem('smada_role');
