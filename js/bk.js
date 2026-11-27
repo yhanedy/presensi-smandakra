@@ -1,9 +1,8 @@
     <script>
     /* ==========================================================================
        SMAN 2 KARANGANYAR - PORTAL BK & STP2K (PRODUCTION READY)
+       - Explicit NISN First-Column Binding + Console SQL Inspector
        - 100% Split Read (Supabase Priority + Turso Fallback) & Turso Write
-       - Validasi Ketat NISN & Anti-Duplikasi Kolom INSERT
-       - Schema Cache (PRAGMA table_info hanya dipanggil 1x per sesi)
        ========================================================================== */
     let daftarSiswaBK = [];
     let daftarKelasBK = [];
@@ -82,7 +81,6 @@
         return "'" + String(str ?? '').replace(/'/g, "''") + "'";
     }
 
-    // Helper Split-Read: Prioritaskan Supabase jika tersedia, fallback ke Turso
     async function bacaDataDB(sql) {
         if (typeof querySupabase === 'function') {
             try {
@@ -95,7 +93,6 @@
         return await queryTurso(sql);
     }
 
-    // Ambil daftar kolom tabel kedisiplinan melalui bacaDataDB + cache memori
     async function getKolomKedisiplinan() {
         if (Array.isArray(skemaKedisiplinanCache) && skemaKedisiplinanCache.length > 0) {
             return skemaKedisiplinanCache;
@@ -231,7 +228,7 @@
     }
 
     // ==========================================================================
-    // 1. SIMPAN CATATAN KEDISIPLINAN / PELANGGARAN
+    // 1. SIMPAN CATATAN KEDISIPLINAN / PELANGGARAN (HARDCODE NISN DI DEPAN)
     // ==========================================================================
     window.simpanPelanggaranBK = async function () {
         const elKelas = document.getElementById('pelanggaran-kelas');
@@ -281,23 +278,22 @@
                 created_at: waktuLengkap
             };
 
-            const colNames = [];
-            const colVals = [];
+            // 1. PAKSA NISN MASUK PALING AWAL
+            const colNames = ['nisn'];
+            const colVals = [escapeSqlStr(siswa.nisn)];
 
+            // 2. MASUKKAN KOLOM LAINNYA (KECUALI NISN)
             for (const [k, v] of Object.entries(kandidat)) {
+                if (k === 'nisn') continue;
                 if (cols.length === 0 || cols.includes(k)) {
-                    if (k === 'nisn' && (!v || v === '-')) continue;
                     colNames.push(k);
                     colVals.push(v === null || v === undefined ? 'NULL' : escapeSqlStr(v));
                 }
             }
 
-            if (!colNames.includes('nisn')) {
-                colNames.unshift('nisn');
-                colVals.unshift(escapeSqlStr(siswa.nisn));
-            }
-
             const sql = `INSERT INTO kedisiplinan (${colNames.join(', ')}) VALUES (${colVals.join(', ')})`;
+            console.log("QUERY INSERT:", sql);
+
             await queryTurso(sql);
 
             alert(`Catatan kedisiplinan untuk ${siswa.nama} (${siswa.kelas}) berhasil disimpan!`);
