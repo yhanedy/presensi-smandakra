@@ -1,13 +1,11 @@
 /* ==========================================================================
    SMAN 2 KARANGANYAR - PORTAL BIMBINGAN KONSELING & STP2K (js/bk.js)
-   - Deteksi Dropdown Siswa Berbasis Kartu/Container (Anti Salah ID)
-   - Perbaikan Otomatis Header Responsif Mobile HP
-   - Dynamic Schema Insert (Anti Gagal Kolom DB)
    ========================================================================== */
 
 let daftarSiswaBK = [];
 let daftarKelasBK = [];
 let kolomTabelCache = {};
+let riwayatPelanggaranCache = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     perbaikiTampilanHeaderMobile();
@@ -27,22 +25,19 @@ function perbaikiTampilanHeaderMobile() {
     style.id = 'bk-mobile-fix-style';
     style.textContent = `
         @media (max-width: 640px) {
-            header, nav, .navbar, .topbar, header > div {
+            header, nav, .navbar, .topbar, header > div, header div[class*="flex"] {
                 flex-wrap: wrap !important;
-                gap: 8px !important;
-                padding-left: 12px !important;
-                padding-right: 12px !important;
-                overflow-x: hidden !important;
+                gap: 6px !important;
+                max-width: 100vw !important;
+                box-sizing: border-box !important;
             }
             header h1, header h2, .header-title {
                 font-size: 1rem !important;
                 line-height: 1.2 !important;
-                word-break: break-word !important;
             }
-            header button, header a.btn, nav button {
+            header button, header a, nav button {
                 font-size: 11px !important;
-                padding: 6px 10px !important;
-                white-space: nowrap !important;
+                padding: 6px 9px !important;
             }
         }
     `;
@@ -85,6 +80,18 @@ function getWaktuSekarangWIB() {
         second: '2-digit',
         hour12: false
     }).replace(/\./g, ':');
+}
+
+function normalisasiTanggalKeISO(rawDate) {
+    const str = String(rawDate || '').trim();
+    if (!str) return getTanggalHariIniWIB();
+    if (/^\d{4}-\d{2}-\d{2}/.test(str)) return str.slice(0, 10);
+    // Konversi format DD/MM/YYYY (misal 24/11/2026) -> 2026-11-24
+    const m = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (m) {
+        return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    }
+    return getTanggalHariIniWIB();
 }
 
 async function getKolomTabel(namaTabel) {
@@ -140,6 +147,7 @@ async function pastikanTabelKedisiplinan() {
             CREATE TABLE IF NOT EXISTS kedisiplinan (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tanggal TEXT NOT NULL,
+                waktu_input TEXT,
                 nisn TEXT NOT NULL,
                 nama_siswa TEXT,
                 kelas TEXT,
@@ -183,7 +191,6 @@ async function muatDaftarKelasDanSiswaBK() {
             a.localeCompare(b, 'id', { numeric: true })
         );
 
-        // Isi semua <select> yang merupakan dropdown kelas (baik dari ID maupun teks option pertamanya)
         document.querySelectorAll('select').forEach(el => {
             const firstOptText = (el.options[0]?.textContent || '').toLowerCase();
             const isKelasSelect = el.id.toLowerCase().includes('kelas') || firstOptText.includes('pilih kelas');
@@ -204,11 +211,7 @@ async function muatDaftarKelasDanSiswaBK() {
     }
 }
 
-// ==========================================================================
-// DETEKSI OTOMATIS PASANGAN DROPDOWN KELAS -> SISWA DI SETIAP FORM/KARTU
-// ==========================================================================
 function cariDropdownSiswaPasangan(elKelas) {
-    // 1. Coba tebak dari pola ID (misal pelanggaran-kelas -> pelanggaran-siswa)
     if (elKelas.id) {
         const guessId = elKelas.id.replace(/kelas/i, 'siswa');
         if (guessId !== elKelas.id) {
@@ -217,7 +220,6 @@ function cariDropdownSiswaPasangan(elKelas) {
         }
     }
 
-    // 2. Cari <select> berikutnya di dalam wadah/kartu terdekat yang mengandung "Siswa" atau "Pilih Kelas Dahulu"
     let parent = elKelas.parentElement;
     for (let depth = 0; depth < 4 && parent; depth++) {
         const selects = Array.from(parent.querySelectorAll('select'));
@@ -266,14 +268,11 @@ function pasangEventDropdownOtomatis() {
                 isiDropdownSiswaKeElemen(elKelas.value, elSiswaTarget);
             };
             elKelas.addEventListener('change', handler);
-
-            // Jika sudah ada kelas terpilih saat halaman dimuat
             if (elKelas.value) handler();
         }
     });
 }
 
-// Fungsi global cadangan jika bk.html memakai inline onchange="..."
 window.pilihKelasBK = function (kelas) {
     const activeEl = document.activeElement;
     if (activeEl && activeEl.tagName === 'SELECT') {
@@ -295,13 +294,14 @@ function ambilPasanganSelectDariTombol(triggerEl, fallbackKelasId, fallbackSiswa
     }
 
     if (container && container.querySelectorAll('select').length >= 2) {
-        const selects = container.querySelectorAll('select');
-        return { elKelas: selects[0], elSiswa: selects[1], container };
+        const selects = Array.from(container.querySelectorAll('select'));
+        return { elKelas: selects[0], elSiswa: selects[1], allSelects: selects, container };
     }
 
     return {
         elKelas: document.getElementById(fallbackKelasId),
         elSiswa: document.getElementById(fallbackSiswaId),
+        allSelects: [],
         container: document
     };
 }
@@ -355,7 +355,13 @@ async function ekstrakDataSiswaTerpilih(kelas, elSiswa) {
 // ==========================================================================
 async function simpanCatatanPelanggaran(e) {
     const trigger = (e && e.currentTarget) || document.activeElement;
-    const { elKelas, elSiswa, container } = ambilPasanganSelectDariTombol(trigger, 'pelanggaran-kelas', 'pelanggaran-siswa');
+    const { elKelas, elSiswa, allSelects, container } = ambilPasanganSelectDariTombol(trigger, 'pelanggaran-kelas', 'pelanggaran-siswa');
+
+    // Ambil input/select Tanggal Kejadian (dropdown ke-3 jika ada, atau input date)
+    const elTanggal = document.getElementById('pelanggaran-tanggal')
+        || document.getElementById('bk-tanggal')
+        || container.querySelector('input[type="date"]')
+        || (allSelects.length >= 3 ? allSelects[2] : null);
 
     const elJenis = document.getElementById('pelanggaran-jenis') || document.getElementById('bk-jenis') || container.querySelector('input[type="text"]');
     const elKet = document.getElementById('pelanggaran-keterangan') || document.getElementById('bk-keterangan') || container.querySelector('textarea');
@@ -363,12 +369,20 @@ async function simpanCatatanPelanggaran(e) {
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
     const rawSiswa = String(elSiswa ? elSiswa.value : '').trim();
+    const rawTanggal = elTanggal ? (elTanggal.value || elTanggal.options?.[elTanggal.selectedIndex]?.text || '') : '';
+    const tanggalKejadian = normalisasiTanggalKeISO(rawTanggal);
+
     const jenis = String(elJenis ? elJenis.value : '').trim() || 'Pelanggaran Tata Tertib';
     const keterangan = String(elKet ? elKet.value : '').trim();
     const poin = parseInt(elPoin ? elPoin.value : '0', 10) || 0;
 
     if (!kelas || !rawSiswa) {
         alert("Silakan pilih Kelas dan Nama Siswa terlebih dahulu!");
+        return;
+    }
+
+    if (!keterangan && !elJenis) {
+        alert("Silakan isi Catatan Pelanggaran terlebih dahulu!");
         return;
     }
 
@@ -381,11 +395,12 @@ async function simpanCatatanPelanggaran(e) {
 
         const userLogin = JSON.parse(localStorage.getItem('smada_user') || '{}');
         const pencatat = userLogin.nama || userLogin.username || 'Guru BK';
-        const tanggalHariIni = getTanggalHariIniWIB();
-        const catatanGabungan = keterangan ? `${jenis}: ${keterangan}` : jenis;
+        const waktuSekarang = getWaktuSekarangWIB();
+        const catatanGabungan = (elJenis && keterangan) ? `${jenis}: ${keterangan}` : (keterangan || jenis);
 
         await insertDinamis('kedisiplinan', {
-            tanggal: tanggalHariIni,
+            tanggal: tanggalKejadian,
+            waktu_input: `${getTanggalHariIniWIB()} ${waktuSekarang}`,
             nisn: nisn,
             nama_siswa: namaSiswa,
             nama: namaSiswa,
@@ -397,7 +412,7 @@ async function simpanCatatanPelanggaran(e) {
             poin: poin,
             dicatat_oleh: pencatat,
             petugas: pencatat,
-            created_at: `${tanggalHariIni} ${getWaktuSekarangWIB()}`
+            created_at: `${tanggalKejadian} ${waktuSekarang}`
         });
 
         alert(`Catatan kedisiplinan untuk ${namaSiswa} (${kelas}) berhasil disimpan!`);
@@ -405,19 +420,23 @@ async function simpanCatatanPelanggaran(e) {
         if (elPoin) elPoin.value = '';
         await muatRiwayatPelanggaranHariIni();
     } catch (err) {
+        console.error("Error simpanCatatanPelanggaran:", err);
         alert("Gagal menyimpan catatan pelanggaran: " + err.message);
     }
 }
+
+// Alias nama fungsi tombol jika bk.html memakai nama fungsi lain
+window.simpanPelanggaran = simpanCatatanPelanggaran;
+window.simpanKedisiplinan = simpanCatatanPelanggaran;
 
 // ==========================================================================
 // 2. SIMPAN STATUS SAKIT / IZIN / ALPA
 // ==========================================================================
 async function simpanStatusKetidakhadiranBK(e) {
     const trigger = (e && e.currentTarget) || document.activeElement;
-    const { elKelas, elSiswa, container } = ambilPasanganSelectDariTombol(trigger, 'absen-kelas', 'absen-siswa');
+    const { elKelas, elSiswa, allSelects, container } = ambilPasanganSelectDariTombol(trigger, 'absen-kelas', 'absen-siswa');
 
-    const selects = container.querySelectorAll('select');
-    const elStatus = document.getElementById('absen-status') || (selects.length >= 3 ? selects[2] : null);
+    const elStatus = document.getElementById('absen-status') || (allSelects.length >= 3 ? allSelects[2] : null);
     const elKet = document.getElementById('absen-keterangan') || container.querySelector('textarea, input[type="text"]');
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
@@ -472,6 +491,9 @@ async function simpanStatusKetidakhadiranBK(e) {
         alert("Gagal menyimpan status kehadiran: " + err.message);
     }
 }
+
+window.simpanKetidakhadiran = simpanStatusKetidakhadiranBK;
+window.simpanAbsenBK = simpanStatusKetidakhadiranBK;
 
 // ==========================================================================
 // 3. PULANG MENDAHULUI (IZIN PULANG)
@@ -537,44 +559,69 @@ async function simpanPulangMendahului(e) {
 }
 
 // ==========================================================================
-// 4. RIWAYAT PELANGGARAN HARI INI & PENCARIAN SISWA
+// 4. RIWAYAT PELANGGARAN (RENDER KE TABEL <tbody> MAUPUN CONTAINER DIV)
 // ==========================================================================
 async function muatRiwayatPelanggaranHariIni() {
-    const container = document.getElementById('list-riwayat-pelanggaran') || document.getElementById('tabel-riwayat-bk');
-    if (!container) return;
+    const tbody = document.querySelector('table tbody');
+    const containerDiv = document.getElementById('list-riwayat-pelanggaran') || document.getElementById('tabel-riwayat-bk');
 
     try {
-        const tanggal = getTanggalHariIniWIB();
-        const rows = await queryTurso(
-            "SELECT * FROM kedisiplinan WHERE tanggal = ? ORDER BY id DESC LIMIT 30",
-            [tanggal]
-        );
+        const rows = await queryTurso("SELECT * FROM kedisiplinan ORDER BY id DESC LIMIT 50");
+        riwayatPelanggaranCache = rows || [];
 
-        if (!rows || rows.length === 0) {
-            container.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Belum ada catatan kedisiplinan hari ini.</p>`;
-            return;
+        // Render ke <tbody> jika ada tabel di bk.html (sesuai screenshot ke-3)
+        if (tbody) {
+            if (!rows || rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-xs text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>`;
+            } else {
+                tbody.innerHTML = rows.map(r => {
+                    const nama = r.nama_siswa || r.nama || '-';
+                    const waktu = r.waktu_input || r.created_at || '-';
+                    const ket = r.catatan_pelanggaran || r.keterangan || r.jenis_pelanggaran || '-';
+                    return `
+                        <tr class="border-b border-slate-100 text-xs hover:bg-slate-50">
+                            <td class="px-3 py-2 whitespace-nowrap">${r.tanggal || '-'}</td>
+                            <td class="px-3 py-2 whitespace-nowrap text-slate-500">${waktu}</td>
+                            <td class="px-3 py-2 whitespace-nowrap font-mono">${r.nisn || '-'}</td>
+                            <td class="px-3 py-2 font-semibold text-slate-800">${nama}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">${r.kelas || '-'}</td>
+                            <td class="px-3 py-2">${ket}</td>
+                            <td class="px-3 py-2 whitespace-nowrap">
+                                <button type="button" onclick="hapusCatatanPelanggaran(${r.id})"
+                                    class="text-rose-600 hover:text-rose-800 px-2 py-1 rounded bg-rose-50 border border-rose-200 text-[11px] font-semibold">
+                                    Hapus
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
         }
 
-        container.innerHTML = rows.map(r => {
-            const nama = r.nama_siswa || r.nama || '-';
-            const jenis = r.jenis_pelanggaran || r.pelanggaran || 'Catatan Kedisiplinan';
-            const ket = r.keterangan || r.catatan_pelanggaran || '-';
-            const oleh = r.dicatat_oleh || r.petugas || 'BK';
-            return `
-                <div class="p-3 bg-rose-50/70 border border-rose-200 rounded-xl flex items-start justify-between gap-3 text-xs">
-                    <div>
-                        <div class="font-bold text-slate-800">${nama} <span class="text-rose-700 font-semibold">(${r.kelas || '-'})</span></div>
-                        <div class="text-rose-800 font-semibold mt-0.5">${jenis}</div>
-                        <div class="text-slate-600 mt-0.5">${ket}</div>
-                        <div class="text-[10px] text-slate-400 mt-1">NISN: ${r.nisn} • Dicatat: ${oleh}</div>
-                    </div>
-                    <button type="button" onclick="hapusCatatanPelanggaran(${r.id})"
-                        class="text-rose-600 hover:text-rose-800 px-2 py-1 rounded bg-white border border-rose-200 text-[11px] font-semibold">
-                        Hapus
-                    </button>
-                </div>
-            `;
-        }).join('');
+        // Render juga ke container div jika ada
+        if (containerDiv && containerDiv !== tbody) {
+            if (!rows || rows.length === 0) {
+                containerDiv.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Belum ada catatan kedisiplinan.</p>`;
+            } else {
+                containerDiv.innerHTML = rows.map(r => {
+                    const nama = r.nama_siswa || r.nama || '-';
+                    const ket = r.catatan_pelanggaran || r.keterangan || r.jenis_pelanggaran || '-';
+                    return `
+                        <div class="p-3 bg-rose-50/70 border border-rose-200 rounded-xl flex items-start justify-between gap-3 text-xs">
+                            <div>
+                                <div class="font-bold text-slate-800">${nama} <span class="text-rose-700 font-semibold">(${r.kelas || '-'})</span></div>
+                                <div class="text-slate-600 mt-0.5">${ket}</div>
+                                <div class="text-[10px] text-slate-400 mt-1">Tanggal: ${r.tanggal} • NISN: ${r.nisn}</div>
+                            </div>
+                            <button type="button" onclick="hapusCatatanPelanggaran(${r.id})"
+                                class="text-rose-600 hover:text-rose-800 px-2 py-1 rounded bg-white border border-rose-200 text-[11px] font-semibold">
+                                Hapus
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
     } catch (err) {
         console.error("Gagal memuat riwayat pelanggaran:", err);
     }
