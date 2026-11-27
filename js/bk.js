@@ -4,7 +4,7 @@
 
 let daftarSiswaBK = [];
 let daftarKelasBK = [];
-let kolomKedisiplinanCache = null;
+let kolomTabelCache = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
     const userSession = cekSesiBK();
@@ -38,7 +38,7 @@ function cekSesiBK() {
 }
 
 function getTanggalHariIniWIB() {
-    return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Jakarta' });
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 }
 
 function getWaktuSekarangWIB() {
@@ -49,6 +49,42 @@ function getWaktuSekarangWIB() {
         second: '2-digit',
         hour12: false
     }).replace(/\./g, ':');
+}
+
+async function getKolomTabel(namaTabel) {
+    if (kolomTabelCache[namaTabel]) return kolomTabelCache[namaTabel];
+    try {
+        const info = await queryTurso(`PRAGMA table_info(${namaTabel})`);
+        const cols = (info || []).map(c => String(c.name || '').toLowerCase()).filter(Boolean);
+        if (cols.length > 0) kolomTabelCache[namaTabel] = cols;
+        return cols;
+    } catch (e) {
+        console.warn(`Gagal baca skema ${namaTabel}:`, e.message);
+        return [];
+    }
+}
+
+async function insertDinamis(namaTabel, kandidatData) {
+    const cols = await getKolomTabel(namaTabel);
+    const kolomInsert = [];
+    const nilaiInsert = [];
+
+    for (const [key, val] of Object.entries(kandidatData)) {
+        if (cols.length === 0 || cols.includes(key.toLowerCase())) {
+            kolomInsert.push(key);
+            nilaiInsert.push(val);
+        }
+    }
+
+    if (kolomInsert.length === 0) {
+        throw new Error(`Tidak ada kolom yang cocok pada tabel ${namaTabel}.`);
+    }
+
+    const placeholders = kolomInsert.map(() => '?').join(', ');
+    await queryTurso(
+        `INSERT INTO ${namaTabel} (${kolomInsert.join(', ')}) VALUES (${placeholders})`,
+        nilaiInsert
+    );
 }
 
 async function inisialisasiPortalBK() {
@@ -69,17 +105,18 @@ async function pastikanTabelKedisiplinan() {
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 tanggal TEXT NOT NULL,
                 nisn TEXT NOT NULL,
-                nama_siswa TEXT NOT NULL,
-                kelas TEXT NOT NULL,
+                nama_siswa TEXT,
+                kelas TEXT,
                 jenis_pelanggaran TEXT,
+                catatan_pelanggaran TEXT,
                 keterangan TEXT,
                 poin INTEGER DEFAULT 0,
                 dicatat_oleh TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             )
         `);
-        const info = await queryTurso("PRAGMA table_info(kedisiplinan)");
-        kolomKedisiplinanCache = (info || []).map(col => String(col.name || '').toLowerCase());
+        await getKolomTabel('kedisiplinan');
+        await getKolomTabel('presensi');
     } catch (e) {
         console.warn("Cek struktur tabel kedisiplinan:", e.message);
     }
@@ -87,23 +124,33 @@ async function pastikanTabelKedisiplinan() {
 
 async function muatDaftarKelasDanSiswaBK() {
     try {
-        const rows = await queryTurso(
-            "SELECT nisn, nama, kelas FROM siswa WHERE UPPER(COALESCE(status_siswa, 'AKTIF')) = 'AKTIF' ORDER BY kelas ASC, nama ASC"
-        );
-        daftarSiswaBK = (rows || []).map(r => ({
-            nisn: String(r.nisn || '').trim(),
-            nama: String(r.nama || '').trim(),
-            kelas: String(r.kelas || '').trim()
-        })).filter(s => s.nisn && s.nama && s.kelas);
+        const cached = sessionStorage.getItem('smada_bk_siswa_cache');
+        let rows = cached ? JSON.parse(cached) : null;
+
+        if (!Array.isArray(rows) || rows.length === 0) {
+            // Query bersih tanpa WHERE kompleks agar dialihkan ke Supabase Read Replica oleh Worker
+            rows = await queryTurso("SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC");
+            if (Array.isArray(rows) && rows.length > 0) {
+                sessionStorage.setItem('smada_bk_siswa_cache', JSON.stringify(rows));
+            }
+        }
+
+        daftarSiswaBK = (rows || [])
+            .filter(r => !r.status_siswa || String(r.status_siswa).toUpperCase() === 'AKTIF')
+            .map(r => ({
+                nisn: String(r.nisn || '').trim(),
+                nama: String(r.nama || '').trim(),
+                kelas: String(r.kelas || '').trim()
+            }))
+            .filter(s => s.nisn && s.nama && s.kelas);
 
         daftarKelasBK = [...new Set(daftarSiswaBK.map(s => s.kelas))].sort((a, b) =>
             a.localeCompare(b, 'id', { numeric: true })
         );
 
-        isiDropdownKelas('pelanggaran-kelas');
-        isiDropdownKelas('bk-kelas');
-        isiDropdownKelas('absen-kelas');
-        isiDropdownKelas('pulang-kelas');
+        document.querySelectorAll('select[id*="kelas"]').forEach(el => {
+            isiDropdownKelas(el.id);
+        });
     } catch (err) {
         console.error("Gagal memuat data siswa BK:", err);
     }
@@ -123,16 +170,27 @@ function isiDropdownKelas(elementId) {
 }
 
 function isiDropdownSiswaBerdasarkanKelas(kelas, targetSelectId) {
-    const elSiswa = document.getElementById(targetSelectId);
+    const targetKelas = String(kelas || '').trim().toUpperCase();
+
+    let elSiswa = targetSelectId ? document.getElementById(targetSelectId) : null;
+    if (!elSiswa) {
+        elSiswa = document.getElementById('pelanggaran-siswa')
+               || document.getElementById('bk-siswa')
+               || document.getElementById('siswa-select')
+               || document.querySelector('select[id*="siswa"]');
+    }
     if (!elSiswa) return;
 
-    if (!kelas) {
+    if (!targetKelas) {
         elSiswa.innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
         return;
     }
 
-    const siswaKelas = daftarSiswaBK.filter(s => s.kelas === kelas);
-    elSiswa.innerHTML = '<option value="">-- Pilih Nama Siswa --</option>';
+    const siswaKelas = daftarSiswaBK.filter(
+        s => String(s.kelas || '').trim().toUpperCase() === targetKelas
+    );
+
+    elSiswa.innerHTML = `<option value="">-- Pilih Nama Siswa (${siswaKelas.length} siswa) --</option>`;
 
     siswaKelas.forEach(s => {
         const opt = document.createElement('option');
@@ -144,20 +202,17 @@ function isiDropdownSiswaBerdasarkanKelas(kelas, targetSelectId) {
     });
 }
 
-function pasangEventDropdownBK() {
-    const pasangan = [
-        ['pelanggaran-kelas', 'pelanggaran-siswa'],
-        ['bk-kelas', 'bk-siswa'],
-        ['absen-kelas', 'absen-siswa'],
-        ['pulang-kelas', 'pulang-siswa']
-    ];
+window.pilihKelasBK = (kelas) => isiDropdownSiswaBerdasarkanKelas(kelas, 'pelanggaran-siswa');
+window.loadSiswaByKelas = (kelas, targetId) => isiDropdownSiswaBerdasarkanKelas(kelas, targetId);
 
-    pasangan.forEach(([kelasId, siswaId]) => {
-        const elKelas = document.getElementById(kelasId);
-        if (elKelas) {
-            elKelas.addEventListener('change', () => {
-                isiDropdownSiswaBerdasarkanKelas(elKelas.value.trim(), siswaId);
-            });
+function pasangEventDropdownBK() {
+    document.querySelectorAll('select[id*="kelas"]').forEach(elKelas => {
+        const guessSiswaId = elKelas.id.replace(/kelas/i, 'siswa');
+        elKelas.addEventListener('change', () => {
+            isiDropdownSiswaBerdasarkanKelas(elKelas.value, guessSiswaId);
+        });
+        if (elKelas.value) {
+            isiDropdownSiswaBerdasarkanKelas(elKelas.value, guessSiswaId);
         }
     });
 }
@@ -181,11 +236,10 @@ async function ekstrakDataSiswaTerpilih(kelas, elSiswa) {
         }
     }
 
-    // Fallback ke cache daftarSiswaBK
     if (!nisn && (namaSiswa || rawVal)) {
         const targetNama = (namaSiswa || rawVal).toLowerCase();
         const cocokCache = daftarSiswaBK.find(
-            s => s.kelas === kelas && s.nama.toLowerCase() === targetNama
+            s => s.kelas.toUpperCase() === kelas.toUpperCase() && s.nama.toLowerCase() === targetNama
         );
         if (cocokCache) {
             nisn = cocokCache.nisn;
@@ -193,7 +247,6 @@ async function ekstrakDataSiswaTerpilih(kelas, elSiswa) {
         }
     }
 
-    // Fallback terakhir langsung ke database Turso
     if (!nisn && (namaSiswa || rawVal)) {
         const rows = await queryTurso(
             "SELECT nisn, nama FROM siswa WHERE TRIM(kelas) = ? AND LOWER(TRIM(nama)) LIKE LOWER(?) LIMIT 1",
@@ -212,8 +265,8 @@ async function ekstrakDataSiswaTerpilih(kelas, elSiswa) {
 // 1. SIMPAN CATATAN KEDISIPLINAN / PELANGGARAN
 // ==========================================================================
 async function simpanCatatanPelanggaran() {
-    const elKelas = document.getElementById('pelanggaran-kelas') || document.getElementById('bk-kelas');
-    const elSiswa = document.getElementById('pelanggaran-siswa') || document.getElementById('bk-siswa');
+    const elKelas = document.getElementById('pelanggaran-kelas') || document.getElementById('bk-kelas') || document.querySelector('select[id*="kelas"]');
+    const elSiswa = document.getElementById('pelanggaran-siswa') || document.getElementById('bk-siswa') || document.querySelector('select[id*="siswa"]');
     const elJenis = document.getElementById('pelanggaran-jenis') || document.getElementById('bk-jenis');
     const elKet = document.getElementById('pelanggaran-keterangan') || document.getElementById('bk-keterangan');
     const elPoin = document.getElementById('pelanggaran-poin') || document.getElementById('bk-poin');
@@ -231,7 +284,6 @@ async function simpanCatatanPelanggaran() {
 
     try {
         const { nisn, namaSiswa } = await ekstrakDataSiswaTerpilih(kelas, elSiswa);
-
         if (!nisn) {
             alert(`Gagal menyimpan: NISN untuk siswa "${namaSiswa || rawSiswa}" di kelas ${kelas} tidak ditemukan.`);
             return;
@@ -240,54 +292,23 @@ async function simpanCatatanPelanggaran() {
         const userLogin = JSON.parse(localStorage.getItem('smada_user') || '{}');
         const pencatat = userLogin.nama || userLogin.username || 'Guru BK';
         const tanggalHariIni = getTanggalHariIniWIB();
+        const catatanGabungan = keterangan ? `${jenis}: ${keterangan}` : jenis;
 
-        if (!kolomKedisiplinanCache) {
-            await pastikanTabelKedisiplinan();
-        }
-
-        const cols = kolomKedisiplinanCache || [];
-        const kolomInsert = ['tanggal', 'nisn', 'kelas'];
-        const nilaiInsert = [tanggalHariIni, nisn, kelas];
-
-        if (cols.includes('nama_siswa')) {
-            kolomInsert.push('nama_siswa');
-            nilaiInsert.push(namaSiswa);
-        } else if (cols.includes('nama')) {
-            kolomInsert.push('nama');
-            nilaiInsert.push(namaSiswa);
-        }
-
-        if (cols.includes('jenis_pelanggaran')) {
-            kolomInsert.push('jenis_pelanggaran');
-            nilaiInsert.push(jenis);
-        } else if (cols.includes('pelanggaran')) {
-            kolomInsert.push('pelanggaran');
-            nilaiInsert.push(jenis);
-        }
-
-        if (cols.includes('keterangan')) {
-            kolomInsert.push('keterangan');
-            nilaiInsert.push(keterangan || jenis);
-        }
-
-        if (cols.includes('poin')) {
-            kolomInsert.push('poin');
-            nilaiInsert.push(poin);
-        }
-
-        if (cols.includes('dicatat_oleh')) {
-            kolomInsert.push('dicatat_oleh');
-            nilaiInsert.push(pencatat);
-        } else if (cols.includes('petugas')) {
-            kolomInsert.push('petugas');
-            nilaiInsert.push(pencatat);
-        }
-
-        const placeholders = kolomInsert.map(() => '?').join(', ');
-        await queryTurso(
-            `INSERT INTO kedisiplinan (${kolomInsert.join(', ')}) VALUES (${placeholders})`,
-            nilaiInsert
-        );
+        await insertDinamis('kedisiplinan', {
+            tanggal: tanggalHariIni,
+            nisn: nisn,
+            nama_siswa: namaSiswa,
+            nama: namaSiswa,
+            kelas: kelas,
+            jenis_pelanggaran: jenis,
+            pelanggaran: jenis,
+            catatan_pelanggaran: catatanGabungan,
+            keterangan: catatanGabungan,
+            poin: poin,
+            dicatat_oleh: pencatat,
+            petugas: pencatat,
+            created_at: `${tanggalHariIni} ${getWaktuSekarangWIB()}`
+        });
 
         alert(`Catatan kedisiplinan untuk ${namaSiswa} (${kelas}) berhasil disimpan!`);
         if (elKet) elKet.value = '';
@@ -309,7 +330,7 @@ async function simpanStatusKetidakhadiranBK() {
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
     const rawSiswa = String(elSiswa ? elSiswa.value : '').trim();
-    const status = String(elStatus ? elStatus.value : '').trim().toUpperCase();
+    const status = String(elStatus ? elStatus.value : '').trim();
     const keterangan = String(elKet ? elKet.value : '').trim();
 
     if (!kelas || !rawSiswa || !status) {
@@ -328,6 +349,7 @@ async function simpanStatusKetidakhadiranBK() {
         const pencatat = userLogin.nama || userLogin.username || 'Guru BK';
         const tanggal = getTanggalHariIniWIB();
         const jam = getWaktuSekarangWIB();
+        const ketLengkap = `${keterangan || status} [Input BK: ${pencatat}]`;
 
         const cek = await queryTurso(
             "SELECT id FROM presensi WHERE tanggal = ? AND nisn = ? LIMIT 1",
@@ -336,14 +358,20 @@ async function simpanStatusKetidakhadiranBK() {
 
         if (cek && cek.length > 0) {
             await queryTurso(
-                "UPDATE presensi SET status = ?, keterangan = ?, petugas = ? WHERE id = ?",
-                [status, keterangan || `Input BK (${pencatat})`, pencatat, cek[0].id]
+                "UPDATE presensi SET status = ?, keterangan = ? WHERE id = ?",
+                [status, ketLengkap, cek[0].id]
             );
         } else {
-            await queryTurso(
-                "INSERT INTO presensi (tanggal, nisn, nama, kelas, jam_masuk, status, keterangan, petugas) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-                [tanggal, nisn, namaSiswa, kelas, jam, status, keterangan || `Input BK (${pencatat})`, pencatat]
-            );
+            await insertDinamis('presensi', {
+                tanggal: tanggal,
+                nisn: nisn,
+                nama: namaSiswa,
+                kelas: kelas,
+                jam_masuk: jam,
+                status: status,
+                keterangan: ketLengkap,
+                petugas: pencatat
+            });
         }
 
         alert(`Status ${status} untuk ${namaSiswa} (${kelas}) berhasil disimpan!`);
@@ -381,13 +409,12 @@ async function simpanPulangMendahului() {
         const pencatat = userLogin.nama || userLogin.username || 'Guru BK';
         const tanggal = getTanggalHariIniWIB();
         const jamPulang = getWaktuSekarangWIB();
+        const ketBaru = `Pulang Mendahului (${jamPulang}): ${alasan} [oleh ${pencatat}]`;
 
         const cek = await queryTurso(
-            "SELECT id, keterangan FROM presensi WHERE tanggal = ? AND nisn = ? LIMIT 1",
+            "SELECT id FROM presensi WHERE tanggal = ? AND nisn = ? LIMIT 1",
             [tanggal, nisn]
         );
-
-        const ketBaru = `Pulang Mendahului (${jamPulang}): ${alasan} - oleh ${pencatat}`;
 
         if (cek && cek.length > 0) {
             await queryTurso(
@@ -395,10 +422,17 @@ async function simpanPulangMendahului() {
                 [jamPulang, ketBaru, cek[0].id]
             );
         } else {
-            await queryTurso(
-                "INSERT INTO presensi (tanggal, nisn, nama, kelas, jam_masuk, jam_pulang, status, keterangan, petugas) VALUES (?, ?, ?, ?, ?, ?, 'IZIN', ?, ?)",
-                [tanggal, nisn, namaSiswa, kelas, jamPulang, jamPulang, ketBaru, pencatat]
-            );
+            await insertDinamis('presensi', {
+                tanggal: tanggal,
+                nisn: nisn,
+                nama: namaSiswa,
+                kelas: kelas,
+                jam_masuk: jamPulang,
+                jam_pulang: jamPulang,
+                status: 'Izin',
+                keterangan: ketBaru,
+                petugas: pencatat
+            });
         }
 
         alert(`Izin pulang mendahului untuk ${namaSiswa} (${kelas}) berhasil dicatat!`);
@@ -432,7 +466,7 @@ async function muatRiwayatPelanggaranHariIni() {
         container.innerHTML = rows.map(r => {
             const nama = r.nama_siswa || r.nama || '-';
             const jenis = r.jenis_pelanggaran || r.pelanggaran || 'Catatan Kedisiplinan';
-            const ket = r.keterangan || '-';
+            const ket = r.keterangan || r.catatan_pelanggaran || '-';
             const oleh = r.dicatat_oleh || r.petugas || 'BK';
             return `
                 <div class="p-3 bg-rose-50/70 border border-rose-200 rounded-xl flex items-start justify-between gap-3 text-xs">
@@ -474,37 +508,33 @@ async function cariRekamJejakSiswaBK(keyword) {
         return;
     }
 
-    try {
-        const siswaList = await queryTurso(
-            "SELECT nisn, nama, kelas FROM siswa WHERE LOWER(nama) LIKE LOWER(?) OR nisn LIKE ? OR LOWER(kelas) LIKE LOWER(?) ORDER BY kelas, nama LIMIT 20",
-            [`%${q}%`, `%${q}%`, `%${q}%`]
-        );
+    const qLower = q.toLowerCase();
+    const siswaList = daftarSiswaBK
+        .filter(s => s.nama.toLowerCase().includes(qLower) || s.nisn.includes(q) || s.kelas.toLowerCase().includes(qLower))
+        .slice(0, 20);
 
-        if (!siswaList || siswaList.length === 0) {
-            hasilEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Siswa tidak ditemukan.</p>';
-            return;
-        }
-
-        hasilEl.innerHTML = siswaList.map(s => `
-            <div class="p-2.5 border border-slate-200 rounded-xl flex items-center justify-between text-xs bg-white">
-                <div>
-                    <div class="font-bold text-slate-800">${s.nama}</div>
-                    <div class="text-[11px] text-slate-500">Kelas ${s.kelas} • NISN: ${s.nisn}</div>
-                </div>
-                <button type="button" onclick="pilihSiswaDariPencarianBK('${s.kelas}', '${s.nisn}')"
-                    class="px-2.5 py-1 bg-rose-700 hover:bg-rose-800 text-white rounded-lg font-semibold text-[11px]">
-                    Pilih
-                </button>
-            </div>
-        `).join('');
-    } catch (err) {
-        hasilEl.innerHTML = `<p class="text-xs text-rose-600 text-center py-3">Error: ${err.message}</p>`;
+    if (siswaList.length === 0) {
+        hasilEl.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Siswa tidak ditemukan.</p>';
+        return;
     }
+
+    hasilEl.innerHTML = siswaList.map(s => `
+        <div class="p-2.5 border border-slate-200 rounded-xl flex items-center justify-between text-xs bg-white">
+            <div>
+                <div class="font-bold text-slate-800">${s.nama}</div>
+                <div class="text-[11px] text-slate-500">Kelas ${s.kelas} • NISN: ${s.nisn}</div>
+            </div>
+            <button type="button" onclick="pilihSiswaDariPencarianBK('${s.kelas}', '${s.nisn}')"
+                class="px-2.5 py-1 bg-rose-700 hover:bg-rose-800 text-white rounded-lg font-semibold text-[11px]">
+                Pilih
+            </button>
+        </div>
+    `).join('');
 }
 
 function pilihSiswaDariPencarianBK(kelas, nisn) {
-    const elKelas = document.getElementById('pelanggaran-kelas') || document.getElementById('bk-kelas');
-    const elSiswa = document.getElementById('pelanggaran-siswa') || document.getElementById('bk-siswa');
+    const elKelas = document.getElementById('pelanggaran-kelas') || document.getElementById('bk-kelas') || document.querySelector('select[id*="kelas"]');
+    const elSiswa = document.getElementById('pelanggaran-siswa') || document.getElementById('bk-siswa') || document.querySelector('select[id*="siswa"]');
 
     if (elKelas) {
         elKelas.value = kelas;
@@ -519,6 +549,7 @@ function pilihSiswaDariPencarianBK(kelas, nisn) {
 }
 
 function logoutBK() {
+    sessionStorage.removeItem('smada_bk_siswa_cache');
     localStorage.removeItem('smada_token');
     localStorage.removeItem('smada_user');
     localStorage.removeItem('smada_role');
