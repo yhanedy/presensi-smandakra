@@ -1,5 +1,8 @@
 /* ==========================================================================
    SMAN 2 KARANGANYAR - PORTAL BIMBINGAN KONSELING & STP2K (js/bk.js)
+   - Deteksi Dropdown Siswa Berbasis Kartu/Container (Anti Salah ID)
+   - Perbaikan Otomatis Header Responsif Mobile HP
+   - Dynamic Schema Insert (Anti Gagal Kolom DB)
    ========================================================================== */
 
 let daftarSiswaBK = [];
@@ -7,11 +10,44 @@ let daftarKelasBK = [];
 let kolomTabelCache = {};
 
 document.addEventListener('DOMContentLoaded', async () => {
+    perbaikiTampilanHeaderMobile();
+
     const userSession = cekSesiBK();
     if (!userSession) return;
 
     await inisialisasiPortalBK();
 });
+
+// ==========================================================================
+// 0. PERBAIKAN TAMPILAN HEADER AGAR TIDAK TERPOTONG DI LAYAR HP
+// ==========================================================================
+function perbaikiTampilanHeaderMobile() {
+    if (document.getElementById('bk-mobile-fix-style')) return;
+    const style = document.createElement('style');
+    style.id = 'bk-mobile-fix-style';
+    style.textContent = `
+        @media (max-width: 640px) {
+            header, nav, .navbar, .topbar, header > div {
+                flex-wrap: wrap !important;
+                gap: 8px !important;
+                padding-left: 12px !important;
+                padding-right: 12px !important;
+                overflow-x: hidden !important;
+            }
+            header h1, header h2, .header-title {
+                font-size: 1rem !important;
+                line-height: 1.2 !important;
+                word-break: break-word !important;
+            }
+            header button, header a.btn, nav button {
+                font-size: 11px !important;
+                padding: 6px 10px !important;
+                white-space: nowrap !important;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+}
 
 function cekSesiBK() {
     const rawUser = localStorage.getItem('smada_user');
@@ -91,7 +127,7 @@ async function inisialisasiPortalBK() {
     try {
         await pastikanTabelKedisiplinan();
         await muatDaftarKelasDanSiswaBK();
-        pasangEventDropdownBK();
+        pasangEventDropdownOtomatis();
         await muatRiwayatPelanggaranHariIni();
     } catch (err) {
         console.error("Gagal inisialisasi Portal BK:", err);
@@ -128,7 +164,6 @@ async function muatDaftarKelasDanSiswaBK() {
         let rows = cached ? JSON.parse(cached) : null;
 
         if (!Array.isArray(rows) || rows.length === 0) {
-            // Query bersih tanpa WHERE kompleks agar dialihkan ke Supabase Read Replica oleh Worker
             rows = await queryTurso("SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC");
             if (Array.isArray(rows) && rows.length > 0) {
                 sessionStorage.setItem('smada_bk_siswa_cache', JSON.stringify(rows));
@@ -148,38 +183,56 @@ async function muatDaftarKelasDanSiswaBK() {
             a.localeCompare(b, 'id', { numeric: true })
         );
 
-        document.querySelectorAll('select[id*="kelas"]').forEach(el => {
-            isiDropdownKelas(el.id);
+        // Isi semua <select> yang merupakan dropdown kelas (baik dari ID maupun teks option pertamanya)
+        document.querySelectorAll('select').forEach(el => {
+            const firstOptText = (el.options[0]?.textContent || '').toLowerCase();
+            const isKelasSelect = el.id.toLowerCase().includes('kelas') || firstOptText.includes('pilih kelas');
+            const isSiswaSelect = el.id.toLowerCase().includes('siswa') || firstOptText.includes('kelas dahulu') || firstOptText.includes('nama siswa');
+
+            if (isKelasSelect && !isSiswaSelect) {
+                el.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+                daftarKelasBK.forEach(kelas => {
+                    const opt = document.createElement('option');
+                    opt.value = kelas;
+                    opt.textContent = kelas;
+                    el.appendChild(opt);
+                });
+            }
         });
     } catch (err) {
         console.error("Gagal memuat data siswa BK:", err);
     }
 }
 
-function isiDropdownKelas(elementId) {
-    const el = document.getElementById(elementId);
-    if (!el) return;
+// ==========================================================================
+// DETEKSI OTOMATIS PASANGAN DROPDOWN KELAS -> SISWA DI SETIAP FORM/KARTU
+// ==========================================================================
+function cariDropdownSiswaPasangan(elKelas) {
+    // 1. Coba tebak dari pola ID (misal pelanggaran-kelas -> pelanggaran-siswa)
+    if (elKelas.id) {
+        const guessId = elKelas.id.replace(/kelas/i, 'siswa');
+        if (guessId !== elKelas.id) {
+            const byId = document.getElementById(guessId);
+            if (byId && byId !== elKelas) return byId;
+        }
+    }
 
-    el.innerHTML = '<option value="">-- Pilih Kelas --</option>';
-    daftarKelasBK.forEach(kelas => {
-        const opt = document.createElement('option');
-        opt.value = kelas;
-        opt.textContent = kelas;
-        el.appendChild(opt);
-    });
+    // 2. Cari <select> berikutnya di dalam wadah/kartu terdekat yang mengandung "Siswa" atau "Pilih Kelas Dahulu"
+    let parent = elKelas.parentElement;
+    for (let depth = 0; depth < 4 && parent; depth++) {
+        const selects = Array.from(parent.querySelectorAll('select'));
+        const idx = selects.indexOf(elKelas);
+        if (idx !== -1 && selects[idx + 1]) {
+            return selects[idx + 1];
+        }
+        parent = parent.parentElement;
+    }
+    return null;
 }
 
-function isiDropdownSiswaBerdasarkanKelas(kelas, targetSelectId) {
-    const targetKelas = String(kelas || '').trim().toUpperCase();
-
-    let elSiswa = targetSelectId ? document.getElementById(targetSelectId) : null;
-    if (!elSiswa) {
-        elSiswa = document.getElementById('pelanggaran-siswa')
-               || document.getElementById('bk-siswa')
-               || document.getElementById('siswa-select')
-               || document.querySelector('select[id*="siswa"]');
-    }
+function isiDropdownSiswaKeElemen(kelas, elSiswa) {
     if (!elSiswa) return;
+    const targetKelas = String(kelas || '').trim().toUpperCase();
 
     if (!targetKelas) {
         elSiswa.innerHTML = '<option value="">-- Pilih Kelas Dahulu --</option>';
@@ -191,7 +244,6 @@ function isiDropdownSiswaBerdasarkanKelas(kelas, targetSelectId) {
     );
 
     elSiswa.innerHTML = `<option value="">-- Pilih Nama Siswa (${siswaKelas.length} siswa) --</option>`;
-
     siswaKelas.forEach(s => {
         const opt = document.createElement('option');
         opt.value = s.nisn;
@@ -202,19 +254,56 @@ function isiDropdownSiswaBerdasarkanKelas(kelas, targetSelectId) {
     });
 }
 
-window.pilihKelasBK = (kelas) => isiDropdownSiswaBerdasarkanKelas(kelas, 'pelanggaran-siswa');
-window.loadSiswaByKelas = (kelas, targetId) => isiDropdownSiswaBerdasarkanKelas(kelas, targetId);
+function pasangEventDropdownOtomatis() {
+    document.querySelectorAll('select').forEach(elKelas => {
+        const firstOptText = (elKelas.options[0]?.textContent || '').toLowerCase();
+        const isKelasSelect = elKelas.id.toLowerCase().includes('kelas') || firstOptText.includes('pilih kelas');
+        const isSiswaSelect = elKelas.id.toLowerCase().includes('siswa') || firstOptText.includes('kelas dahulu');
 
-function pasangEventDropdownBK() {
-    document.querySelectorAll('select[id*="kelas"]').forEach(elKelas => {
-        const guessSiswaId = elKelas.id.replace(/kelas/i, 'siswa');
-        elKelas.addEventListener('change', () => {
-            isiDropdownSiswaBerdasarkanKelas(elKelas.value, guessSiswaId);
-        });
-        if (elKelas.value) {
-            isiDropdownSiswaBerdasarkanKelas(elKelas.value, guessSiswaId);
+        if (isKelasSelect && !isSiswaSelect) {
+            const handler = () => {
+                const elSiswaTarget = cariDropdownSiswaPasangan(elKelas);
+                isiDropdownSiswaKeElemen(elKelas.value, elSiswaTarget);
+            };
+            elKelas.addEventListener('change', handler);
+
+            // Jika sudah ada kelas terpilih saat halaman dimuat
+            if (elKelas.value) handler();
         }
     });
+}
+
+// Fungsi global cadangan jika bk.html memakai inline onchange="..."
+window.pilihKelasBK = function (kelas) {
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl.tagName === 'SELECT') {
+        const target = cariDropdownSiswaPasangan(activeEl);
+        if (target) {
+            isiDropdownSiswaKeElemen(kelas, target);
+            return;
+        }
+    }
+    const fallback = document.getElementById('pelanggaran-siswa') || document.querySelector('select[id*="siswa"]');
+    isiDropdownSiswaKeElemen(kelas, fallback);
+};
+window.loadSiswaByKelas = window.pilihKelasBK;
+
+function ambilPasanganSelectDariTombol(triggerEl, fallbackKelasId, fallbackSiswaId) {
+    let container = triggerEl && triggerEl.closest ? triggerEl.closest('form, section, .card, div') : null;
+    while (container && container.querySelectorAll('select').length < 2 && container.parentElement) {
+        container = container.parentElement;
+    }
+
+    if (container && container.querySelectorAll('select').length >= 2) {
+        const selects = container.querySelectorAll('select');
+        return { elKelas: selects[0], elSiswa: selects[1], container };
+    }
+
+    return {
+        elKelas: document.getElementById(fallbackKelasId),
+        elSiswa: document.getElementById(fallbackSiswaId),
+        container: document
+    };
 }
 
 async function ekstrakDataSiswaTerpilih(kelas, elSiswa) {
@@ -264,12 +353,13 @@ async function ekstrakDataSiswaTerpilih(kelas, elSiswa) {
 // ==========================================================================
 // 1. SIMPAN CATATAN KEDISIPLINAN / PELANGGARAN
 // ==========================================================================
-async function simpanCatatanPelanggaran() {
-    const elKelas = document.getElementById('pelanggaran-kelas') || document.getElementById('bk-kelas') || document.querySelector('select[id*="kelas"]');
-    const elSiswa = document.getElementById('pelanggaran-siswa') || document.getElementById('bk-siswa') || document.querySelector('select[id*="siswa"]');
-    const elJenis = document.getElementById('pelanggaran-jenis') || document.getElementById('bk-jenis');
-    const elKet = document.getElementById('pelanggaran-keterangan') || document.getElementById('bk-keterangan');
-    const elPoin = document.getElementById('pelanggaran-poin') || document.getElementById('bk-poin');
+async function simpanCatatanPelanggaran(e) {
+    const trigger = (e && e.currentTarget) || document.activeElement;
+    const { elKelas, elSiswa, container } = ambilPasanganSelectDariTombol(trigger, 'pelanggaran-kelas', 'pelanggaran-siswa');
+
+    const elJenis = document.getElementById('pelanggaran-jenis') || document.getElementById('bk-jenis') || container.querySelector('input[type="text"]');
+    const elKet = document.getElementById('pelanggaran-keterangan') || document.getElementById('bk-keterangan') || container.querySelector('textarea');
+    const elPoin = document.getElementById('pelanggaran-poin') || document.getElementById('bk-poin') || container.querySelector('input[type="number"]');
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
     const rawSiswa = String(elSiswa ? elSiswa.value : '').trim();
@@ -322,11 +412,13 @@ async function simpanCatatanPelanggaran() {
 // ==========================================================================
 // 2. SIMPAN STATUS SAKIT / IZIN / ALPA
 // ==========================================================================
-async function simpanStatusKetidakhadiranBK() {
-    const elKelas = document.getElementById('absen-kelas');
-    const elSiswa = document.getElementById('absen-siswa');
-    const elStatus = document.getElementById('absen-status');
-    const elKet = document.getElementById('absen-keterangan');
+async function simpanStatusKetidakhadiranBK(e) {
+    const trigger = (e && e.currentTarget) || document.activeElement;
+    const { elKelas, elSiswa, container } = ambilPasanganSelectDariTombol(trigger, 'absen-kelas', 'absen-siswa');
+
+    const selects = container.querySelectorAll('select');
+    const elStatus = document.getElementById('absen-status') || (selects.length >= 3 ? selects[2] : null);
+    const elKet = document.getElementById('absen-keterangan') || container.querySelector('textarea, input[type="text"]');
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
     const rawSiswa = String(elSiswa ? elSiswa.value : '').trim();
@@ -384,10 +476,10 @@ async function simpanStatusKetidakhadiranBK() {
 // ==========================================================================
 // 3. PULANG MENDAHULUI (IZIN PULANG)
 // ==========================================================================
-async function simpanPulangMendahului() {
-    const elKelas = document.getElementById('pulang-kelas');
-    const elSiswa = document.getElementById('pulang-siswa');
-    const elAlasan = document.getElementById('pulang-alasan');
+async function simpanPulangMendahului(e) {
+    const trigger = (e && e.currentTarget) || document.activeElement;
+    const { elKelas, elSiswa, container } = ambilPasanganSelectDariTombol(trigger, 'pulang-kelas', 'pulang-siswa');
+    const elAlasan = document.getElementById('pulang-alasan') || container.querySelector('textarea, input[type="text"]');
 
     const kelas = String(elKelas ? elKelas.value : '').trim();
     const rawSiswa = String(elSiswa ? elSiswa.value : '').trim();
@@ -533,15 +625,16 @@ async function cariRekamJejakSiswaBK(keyword) {
 }
 
 function pilihSiswaDariPencarianBK(kelas, nisn) {
-    const elKelas = document.getElementById('pelanggaran-kelas') || document.getElementById('bk-kelas') || document.querySelector('select[id*="kelas"]');
-    const elSiswa = document.getElementById('pelanggaran-siswa') || document.getElementById('bk-siswa') || document.querySelector('select[id*="siswa"]');
+    const firstKelasSelect = Array.from(document.querySelectorAll('select')).find(el => {
+        const t = (el.options[0]?.textContent || '').toLowerCase();
+        return el.id.toLowerCase().includes('kelas') || t.includes('pilih kelas');
+    });
 
-    if (elKelas) {
-        elKelas.value = kelas;
-        isiDropdownSiswaBerdasarkanKelas(kelas, elSiswa ? elSiswa.id : 'pelanggaran-siswa');
-    }
-    if (elSiswa) {
-        elSiswa.value = nisn;
+    if (firstKelasSelect) {
+        firstKelasSelect.value = kelas;
+        const targetSiswa = cariDropdownSiswaPasangan(firstKelasSelect);
+        isiDropdownSiswaKeElemen(kelas, targetSiswa);
+        if (targetSiswa) targetSiswa.value = nisn;
     }
 
     const modalCari = document.getElementById('modalCariSiswaBK');
