@@ -194,6 +194,88 @@ window.simpanPelanggaranBK = async function () {
         alert("Gagal menyimpan:\n" + err.message);
     }
 };
+// ==========================================================================
+// FUNGSI MEMUAT & MENAMPILKAN TABEL PELANGGARAN
+// ==========================================================================
+async function muatDataPelanggaranDariDB(forceTurso = false) {
+    const tbody = document.getElementById('tabel-pelanggaran-body');
+    if (!tbody) return;
+    
+    try {
+        // Paksa ambil dari Turso (forcePrimary = true) karena Supabase kadang telat sinkron
+        const rows = await queryTurso("SELECT * FROM kedisiplinan ORDER BY id DESC LIMIT 300", [], true);
+        semuaPelanggaranBK = rows || [];
+        renderTabelPelanggaran();
+    } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-red-500">Gagal memuat data: ${escapeHtml(err.message)}</td></tr>`;
+    }
+}
 
+function renderTabelPelanggaran() {
+    const tbody = document.getElementById('tabel-pelanggaran-body');
+    const pageInfo = document.getElementById('page-info-pelanggaran');
+    const btnPrev = document.getElementById('btn-prev-pelanggaran');
+    const btnNext = document.getElementById('btn-next-pelanggaran');
+    if (!tbody) return;
+
+    const totalHalaman = Math.max(1, Math.ceil(semuaPelanggaranBK.length / PER_HALAMAN_PELANGGARAN));
+    if (halamanPelanggaran > totalHalaman) halamanPelanggaran = totalHalaman;
+
+    if (pageInfo) pageInfo.textContent = `Halaman ${halamanPelanggaran} dari ${totalHalaman}`;
+    if (btnPrev) btnPrev.disabled = halamanPelanggaran <= 1;
+    if (btnNext) btnNext.disabled = halamanPelanggaran >= totalHalaman;
+
+    if (semuaPelanggaranBK.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" class="p-4 text-center text-slate-400">Belum ada catatan kedisiplinan tersimpan.</td></tr>`;
+        return;
+    }
+
+    const start = (halamanPelanggaran - 1) * PER_HALAMAN_PELANGGARAN;
+    const slice = semuaPelanggaranBK.slice(start, start + PER_HALAMAN_PELANGGARAN);
+
+    tbody.innerHTML = slice.map(r => {
+        const info = siswaMapByNisn[r.nisn] || { nisn: r.nisn, nama: r.nama_siswa || r.nama || '-', kelas: r.kelas || '-' };
+        const tanggal = r.tanggal || '-';
+        const waktu = r.waktu_input || '-';
+        const catatan = r.catatan_pelanggaran || r.keterangan || '-';
+        const penanganan = r.tindak_lanjut || r.penanganan || '-';
+        const oleh = r.diinput_oleh || r.dicatat_oleh || 'BK';
+
+        return `
+            <tr class="hover:bg-slate-50 border-b border-slate-200">
+                <td class="p-3 whitespace-nowrap">${escapeHtml(tanggal)}</td>
+                <td class="p-3 whitespace-nowrap text-slate-500">${escapeHtml(waktu)}</td>
+                <td class="p-3 whitespace-nowrap font-mono">${escapeHtml(info.nisn)}</td>
+                <td class="p-3 font-bold text-slate-800 whitespace-nowrap">${escapeHtml(info.nama)}</td>
+                <td class="p-3 whitespace-nowrap">${escapeHtml(info.kelas)}</td>
+                <td class="p-3 min-w-[180px]">${escapeHtml(catatan)}</td>
+                <td class="p-3 min-w-[160px] text-blue-900 font-medium">${escapeHtml(penanganan)}</td>
+                <td class="p-3 text-center whitespace-nowrap">${escapeHtml(oleh)}</td>
+                <td class="p-3 text-center whitespace-nowrap space-x-1">
+                    <button onclick="hapusPelanggaranBK(${r.id})" class="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-700 rounded font-bold text-[11px] cursor-pointer">
+                        Hapus
+                    </button>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.hapusPelanggaranBK = async function (id) {
+    if (!confirm("Hapus catatan kedisiplinan ini secara permanen?")) return;
+    try {
+        await queryTurso(`DELETE FROM kedisiplinan WHERE id = ?`, [id], true);
+        await muatDataPelanggaranDariDB(true);
+    } catch (err) {
+        alert("Gagal menghapus catatan:\n" + err.message);
+    }
+};
+
+window.muatPelanggaranBK = function (isNext) {
+    const totalHalaman = Math.max(1, Math.ceil(semuaPelanggaranBK.length / PER_HALAMAN_PELANGGARAN));
+    if (isNext && halamanPelanggaran < totalHalaman) halamanPelanggaran++;
+    else if (!isNext && halamanPelanggaran > 1) halamanPelanggaran--;
+    renderTabelPelanggaran();
+};
 // (Fungsi muatDataPelanggaranDariDB, renderTabelPelanggaran, dll. biarkan sama seperti aslinya)
 // Karena error utamanya sudah diperbaiki, fungsi-fungsi ini akan berjalan normal.
