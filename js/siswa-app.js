@@ -15,6 +15,9 @@ window.onload = function () {
   cekPengumumanKhususSiswa();
 };
 
+/* ---------- HELPER UNTUK RAW QUERY ---------- */
+const esc = (str) => "'" + String(str ?? '').replace(/'/g, "''") + "'";
+
 /* ---------- SETTING SEKOLAH (DENGAN CACHE SESI HEMAT KUOTA) ---------- */
 async function muatSettingSekolah() {
   const lim = document.getElementById('siswa-radius-limit');
@@ -23,7 +26,8 @@ async function muatSettingSekolah() {
     let c = cached ? JSON.parse(cached) : null;
 
     if (!c) {
-      const data = await queryTurso('SELECT latitude, longitude, radius_meter FROM setting_sekolah WHERE id = 1 LIMIT 1');
+      // Paksa baca dari Turso (parameter ke-3 true)
+      const data = await queryTurso('SELECT latitude, longitude, radius_meter FROM setting_sekolah WHERE id = 1 LIMIT 1', [], true);
       if (data && data.length) {
         c = data[0];
         sessionStorage.setItem('smada_setting_sekolah', JSON.stringify(c));
@@ -66,7 +70,8 @@ function muatPortalSiswa() {
 async function cekPengumumanKhususSiswa() {
   try {
     const data = await queryTurso(
-      "SELECT id, judul, isi FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = 'siswa' OR LOWER(target_role) = 'semua') ORDER BY id DESC LIMIT 1"
+      "SELECT id, judul, isi FROM pengumuman WHERE is_aktif = 1 AND (LOWER(target_role) = 'siswa' OR LOWER(target_role) = 'semua') ORDER BY id DESC LIMIT 1",
+      [], true
     );
     if (data && data.length) {
       const ann = data[0];
@@ -156,10 +161,9 @@ async function muatPresensiSiswaHariIni() {
   const tgl = getTanggalWIB();
 
   try {
-    const data = await queryTurso(
-      'SELECT jam_masuk, jam_pulang FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 2',
-      [nisnVal, tgl]
-    );
+    const sql = `SELECT jam_masuk, jam_pulang FROM presensi WHERE nisn = ${esc(nisnVal)} AND tanggal = ${esc(tgl)} LIMIT 2`;
+    const data = await queryTurso(sql, [], true); // Paksa baca Turso
+    
     const masuk = data?.find(p => p.jam_masuk && p.jam_masuk !== '-');
     const pulang = data?.find(p => p.jam_pulang && p.jam_pulang !== '-');
 
@@ -197,6 +201,9 @@ async function muatPresensiSiswaHariIni() {
       btnMasuk.disabled = false;
       btnPulang.disabled = true;
       catatan.textContent = "Silakan lakukan presensi masuk.";
+      jamMasuk.textContent = '--:--:--';
+      jamPulang.textContent = '--:--:--';
+      badge.textContent = "Belum Presensi";
     }
   } catch (e) {
     console.error("Gagal muat presensi:", e);
@@ -231,22 +238,17 @@ async function prosesPresensiSiswa(jenis) {
     const tgl = getTanggalWIB();
 
     if (jenis === 'Hadir') {
-      const cek = await queryTurso(
-        'SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
-        [nisnVal, tgl]
-      );
-      if (cek?.length) { alert("Sudah presensi masuk hari ini!"); return; }
+      // Cek Double Entry (Paksa Turso)
+      const cekSql = `SELECT id FROM presensi WHERE nisn = ${esc(nisnVal)} AND tanggal = ${esc(tgl)} AND jam_masuk IS NOT NULL LIMIT 1`;
+      const cek = await queryTurso(cekSql, [], true);
+      if (cek && cek.length > 0) { alert("Sudah presensi masuk hari ini!"); return; }
 
       const status = isTerlambat(jam) ? 'Terlambat' : 'Hadir';
-      await queryTurso(
-        'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (?, ?, ?, ?, ?)',
-        [nisnVal, tgl, jam, status, `Presensi Masuk GPS (${siswaDistanceMeters}m)`]
-      );
+      const insertSql = `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (${esc(nisnVal)}, ${esc(tgl)}, ${esc(jam)}, ${esc(status)}, ${esc(`Presensi Masuk GPS (${siswaDistanceMeters}m)`)} )`;
+      await queryTurso(insertSql, [], true);
     } else {
-      await queryTurso(
-        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ? AND jam_pulang IS NULL',
-        [jam, `Presensi Pulang GPS (${siswaDistanceMeters}m)`, nisnVal, tgl]
-      );
+      const updateSql = `UPDATE presensi SET jam_pulang = ${esc(jam)}, keterangan = ${esc(`Presensi Pulang GPS (${siswaDistanceMeters}m)`)} WHERE nisn = ${esc(nisnVal)} AND tanggal = ${esc(tgl)} AND (jam_pulang IS NULL OR jam_pulang = '-')`;
+      await queryTurso(updateSql, [], true);
     }
 
     alert(`Presensi ${jenis} berhasil!`);
@@ -341,22 +343,16 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
 
   try {
     if (jenis === 'Hadir') {
-      const cek = await queryTurso(
-        'SELECT id FROM presensi WHERE nisn = ? AND tanggal = ? AND jam_masuk IS NOT NULL LIMIT 1',
-        [nisnVal, tgl]
-      );
-      if (cek?.length) { alert("Sudah presensi masuk!"); tutupModalKamera(); return; }
+      const cekSql = `SELECT id FROM presensi WHERE nisn = ${esc(nisnVal)} AND tanggal = ${esc(tgl)} AND jam_masuk IS NOT NULL LIMIT 1`;
+      const cek = await queryTurso(cekSql, [], true);
+      if (cek && cek.length > 0) { alert("Sudah presensi masuk!"); tutupModalKamera(); return; }
 
       const status = isTerlambat(jam) ? 'Terlambat' : 'Hadir';
-      await queryTurso(
-        'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-        [nisnVal, tgl, jam, status, 'Presensi Masuk Kamera (Liveness Valid)', '']
-      );
+      const insertSql = `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (${esc(nisnVal)}, ${esc(tgl)}, ${esc(jam)}, ${esc(status)}, 'Presensi Masuk Kamera (Liveness Valid)', '')`;
+      await queryTurso(insertSql, [], true);
     } else {
-      await queryTurso(
-        'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ? AND jam_pulang IS NULL',
-        [jam, 'Presensi Pulang Kamera (Liveness Valid)', nisnVal, tgl]
-      );
+      const updateSql = `UPDATE presensi SET jam_pulang = ${esc(jam)}, keterangan = 'Presensi Pulang Kamera (Liveness Valid)' WHERE nisn = ${esc(nisnVal)} AND tanggal = ${esc(tgl)} AND (jam_pulang IS NULL OR jam_pulang = '-')`;
+      await queryTurso(updateSql, [], true);
     }
     alert(`Presensi ${jenis} via Kamera Berhasil!`);
     tutupModalKamera();
@@ -367,7 +363,7 @@ async function eksekusiPresensiOtomatisKamera(jenis) {
   }
 }
 
-/* ---------- RIWAYAT (GRAFIK KONTRIBUSI - ZONA WAKTU WIB AKURAT) ---------- */
+/* ---------- RIWAYAT ---------- */
 function formatTanggalWIBFromDate(dateObj) {
   return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(dateObj);
 }
@@ -383,10 +379,8 @@ async function muatRiwayatSiswa() {
     startDate.setDate(today.getDate() - 30);
     const tglMulai = formatTanggalWIBFromDate(startDate);
 
-    const data = await queryTurso(
-      'SELECT tanggal, status, jam_masuk, jam_pulang, keterangan FROM presensi WHERE nisn = ? AND tanggal >= ? ORDER BY tanggal DESC LIMIT 35',
-      [nisnVal, tglMulai]
-    );
+    const sql = `SELECT tanggal, status, jam_masuk, jam_pulang, keterangan FROM presensi WHERE nisn = ${esc(nisnVal)} AND tanggal >= ${esc(tglMulai)} ORDER BY tanggal DESC LIMIT 35`;
+    const data = await queryTurso(sql, [], true);
 
     const dataMap = {};
     if (data && data.length) {
