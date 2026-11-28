@@ -332,14 +332,30 @@ window.muatAntreanIzinSiswa = async function() {
 window.verifikasiPengajuanIzin = async function(idPresensi) {
     const selectEl = document.getElementById(`status-verif-${idPresensi}`);
     const statusBaru = selectEl ? selectEl.value : 'Izin';
+    
     if (!confirm(`Verifikasi pengajuan ini dengan status "${statusBaru}"?`)) return;
 
     const petugas = getPetugasPiketName();
+
     try {
-        await queryTurso(`UPDATE presensi SET status = ${escapeSqlStr(statusBaru)}, keterangan = COALESCE(keterangan, '') || ' [Diverifikasi Piket: ${escapeSqlStr(petugas)}]' WHERE id = ${idPresensi}`, [], true);
+        // 1. Ambil data keterangan yang ada saat ini
+        const currentData = await queryTurso(`SELECT keterangan FROM presensi WHERE id = ${idPresensi}`, [], true);
+        const ketLama = currentData && currentData.length > 0 ? String(currentData[0].keterangan || '') : '';
+        
+        // 2. Gabungkan dengan catatan verifikasi piket (Menggunakan JavaScript, bukan SQL)
+        const ketBaru = ketLama 
+            ? `${ketLama} [Diverifikasi Piket: ${petugas}]` 
+            : `[Diverifikasi Piket: ${petugas}]`;
+
+        // 3. Jalankan UPDATE dengan format string yang sudah diamankan
+        const sql = `UPDATE presensi SET status = ${escapeSqlStr(statusBaru)}, keterangan = ${escapeSqlStr(ketBaru)} WHERE id = ${idPresensi}`;
+        
+        await queryTurso(sql, [], true);
+        
         alert(`Pengajuan izin berhasil diverifikasi menjadi ${statusBaru}!`);
         await Promise.all([muatAntreanIzinSiswa(), muatRekapPiketHarian()]);
     } catch (err) {
+        console.error("Detail Error:", err);
         alert('Gagal memverifikasi pengajuan: ' + err.message);
     }
 };
