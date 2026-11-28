@@ -23,7 +23,7 @@ async function queryTurso(sql, params = []) {
                 'Content-Type': 'application/json',
                 'Authorization': token ? `Bearer ${token}` : ''
             },
-            body: JSON.stringify({ sql: sql, args: params }),
+            body: JSON.stringify({ sql: sql, params: params }),
             signal: controller.signal
         });
 
