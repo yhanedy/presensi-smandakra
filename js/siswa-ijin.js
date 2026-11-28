@@ -57,7 +57,6 @@ function bukaModalIzinDispen() {
   }
 }
 
-// Alias kompatibilitas jika tombol di HTML memakai nama fungsi lain
 const bukaModalIzin = bukaModalIzinDispen;
 const bukaModalPermohonanIzin = bukaModalIzinDispen;
 
@@ -192,11 +191,12 @@ async function kirimPermohonanIzinHarian() {
     if (!driveUrl) return;
 
     const ket = `Izin Harian (1 Hari): ${alasan} - Link: ${driveUrl}`;
-
-    await queryTurso(
-      'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-      [nisnVal, getTanggalWIB(), getJamWIB(), 'Pending Izin', ket, driveUrl]
-    );
+    
+    // RAW QUERY INSERT
+    const esc = (str) => "'" + String(str ?? '').replace(/'/g, "''") + "'";
+    const sql = `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (${esc(nisnVal)}, ${esc(getTanggalWIB())}, ${esc(getJamWIB())}, 'Pending Izin', ${esc(ket)}, ${esc(driveUrl)})`;
+    
+    await queryTurso(sql, [], true);
 
     alert('Permohonan Izin berhasil dikirim ke Guru Piket!');
     tutupModalIzinDispen();
@@ -252,10 +252,11 @@ async function kirimPermohonanDispenDokter() {
 
     const ketLengkap = `${jenisKategori} (${tglMulai} s.d ${tglSelesai}): ${keterangan} - Link: ${driveUrl}`;
 
-    await queryTurso(
-      'INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (?, ?, ?, ?, ?, ?)',
-      [nisnVal, tglMulai, getJamWIB(), 'Pending Izin', ketLengkap, driveUrl]
-    );
+    // RAW QUERY INSERT
+    const esc = (str) => "'" + String(str ?? '').replace(/'/g, "''") + "'";
+    const sql = `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan, foto) VALUES (${esc(nisnVal)}, ${esc(tglMulai)}, ${esc(getJamWIB())}, 'Pending Izin', ${esc(ketLengkap)}, ${esc(driveUrl)})`;
+    
+    await queryTurso(sql, [], true);
 
     alert(`Permohonan ${jenisKategori} berhasil diteruskan ke Guru Piket!`);
     tutupModalIzinDispen();
