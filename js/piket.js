@@ -1,79 +1,27 @@
 /* ==========================================================================
-   SMAN 2 KARANGANYAR - PORTAL GURU PIKET (SPLIT READ/WRITE EDITION)
+   SMAN 2 KARANGANYAR - PORTAL GURU PIKET (FULL FIXED VERSION)
    ========================================================================== */
-
-const PIKET_WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
 
 let allSiswaPiket = [];
 let siswaMapPiket = {};
 
 // ============================================================================
-// FUNGSI API TERPADU (POLA SAMA DENGAN BK.JS & ADMIN.JS)
-// ============================================================================
-async function apiQuery(sql, params = []) {
-    const baseUrl = (typeof WORKER_URL !== 'undefined' ? WORKER_URL : PIKET_WORKER_URL).replace(/\/$/, '');
-    const token = localStorage.getItem('smada_token') || (typeof currentUserSession !== 'undefined' && currentUserSession?.token) || '';
-
-    const response = await fetch(`${baseUrl}/api/query`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-        },
-        body: JSON.stringify({ sql, params })
-    });
-
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok || (data && data.success === false && data.error)) {
-        throw new Error(data.error || `HTTP Error ${response.status}`);
-    }
-
-    if (Array.isArray(data)) return data;
-    if (data.rows && Array.isArray(data.rows)) return data.rows;
-    if (data.results && Array.isArray(data.results)) return data.results;
-    if (data.data && Array.isArray(data.data)) return data.data;
-    return [];
-}
-
-// Alias agar seluruh pemanggilan lama tetap kompatibel
-const execPiketQuery = apiQuery;
-const queryTurso = apiQuery;
-const tursoQuery = apiQuery;
-
-// ============================================================================
-// HELPER WAKTU, SESI PETUGAS & NORMALISASI KELAS
+// HELPER WAKTU & NORMALISASI
 // ============================================================================
 function getTodayWIB() {
-    try {
-        return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
-    } catch (e) {
-        const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
-        return `${wib.getUTCFullYear()}-${String(wib.getUTCMonth() + 1).padStart(2, '0')}-${String(wib.getUTCDate()).padStart(2, '0')}`;
-    }
+    return new Intl.DateTimeFormat('sv-SE', { timeZone: 'Asia/Jakarta' }).format(new Date());
 }
 
 function getNowTimeWIB() {
-    try {
-        return new Intl.DateTimeFormat('en-GB', {
-            timeZone: 'Asia/Jakarta',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        }).format(new Date());
-    } catch (e) {
-        const now = new Date();
-        return `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    }
+    return new Date().toLocaleTimeString('id-ID', {
+        timeZone: 'Asia/Jakarta', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).replace(/\./g, ':');
 }
 
 function getPetugasPiketName() {
-    if (typeof currentUserSession !== 'undefined' && currentUserSession) {
-        return currentUserSession.nama || currentUserSession.username || 'Piket';
-    }
     try {
         const rawUser = localStorage.getItem('smada_user');
-        if (rawUser && rawUser !== 'null' && rawUser !== 'undefined') {
+        if (rawUser && rawUser !== 'null') {
             const u = JSON.parse(rawUser);
             return u.nama || u.username || 'Piket';
         }
@@ -85,24 +33,26 @@ function normalizeKelas(val) {
     return String(val || '').replace(/\s+/g, ' ').trim();
 }
 
+function escapeHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function escapeSqlStr(str) {
+    return "'" + String(str ?? '').replace(/'/g, "''") + "'";
+}
+
 // ============================================================================
 // INISIALISASI HALAMAN PIKET
 // ============================================================================
 async function initHalamanPiket() {
-    const nameEl = document.getElementById('display-piket-name') || document.getElementById('display-user-name');
-    if (nameEl) nameEl.textContent = getPetugasPiketName();
-
     const filterTanggal = document.getElementById('filter-piket-tanggal');
     if (filterTanggal && !filterTanggal.value) {
         filterTanggal.value = getTodayWIB();
     }
 
     await muatDaftarKelasPiket();
-
-    await Promise.all([
-        muatRekapPiketHarian(),
-        muatAntreanIzinSiswa()
-    ]);
+    await muatRekapPiketHarian();
+    await muatAntreanIzinSiswa();
 }
 
 if (document.readyState === 'loading') {
@@ -112,36 +62,26 @@ if (document.readyState === 'loading') {
 }
 
 // ============================================================================
-// 1. MEMUAT DATA MASTER SISWA & DROPDOWN KELAS (DENGAN FALLBACK QUERY)
+// 1. MEMUAT DATA MASTER SISWA & DROPDOWN KELAS
 // ============================================================================
 async function muatDaftarKelasPiket() {
     const kelasSelectIds = ['piket-masuk-kelas', 'piket-sakit-kelas', 'pulang-kelas'];
     try {
-        const rows = await apiQuery('SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC', []);
+        // Ambil data langsung dari Turso (forcePrimary)
+        const rows = await queryTurso('SELECT nisn, nama, kelas FROM siswa ORDER BY kelas ASC, nama ASC', [], true);
+        
         allSiswaPiket = (Array.isArray(rows) ? rows : []).map(s => ({
-            ...s,
             nisn: String(s.nisn || '').trim(),
             nama: String(s.nama || '').trim(),
             kelas: normalizeKelas(s.kelas)
-        }));
+        })).filter(s => s.nisn && s.nama && s.kelas);
 
         siswaMapPiket = {};
-        allSiswaPiket.forEach(s => {
-            siswaMapPiket[s.nisn] = s;
-        });
+        allSiswaPiket.forEach(s => { siswaMapPiket[s.nisn] = s; });
 
-        let daftarKelas = [...new Set(allSiswaPiket.map(s => s.kelas).filter(Boolean))].sort((a, b) =>
+        let daftarKelas = [...new Set(allSiswaPiket.map(s => s.kelas))].sort((a, b) =>
             a.localeCompare(b, 'id', { numeric: true })
         );
-
-        // Fallback jika SELECT siswa belum mengembalikan kelas (sama seperti bk.js)
-        if (daftarKelas.length === 0) {
-            const kelasRows = await apiQuery('SELECT DISTINCT kelas FROM siswa ORDER BY kelas ASC', []);
-            daftarKelas = (Array.isArray(kelasRows) ? kelasRows : [])
-                .map(k => normalizeKelas(k.kelas))
-                .filter(Boolean)
-                .sort((a, b) => a.localeCompare(b, 'id', { numeric: true }));
-        }
 
         const optionsHtml = '<option value="">-- Pilih Kelas --</option>' +
             daftarKelas.map(k => `<option value="${k}">${k}</option>`).join('');
@@ -152,14 +92,10 @@ async function muatDaftarKelasPiket() {
         });
     } catch (err) {
         console.error('Gagal memuat daftar kelas piket:', err);
-        kelasSelectIds.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.innerHTML = `<option value="">Gagal memuat kelas</option>`;
-        });
     }
 }
 
-async function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
+window.muatSiswaBerdasarkanKelas = async function(kelasSelectId, siswaSelectId) {
     const kelasEl = document.getElementById(kelasSelectId);
     const siswaEl = document.getElementById(siswaSelectId);
     if (!kelasEl || !siswaEl) return;
@@ -170,26 +106,10 @@ async function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
         return;
     }
 
-    let siswaKelas = allSiswaPiket.filter(s => s.kelas === kelasDipilih);
-
-    // Fallback langsung ke database jika cache memori kosong (sama seperti bk.js)
-    if (siswaKelas.length === 0) {
-        siswaEl.innerHTML = '<option value="">Memuat siswa...</option>';
-        try {
-            const rows = await apiQuery('SELECT nisn, nama, kelas FROM siswa WHERE kelas = ? ORDER BY nama ASC', [kelasDipilih]);
-            siswaKelas = (Array.isArray(rows) ? rows : []).map(s => ({
-                nisn: String(s.nisn || '').trim(),
-                nama: String(s.nama || '').trim(),
-                kelas: normalizeKelas(s.kelas)
-            }));
-            siswaKelas.forEach(s => { siswaMapPiket[s.nisn] = s; });
-        } catch (err) {
-            console.error('Gagal memuat siswa kelas:', err);
-        }
-    }
+    const siswaKelas = allSiswaPiket.filter(s => s.kelas === kelasDipilih);
 
     if (siswaKelas.length === 0) {
-        siswaEl.innerHTML = '<option value="">-- Tidak ada siswa di kelas ini --</option>';
+        siswaEl.innerHTML = '<option value="">-- Tidak ada siswa --</option>';
         return;
     }
 
@@ -200,20 +120,13 @@ async function muatSiswaBerdasarkanKelas(kelasSelectId, siswaSelectId) {
 // ============================================================================
 // 2. SIMPAN PRESENSI SUSULAN & PULANG MENDAHULUI
 // ============================================================================
-async function simpanPresensiPiket(status) {
+window.simpanPresensiPiket = async function(status) {
     const isPulangMendahului = status === 'Pulang Mendahului';
     const nisn = String(document.getElementById(isPulangMendahului ? 'pulang-nisn' : 'piket-masuk-nisn')?.value || '').trim();
     const ketRaw = document.getElementById(isPulangMendahului ? 'pulang-alasan' : 'piket-masuk-ket')?.value.trim() || '';
 
-    if (!nisn) {
-        alert('Silakan pilih kelas dan nama siswa terlebih dahulu!');
-        return;
-    }
-
-    if (isPulangMendahului && !ketRaw) {
-        alert('Alasan pulang mendahului wajib diisi!');
-        return;
-    }
+    if (!nisn) { alert('Silakan pilih kelas dan nama siswa terlebih dahulu!'); return; }
+    if (isPulangMendahului && !ketRaw) { alert('Alasan pulang mendahului wajib diisi!'); return; }
 
     const tanggal = getTodayWIB();
     const jamSekarang = getNowTimeWIB();
@@ -221,240 +134,178 @@ async function simpanPresensiPiket(status) {
 
     try {
         if (isPulangMendahului) {
-            const existing = await apiQuery(
-                'SELECT id, jam_masuk FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 1',
-                [nisn, tanggal]
-            );
             const ketFinal = `[Piket: ${petugas}] Pulang Mendahului: ${ketRaw}`;
+            const existing = await queryTurso(`SELECT id FROM presensi WHERE nisn = ${escapeSqlStr(nisn)} AND tanggal = ${escapeSqlStr(tanggal)} LIMIT 1`, [], true);
 
-            if (existing.length > 0) {
-                await apiQuery(
-                    'UPDATE presensi SET jam_pulang = ?, status = ?, keterangan = ? WHERE nisn = ? AND tanggal = ?',
-                    [jamSekarang, 'Pulang Mendahului', ketFinal, nisn, tanggal]
-                );
+            if (existing && existing.length > 0) {
+                await queryTurso(`UPDATE presensi SET jam_pulang = ${escapeSqlStr(jamSekarang)}, status = 'Pulang Mendahului', keterangan = ${escapeSqlStr(ketFinal)} WHERE id = ${existing[0].id}`, [], true);
             } else {
-                await apiQuery(
-                    'INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?, ?)',
-                    [nisn, tanggal, '-', jamSekarang, 'Pulang Mendahului', ketFinal]
-                );
+                await queryTurso(`INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (${escapeSqlStr(nisn)}, ${escapeSqlStr(tanggal)}, '-', ${escapeSqlStr(jamSekarang)}, 'Pulang Mendahului', ${escapeSqlStr(ketFinal)})`, [], true);
             }
-            const alasanEl = document.getElementById('pulang-alasan');
-            if (alasanEl) alasanEl.value = '';
+            document.getElementById('pulang-alasan').value = '';
         } else {
-            const ketFinal = ketRaw
-                ? `[Piket: ${petugas}] ${ketRaw}`
-                : `[Piket: ${petugas}] Presensi masuk susulan`;
+            const ketFinal = ketRaw ? `[Piket: ${petugas}] ${ketRaw}` : `[Piket: ${petugas}] Presensi masuk susulan`;
+            const existing = await queryTurso(`SELECT id FROM presensi WHERE nisn = ${escapeSqlStr(nisn)} AND tanggal = ${escapeSqlStr(tanggal)} LIMIT 1`, [], true);
 
-            await apiQuery(
-                `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan)
-                 VALUES (?, ?, ?, ?, ?)
-                 ON CONFLICT (nisn, tanggal) DO UPDATE SET
-                 jam_masuk = excluded.jam_masuk,
-                 status = excluded.status,
-                 keterangan = excluded.keterangan`,
-                [nisn, tanggal, jamSekarang, status, ketFinal]
-            );
-            const ketEl = document.getElementById('piket-masuk-ket');
-            if (ketEl) ketEl.value = '';
+            if (existing && existing.length > 0) {
+                await queryTurso(`UPDATE presensi SET jam_masuk = ${escapeSqlStr(jamSekarang)}, status = ${escapeSqlStr(status)}, keterangan = ${escapeSqlStr(ketFinal)} WHERE id = ${existing[0].id}`, [], true);
+            } else {
+                await queryTurso(`INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (${escapeSqlStr(nisn)}, ${escapeSqlStr(tanggal)}, ${escapeSqlStr(jamSekarang)}, ${escapeSqlStr(status)}, ${escapeSqlStr(ketFinal)})`, [], true);
+            }
+            document.getElementById('piket-masuk-ket').value = '';
         }
 
         alert(`Berhasil mencatat ${status} untuk siswa terpilih!`);
         await muatRekapPiketHarian();
     } catch (err) {
-        console.error('Gagal simpan presensi piket:', err);
         alert('Gagal menyimpan data: ' + err.message);
     }
-}
+};
 
-async function simpanPulangSusulanPiket() {
+window.simpanPulangSusulanPiket = async function() {
     const nisn = String(document.getElementById('piket-masuk-nisn')?.value || '').trim();
     const ketRaw = document.getElementById('piket-masuk-ket')?.value.trim() || '';
 
-    if (!nisn) {
-        alert('Silakan pilih kelas dan nama siswa pada kartu Presensi Masuk & Pulang Susulan!');
-        return;
-    }
+    if (!nisn) { alert('Silakan pilih kelas dan nama siswa pada kartu Presensi Masuk & Pulang Susulan!'); return; }
 
     const tanggal = getTodayWIB();
     const jamSekarang = getNowTimeWIB();
     const petugas = getPetugasPiketName();
 
     try {
-        const existing = await apiQuery(
-            'SELECT id, status, keterangan FROM presensi WHERE nisn = ? AND tanggal = ? LIMIT 1',
-            [nisn, tanggal]
-        );
+        const existing = await queryTurso(`SELECT id, keterangan FROM presensi WHERE nisn = ${escapeSqlStr(nisn)} AND tanggal = ${escapeSqlStr(tanggal)} LIMIT 1`, [], true);
+        const catatanPulang = ketRaw ? `[Piket: ${petugas}] Pulang susulan: ${ketRaw}` : `[Piket: ${petugas}] Presensi pulang susulan`;
 
-        const catatanPulang = ketRaw
-            ? `[Piket: ${petugas}] Pulang susulan: ${ketRaw}`
-            : `[Piket: ${petugas}] Presensi pulang susulan`;
-
-        if (existing.length > 0) {
+        if (existing && existing.length > 0) {
             const ketGabung = existing[0].keterangan ? `${existing[0].keterangan} | ${catatanPulang}` : catatanPulang;
-            await apiQuery(
-                'UPDATE presensi SET jam_pulang = ?, keterangan = ? WHERE nisn = ? AND tanggal = ?',
-                [jamSekarang, ketGabung, nisn, tanggal]
-            );
+            await queryTurso(`UPDATE presensi SET jam_pulang = ${escapeSqlStr(jamSekarang)}, keterangan = ${escapeSqlStr(ketGabung)} WHERE id = ${existing[0].id}`, [], true);
         } else {
-            await apiQuery(
-                'INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (?, ?, ?, ?, ?, ?)',
-                [nisn, tanggal, '-', jamSekarang, 'Hadir', catatanPulang]
-            );
+            await queryTurso(`INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (${escapeSqlStr(nisn)}, ${escapeSqlStr(tanggal)}, '-', ${escapeSqlStr(jamSekarang)}, 'Hadir', ${escapeSqlStr(catatanPulang)})`, [], true);
         }
 
-        const ketEl = document.getElementById('piket-masuk-ket');
-        if (ketEl) ketEl.value = '';
+        document.getElementById('piket-masuk-ket').value = '';
         alert('Jam pulang susulan berhasil dicatat!');
         await muatRekapPiketHarian();
     } catch (err) {
-        console.error('Gagal simpan pulang susulan:', err);
         alert('Gagal menyimpan jam pulang susulan: ' + err.message);
     }
-}
+};
 
 // ============================================================================
 // 3. SIMPAN KETIDAKHADIRAN (SAKIT / IZIN / ALPA / DISPENSASI)
 // ============================================================================
-async function simpanKetidakhadiranPiket() {
+window.simpanKetidakhadiranPiket = async function() {
     const nisn = String(document.getElementById('piket-sakit-nisn')?.value || '').trim();
     const status = document.getElementById('piket-sakit-status')?.value || 'Sakit';
     const ketRaw = document.getElementById('piket-sakit-ket')?.value.trim() || '';
 
-    if (!nisn) {
-        alert('Silakan pilih kelas dan nama siswa terlebih dahulu!');
-        return;
-    }
+    if (!nisn) { alert('Silakan pilih kelas dan nama siswa terlebih dahulu!'); return; }
 
     const tanggal = getTodayWIB();
     const petugas = getPetugasPiketName();
-    const ketFinal = ketRaw
-        ? `[Piket: ${petugas}] ${ketRaw}`
-        : `[Piket: ${petugas}] Dicatat ${status} oleh Piket`;
+    const ketFinal = ketRaw ? `[Piket: ${petugas}] ${ketRaw}` : `[Piket: ${petugas}] Dicatat ${status} oleh Piket`;
 
     try {
-        await apiQuery(
-            `INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan)
-             VALUES (?, ?, '-', '-', ?, ?)
-             ON CONFLICT (nisn, tanggal) DO UPDATE SET
-             status = excluded.status,
-             keterangan = excluded.keterangan`,
-            [nisn, tanggal, status, ketFinal]
-        );
+        const existing = await queryTurso(`SELECT id FROM presensi WHERE nisn = ${escapeSqlStr(nisn)} AND tanggal = ${escapeSqlStr(tanggal)} LIMIT 1`, [], true);
 
-        const ketEl = document.getElementById('piket-sakit-ket');
-        if (ketEl) ketEl.value = '';
+        if (existing && existing.length > 0) {
+            await queryTurso(`UPDATE presensi SET jam_masuk = '-', jam_pulang = '-', status = ${escapeSqlStr(status)}, keterangan = ${escapeSqlStr(ketFinal)} WHERE id = ${existing[0].id}`, [], true);
+        } else {
+            await queryTurso(`INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (${escapeSqlStr(nisn)}, ${escapeSqlStr(tanggal)}, '-', '-', ${escapeSqlStr(status)}, ${escapeSqlStr(ketFinal)})`, [], true);
+        }
+
+        document.getElementById('piket-sakit-ket').value = '';
         alert(`Status ${status} berhasil disimpan!`);
         await muatRekapPiketHarian();
     } catch (err) {
-        console.error('Gagal simpan ketidakhadiran:', err);
         alert('Gagal menyimpan ketidakhadiran: ' + err.message);
     }
-}
+};
 
 // ============================================================================
-// 4. MEMUAT REKAP PRESENSI MANUAL & KETIDAKHADIRAN HARIAN
+// 4. MEMUAT REKAP PRESENSI MANUAL HARIAN
 // ============================================================================
-async function muatRekapPiketHarian() {
+window.muatRekapPiketHarian = async function() {
     const tbody = document.getElementById('tabel-piket-rekap-body');
     if (!tbody) return;
 
     const tanggal = document.getElementById('filter-piket-tanggal')?.value || getTodayWIB();
-    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat data...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Memuat data...</td></tr>';
 
     try {
-        const rows = await apiQuery(
-            `SELECT id, nisn, tanggal, jam_masuk, jam_pulang, status, keterangan
-             FROM presensi
-             WHERE tanggal = ?
-               AND (
-                 status IN ('Sakit', 'Izin', 'Alpa', 'Dispensasi', 'Terlambat', 'Pulang Mendahului', 'Pending Izin')
-                 OR COALESCE(keterangan, '') LIKE '%Piket%'
-               )
-             ORDER BY id DESC`,
-            [tanggal]
+        const rows = await queryTurso(
+            `SELECT id, nisn, tanggal, jam_masuk, jam_pulang, status, keterangan FROM presensi 
+             WHERE tanggal = ${escapeSqlStr(tanggal)} 
+             AND (status IN ('Sakit', 'Izin', 'Alpa', 'Dispensasi', 'Terlambat', 'Pulang Mendahului', 'Pending Izin') OR COALESCE(keterangan, '') LIKE '%Piket%') 
+             ORDER BY id DESC`, [], true
         );
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada catatan ketidakhadiran / input piket pada tanggal ${tanggal}.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-400">Belum ada catatan pada tanggal ${tanggal}.</td></tr>`;
             return;
         }
 
         tbody.innerHTML = rows.map(r => {
             const siswa = siswaMapPiket[String(r.nisn).trim()] || {};
-            const namaSiswa = siswa.nama || '-';
-            const kelasSiswa = siswa.kelas || '-';
-            const jamInfo = r.jam_pulang && r.jam_pulang !== '-'
-                ? `${r.tanggal} (${r.jam_masuk || '-'} - ${r.jam_pulang})`
-                : `${r.tanggal} (${r.jam_masuk || '-'})`;
-
+            const jamInfo = r.jam_pulang && r.jam_pulang !== '-' ? `${r.tanggal} (${r.jam_masuk || '-'} - ${r.jam_pulang})` : `${r.tanggal} (${r.jam_masuk || '-'})`;
             let badgeClass = 'bg-slate-100 text-slate-700';
             if (r.status === 'Hadir') badgeClass = 'bg-emerald-100 text-emerald-800';
             else if (r.status === 'Terlambat' || r.status === 'Pulang Mendahului') badgeClass = 'bg-amber-100 text-amber-800';
             else if (r.status === 'Sakit' || r.status === 'Izin' || r.status === 'Dispensasi') badgeClass = 'bg-blue-100 text-blue-800';
             else if (r.status === 'Alpa') badgeClass = 'bg-red-100 text-red-800';
-            else if (r.status === 'Pending Izin') badgeClass = 'bg-purple-100 text-purple-800';
 
             return `
-                <tr class="hover:bg-slate-50">
+                <tr class="hover:bg-slate-50 border-b border-slate-200">
                     <td class="p-3 font-mono text-[11px] whitespace-nowrap">${jamInfo}</td>
                     <td class="p-3 font-mono font-bold text-slate-700">${r.nisn}</td>
-                    <td class="p-3 font-bold text-slate-800">${namaSiswa}</td>
-                    <td class="p-3 text-center font-bold text-blue-900">${kelasSiswa}</td>
-                    <td class="p-3 text-center">
-                        <span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${badgeClass}">${r.status}</span>
-                    </td>
+                    <td class="p-3 font-bold text-slate-800">${siswa.nama || '-'}</td>
+                    <td class="p-3 text-center font-bold text-blue-900">${siswa.kelas || '-'}</td>
+                    <td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full text-[11px] font-bold ${badgeClass}">${r.status}</span></td>
                     <td class="p-3 text-xs text-slate-600">${r.keterangan || '-'}</td>
                 </tr>
             `;
         }).join('');
     } catch (err) {
-        console.error('Gagal memuat rekap piket:', err);
         tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">Gagal memuat data: ${err.message}</td></tr>`;
     }
-}
+};
 
 // ============================================================================
 // 5. ANTREAN VERIFIKASI PENGAJUAN IZIN MANDIRI SISWA
 // ============================================================================
-async function muatAntreanIzinSiswa() {
+window.muatAntreanIzinSiswa = async function() {
     const tbody = document.getElementById('tabel-antrean-izin-body');
     if (!tbody) return;
 
-    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-1"></i> Memuat antrean izin...</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Memuat antrean izin...</td></tr>';
 
     try {
-        const rows = await apiQuery(
-            `SELECT id, nisn, tanggal, jam_masuk, status, keterangan
-             FROM presensi
-             WHERE status = 'Pending Izin' OR LOWER(status) LIKE '%pending%'
-             ORDER BY tanggal DESC, id DESC`,
-            []
+        const rows = await queryTurso(
+            `SELECT id, nisn, tanggal, jam_masuk, status, keterangan FROM presensi 
+             WHERE status = 'Pending Izin' OR LOWER(status) LIKE '%pending%' 
+             ORDER BY tanggal DESC, id DESC`, [], true
         );
 
         if (!rows || rows.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Tidak ada pengajuan izin siswa yang menunggu verifikasi.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="8" class="p-4 text-center text-slate-400">Tidak ada pengajuan izin.</td></tr>';
             return;
         }
 
         tbody.innerHTML = rows.map(r => {
             const siswa = siswaMapPiket[String(r.nisn).trim()] || {};
-            const namaSiswa = siswa.nama || '-';
-            const kelasSiswa = siswa.kelas || '-';
             const ketRaw = String(r.keterangan || '');
-
             const urlMatch = ketRaw.match(/(https?:\/\/[^\s]+)/);
             const linkFotoHtml = urlMatch
-                ? `<a href="${urlMatch[1]}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 px-2.5 py-1 rounded-lg font-bold text-[11px]"><i class="fa-solid fa-image"></i> Lihat Bukti</a>`
-                : '<span class="text-slate-400 italic">Tidak ada lampiran</span>';
-
+                ? `<a href="${urlMatch[1]}" target="_blank" class="bg-indigo-100 text-indigo-800 px-2 py-1 rounded font-bold">Lihat Bukti</a>`
+                : '<span class="text-slate-400 italic">Tidak ada</span>';
             const alasanBersih = ketRaw.replace(/\|?\s*Link:\s*https?:\/\/[^\s]+/gi, '').trim() || '-';
 
             return `
-                <tr class="hover:bg-purple-50/40">
+                <tr class="hover:bg-purple-50/40 border-b border-slate-200">
                     <td class="p-3 font-mono text-[11px] whitespace-nowrap">${r.tanggal}<br><span class="text-slate-400">${r.jam_masuk || '-'}</span></td>
                     <td class="p-3 font-mono font-bold">${r.nisn}</td>
-                    <td class="p-3 font-bold text-slate-800">${namaSiswa}</td>
-                    <td class="p-3 text-center font-bold text-blue-900">${kelasSiswa}</td>
+                    <td class="p-3 font-bold text-slate-800">${siswa.nama || '-'}</td>
+                    <td class="p-3 text-center font-bold text-blue-900">${siswa.kelas || '-'}</td>
                     <td class="p-3 text-xs text-slate-700 max-w-xs">${alasanBersih}</td>
                     <td class="p-3 text-center">${linkFotoHtml}</td>
                     <td class="p-3">
@@ -466,54 +317,37 @@ async function muatAntreanIzinSiswa() {
                         </select>
                     </td>
                     <td class="p-3 text-center">
-                        <button onclick="verifikasiPengajuanIzin(${r.id})" class="bg-purple-700 hover:bg-purple-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow cursor-pointer">
-                            <i class="fa-solid fa-check mr-1"></i> Verifikasi
+                        <button onclick="verifikasiPengajuanIzin(${r.id})" class="bg-purple-700 hover:bg-purple-800 text-white px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer">
+                            Verifikasi
                         </button>
                     </td>
                 </tr>
             `;
         }).join('');
     } catch (err) {
-        console.error('Gagal memuat antrean izin:', err);
         tbody.innerHTML = `<tr><td colspan="8" class="p-4 text-center text-red-500">Gagal memuat antrean: ${err.message}</td></tr>`;
     }
-}
+};
 
-async function verifikasiPengajuanIzin(idPresensi) {
+window.verifikasiPengajuanIzin = async function(idPresensi) {
     const selectEl = document.getElementById(`status-verif-${idPresensi}`);
     const statusBaru = selectEl ? selectEl.value : 'Izin';
-
     if (!confirm(`Verifikasi pengajuan ini dengan status "${statusBaru}"?`)) return;
 
     const petugas = getPetugasPiketName();
-
     try {
-        await apiQuery(
-            `UPDATE presensi
-             SET status = ?,
-                 keterangan = COALESCE(keterangan, '') || ' [Diverifikasi Piket: ' || ? || ']'
-             WHERE id = ?`,
-            [statusBaru, petugas, idPresensi]
-        );
-
+        await queryTurso(`UPDATE presensi SET status = ${escapeSqlStr(statusBaru)}, keterangan = COALESCE(keterangan, '') || ' [Diverifikasi Piket: ${escapeSqlStr(petugas)}]' WHERE id = ${idPresensi}`, [], true);
         alert(`Pengajuan izin berhasil diverifikasi menjadi ${statusBaru}!`);
-        await Promise.all([
-            muatAntreanIzinSiswa(),
-            muatRekapPiketHarian()
-        ]);
+        await Promise.all([muatAntreanIzinSiswa(), muatRekapPiketHarian()]);
     } catch (err) {
-        console.error('Gagal verifikasi izin:', err);
         alert('Gagal memverifikasi pengajuan: ' + err.message);
     }
-}
+};
 
-// ============================================================================
-// 6. LOGOUT
-// ============================================================================
-function logout() {
+window.logout = function () {
     if (!confirm('Keluar dari Pos Pelayanan Guru Piket?')) return;
     localStorage.removeItem('smada_user');
     localStorage.removeItem('smada_token');
     localStorage.removeItem('smada_role');
     window.location.replace('index.html');
-}
+};
