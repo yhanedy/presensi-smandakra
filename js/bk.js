@@ -181,6 +181,7 @@ window.simpanPelanggaranBK = async function () {
 
         const sql = `INSERT INTO kedisiplinan (${validCols.join(', ')}) VALUES (${placeholders})`;
         console.log("QUERY INSERT:", sql, values);
+         console.log("Data yang akan dikirim:", { sql: sql, params: values });
 
         // Gunakan parameterized query yang didukung Worker Anda!
         await queryTurso(sql, values, true);
