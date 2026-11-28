@@ -1,5 +1,5 @@
 /* ==========================================================================
-   SMAN 2 KARANGANYAR - PANEL ADMINISTRATOR (SPLIT READ/WRITE OPTIMIZED)
+   SMAN 2 KARANGANYAR - PANEL ADMINISTRATOR (FULL FIXED VERSION)
    ========================================================================== */
 
 // PROTEKSI HALAMAN ADMIN
@@ -30,19 +30,24 @@
 })();
 
 // ============================================================================
-// FUNGSI API TERPADU (PENGGANTI queryTurso)
+// FUNGSI API TERPADU & HELPER ESCAPE
 // ============================================================================
 const ADMIN_WORKER_URL = 'https://smada-api-gateway.yhanedy.workers.dev';
 
+function escapeSqlStr(str) {
+    return "'" + String(str ?? '').replace(/'/g, "''") + "'";
+}
+
 async function apiQuery(sql, params = []) {
     const token = localStorage.getItem('smada_token');
+    // Pastikan parameter ketiga (forcePrimary) selalu true untuk Admin agar baca/tulis langsung ke Turso
     const response = await fetch(`${ADMIN_WORKER_URL}/api/query`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ sql, params })
+        body: JSON.stringify({ sql, params, forcePrimary: true })
     });
 
     const data = await response.json().catch(() => ({}));
@@ -176,10 +181,8 @@ async function simpanSettingLokasi() {
     if (!lat || !long) { alert("Koordinat GPS Lintang & Bujur wajib diisi!"); return; }
 
     try {
-        await apiQuery(
-            'INSERT INTO setting_sekolah (id, latitude, longitude, radius_meter) VALUES (1, ?, ?, ?) ON CONFLICT(id) DO UPDATE SET latitude = excluded.latitude, longitude = excluded.longitude, radius_meter = excluded.radius_meter',
-            [lat, long, radius]
-        );
+        const sql = `INSERT INTO setting_sekolah (id, latitude, longitude, radius_meter) VALUES (1, ${escapeSqlStr(lat)}, ${escapeSqlStr(long)}, ${radius}) ON CONFLICT(id) DO UPDATE SET latitude = excluded.latitude, longitude = excluded.longitude, radius_meter = excluded.radius_meter`;
+        await apiQuery(sql);
         alert("Pengaturan Lokasi GPS & Radius Berhasil Disimpan!");
     } catch (err) {
         alert("Gagal menyimpan lokasi: " + err.message);
@@ -192,10 +195,8 @@ async function simpanSettingJadwalLengkap() {
     const jamPulangJumat = document.getElementById('jam-pulang-jumat')?.value || '14:00';
 
     try {
-        await apiQuery(
-            'UPDATE setting_sekolah SET jam_masuk = ?, jam_pulang_senin_kamis = ?, jam_pulang_jumat = ? WHERE id = 1',
-            [jamMasuk, jamPulangSK, jamPulangJumat]
-        );
+        const sql = `UPDATE setting_sekolah SET jam_masuk = ${escapeSqlStr(jamMasuk)}, jam_pulang_senin_kamis = ${escapeSqlStr(jamPulangSK)}, jam_pulang_jumat = ${escapeSqlStr(jamPulangJumat)} WHERE id = 1`;
+        await apiQuery(sql);
         alert(`Pengaturan Jadwal Berhasil Disimpan!\nMasuk: ${jamMasuk} | Pulang S-K: ${jamPulangSK} | Jumat: ${jamPulangJumat}`);
     } catch (err) {
         alert("Gagal menyimpan pengaturan jadwal: " + err.message);
@@ -214,10 +215,8 @@ async function batalkanStatusPulangSiswa() {
     if (!confirm(`Batalkan status pulang NISN: ${nisn} untuk hari ini (${today})?`)) return;
 
     try {
-        const updated = await apiQuery(
-            'UPDATE presensi SET jam_pulang = NULL, status = ? WHERE nisn = ? AND tanggal = ?',
-            ['Hadir', nisn, today]
-        );
+        const sql = `UPDATE presensi SET jam_pulang = NULL, status = 'Hadir' WHERE nisn = ${escapeSqlStr(nisn)} AND tanggal = ${escapeSqlStr(today)}`;
+        const updated = await apiQuery(sql);
         if (!updated || updated.length === 0) {
             alert(`Tidak ditemukan data presensi hari ini (${today}) untuk NISN: ${nisn}`);
             return;
@@ -238,10 +237,8 @@ async function tambahSiswaManual() {
     if (!nisn || !nama || !kelas) { alert("NISN, Nama, dan Kelas wajib diisi!"); return; }
 
     try {
-        await apiQuery(
-            'INSERT INTO siswa (nisn, nama, kelas, password, password_hash, password_salt) VALUES (?, ?, ?, ?, NULL, NULL) ON CONFLICT(nisn) DO UPDATE SET nama = excluded.nama, kelas = excluded.kelas, password = excluded.password, password_hash = NULL, password_salt = NULL',
-            [nisn, nama, kelas, pass]
-        );
+        const sql = `INSERT INTO siswa (nisn, nama, kelas, password, password_hash, password_salt) VALUES (${escapeSqlStr(nisn)}, ${escapeSqlStr(nama)}, ${escapeSqlStr(kelas)}, ${escapeSqlStr(pass)}, NULL, NULL) ON CONFLICT(nisn) DO UPDATE SET nama = excluded.nama, kelas = excluded.kelas, password = excluded.password, password_hash = NULL, password_salt = NULL`;
+        await apiQuery(sql);
 
         alert(`Siswa ${nama} (NISN: ${nisn}) berhasil ditambahkan & disinkronkan!`);
         document.getElementById('admin-siswa-nisn').value = '';
@@ -264,7 +261,8 @@ async function tambahUserBaru() {
     if (!username || !nama || !pass) { alert("Semua kolom wajib diisi!"); return; }
 
     try {
-        await apiQuery('INSERT INTO users (username, nama, password, role) VALUES (?, ?, ?, ?)', [username, nama, pass, role]);
+        const sql = `INSERT INTO users (username, nama, password, role) VALUES (${escapeSqlStr(username)}, ${escapeSqlStr(nama)}, ${escapeSqlStr(pass)}, ${escapeSqlStr(role)})`;
+        await apiQuery(sql);
         alert("User petugas baru berhasil ditambahkan!");
         document.getElementById('admin-new-username').value = '';
         document.getElementById('admin-new-nama').value = '';
@@ -343,12 +341,11 @@ async function muatDaftarSiswa(page = 1, keyword = '') {
 
     try {
         let countSql = 'SELECT COUNT(*) as total FROM siswa';
-        let countParams = [];
         if (keyword) {
-            countSql += ' WHERE LOWER(nama) LIKE LOWER(?) OR nisn LIKE ? OR LOWER(kelas) LIKE LOWER(?)';
-            countParams = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
+            const escKw = escapeSqlStr(`%${keyword}%`);
+            countSql += ` WHERE LOWER(nama) LIKE LOWER(${escKw}) OR nisn LIKE ${escKw} OR LOWER(kelas) LIKE LOWER(${escKw})`;
         }
-        const countRes = await apiQuery(countSql, countParams);
+        const countRes = await apiQuery(countSql);
         const totalData = countRes[0] ? countRes[0].total : 0;
         const totalPages = Math.ceil(totalData / itemsPerPage) || 1;
 
@@ -357,15 +354,13 @@ async function muatDaftarSiswa(page = 1, keyword = '') {
         currentPageSiswa = page;
 
         let sql = 'SELECT nisn, nama, kelas FROM siswa';
-        let params = [];
         if (keyword) {
-            sql += ' WHERE LOWER(nama) LIKE LOWER(?) OR nisn LIKE ? OR LOWER(kelas) LIKE LOWER(?)';
-            params = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
+            const escKw = escapeSqlStr(`%${keyword}%`);
+            sql += ` WHERE LOWER(nama) LIKE LOWER(${escKw}) OR nisn LIKE ${escKw} OR LOWER(kelas) LIKE LOWER(${escKw})`;
         }
-        sql += ' ORDER BY kelas ASC, nama ASC LIMIT ? OFFSET ?';
-        params.push(itemsPerPage, (page - 1) * itemsPerPage);
+        sql += ` ORDER BY kelas ASC, nama ASC LIMIT ${itemsPerPage} OFFSET ${(page - 1) * itemsPerPage}`;
 
-        const data = await apiQuery(sql, params);
+        const data = await apiQuery(sql);
 
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="p-4 text-center text-slate-400">Tidak ada data ditemukan.</td></tr>';
@@ -409,12 +404,11 @@ async function muatDaftarGuru(page = 1, keyword = '') {
 
     try {
         let countSql = 'SELECT COUNT(*) as total FROM users';
-        let countParams = [];
         if (keyword) {
-            countSql += ' WHERE LOWER(nama) LIKE LOWER(?) OR LOWER(username) LIKE LOWER(?) OR LOWER(role) LIKE LOWER(?)';
-            countParams = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
+            const escKw = escapeSqlStr(`%${keyword}%`);
+            countSql += ` WHERE LOWER(nama) LIKE LOWER(${escKw}) OR LOWER(username) LIKE LOWER(${escKw}) OR LOWER(role) LIKE LOWER(${escKw})`;
         }
-        const countRes = await apiQuery(countSql, countParams);
+        const countRes = await apiQuery(countSql);
         const totalData = countRes[0] ? countRes[0].total : 0;
         const totalPages = Math.ceil(totalData / itemsPerPage) || 1;
 
@@ -423,15 +417,13 @@ async function muatDaftarGuru(page = 1, keyword = '') {
         currentPageGuru = page;
 
         let sql = 'SELECT id, username, nama, role FROM users';
-        let params = [];
         if (keyword) {
-            sql += ' WHERE LOWER(nama) LIKE LOWER(?) OR LOWER(username) LIKE LOWER(?) OR LOWER(role) LIKE LOWER(?)';
-            params = [`%${keyword}%`, `%${keyword}%`, `%${keyword}%`];
+            const escKw = escapeSqlStr(`%${keyword}%`);
+            sql += ` WHERE LOWER(nama) LIKE LOWER(${escKw}) OR LOWER(username) LIKE LOWER(${escKw}) OR LOWER(role) LIKE LOWER(${escKw})`;
         }
-        sql += ' ORDER BY nama ASC LIMIT ? OFFSET ?';
-        params.push(itemsPerPage, (page - 1) * itemsPerPage);
+        sql += ` ORDER BY nama ASC LIMIT ${itemsPerPage} OFFSET ${(page - 1) * itemsPerPage}`;
 
-        const data = await apiQuery(sql, params);
+        const data = await apiQuery(sql);
 
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="p-4 text-center text-slate-400">Tidak ada data petugas ditemukan.</td></tr>';
@@ -490,7 +482,7 @@ async function resetPasswordSiswaDefault(nisn, nama) {
 async function hapusSiswa(nisn, nama) {
     if (!confirm(`Apakah Anda yakin ingin menghapus siswa "${nama}" (NISN: ${nisn})?`)) return;
     try {
-        await apiQuery('DELETE FROM siswa WHERE nisn = ?', [nisn]);
+        await apiQuery(`DELETE FROM siswa WHERE nisn = ${escapeSqlStr(nisn)}`);
         alert(`Siswa "${nama}" berhasil dihapus.`);
         muatDaftarSiswa(currentPageSiswa, document.getElementById('search-input').value);
     } catch (err) {
@@ -501,7 +493,7 @@ async function hapusSiswa(nisn, nama) {
 async function resetPasswordGuruDefault(id, username) {
     if (!confirm(`Reset password user petugas "${username}" kembali ke default "smada123"?`)) return;
     try {
-        await apiQuery('UPDATE users SET password = ?, password_hash = NULL, password_salt = NULL WHERE id = ?', ['smada123', id]);
+        await apiQuery(`UPDATE users SET password = 'smada123', password_hash = NULL, password_salt = NULL WHERE id = ${Number(id)}`);
         alert(`Password "${username}" berhasil direset ke "smada123".`);
     } catch (err) {
         alert("Gagal reset password: " + err.message);
@@ -511,7 +503,7 @@ async function resetPasswordGuruDefault(id, username) {
 async function hapusGuru(id, username) {
     if (!confirm(`Apakah Anda yakin ingin menghapus user petugas "${username}"?`)) return;
     try {
-        await apiQuery('DELETE FROM users WHERE id = ?', [id]);
+        await apiQuery(`DELETE FROM users WHERE id = ${Number(id)}`);
         alert(`User petugas "${username}" berhasil dihapus.`);
         muatDaftarGuru(currentPageGuru, document.getElementById('search-input').value);
     } catch (err) {
@@ -608,7 +600,7 @@ async function muatDropdownKelasPenyesuaian() {
                     return;
                 }
                 if (selectSiswa) selectSiswa.innerHTML = '<option value="">Memuat siswa...</option>';
-                const dataSiswa = await apiQuery('SELECT nisn, nama FROM siswa WHERE kelas = ? ORDER BY nama ASC', [kls]);
+                const dataSiswa = await apiQuery(`SELECT nisn, nama FROM siswa WHERE kelas = ${escapeSqlStr(kls)} ORDER BY nama ASC`);
                 if (selectSiswa) {
                     selectSiswa.innerHTML = '<option value="">-- Pilih Siswa --</option>' +
                         (dataSiswa && dataSiswa.length > 0
@@ -650,7 +642,7 @@ async function prosesPenyesuaianPresensi(e) {
     try {
         let targetNisnList = [];
         if (tipe === 'kelas') {
-            const resSiswa = await apiQuery('SELECT nisn FROM siswa WHERE kelas = ?', [kelas]);
+            const resSiswa = await apiQuery(`SELECT nisn FROM siswa WHERE kelas = ${escapeSqlStr(kelas)}`);
             if (resSiswa && resSiswa.length > 0) targetNisnList = resSiswa.map(s => s.nisn);
         } else {
             targetNisnList = [nisn];
@@ -661,24 +653,11 @@ async function prosesPenyesuaianPresensi(e) {
         let sukses = 0;
         for (const n of targetNisnList) {
             if (jenis === 'masuk') {
-                await apiQuery(
-                    `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan)
-                     VALUES (?, ?, ?, 'Hadir', ?)
-                     ON CONFLICT (nisn, tanggal) DO UPDATE SET
-                     jam_masuk = excluded.jam_masuk,
-                     status = 'Hadir',
-                     keterangan = excluded.keterangan`,
-                    [n, tglHariIni, jam, ketFinal]
-                );
+                const sql = `INSERT INTO presensi (nisn, tanggal, jam_masuk, status, keterangan) VALUES (${escapeSqlStr(n)}, ${escapeSqlStr(tglHariIni)}, ${escapeSqlStr(jam)}, 'Hadir', ${escapeSqlStr(ketFinal)}) ON CONFLICT (nisn, tanggal) DO UPDATE SET jam_masuk = excluded.jam_masuk, status = 'Hadir', keterangan = excluded.keterangan`;
+                await apiQuery(sql);
             } else {
-                await apiQuery(
-                    `INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan)
-                     VALUES (?, ?, '07:00:00', ?, 'Hadir', ?)
-                     ON CONFLICT (nisn, tanggal) DO UPDATE SET
-                     jam_pulang = excluded.jam_pulang,
-                     keterangan = excluded.keterangan`,
-                    [n, tglHariIni, jam, ketFinal]
-                );
+                const sql = `INSERT INTO presensi (nisn, tanggal, jam_masuk, jam_pulang, status, keterangan) VALUES (${escapeSqlStr(n)}, ${escapeSqlStr(tglHariIni)}, '07:00:00', ${escapeSqlStr(jam)}, 'Hadir', ${escapeSqlStr(ketFinal)}) ON CONFLICT (nisn, tanggal) DO UPDATE SET jam_pulang = excluded.jam_pulang, keterangan = excluded.keterangan`;
+                await apiQuery(sql);
             }
             sukses++;
         }
@@ -691,38 +670,6 @@ async function prosesPenyesuaianPresensi(e) {
         if (btn) {
             btn.disabled = false;
             btn.innerHTML = `<i class="fa-solid fa-check"></i> <span>Simpan Penyesuaian</span>`;
-        }
-    }
-}
-
-// ============================================================================
-// 7. SINKRONISASI MANUAL PENUH (TURSO -> SUPABASE)
-// ============================================================================
-async function sinkronisasiManualSekarang(e) {
-    if (!confirm("Jalankan sinkronisasi penuh dari Turso ke Supabase sekarang?")) return;
-    const btn = (e && e.currentTarget) ? e.currentTarget : null;
-    const originalHtml = btn ? btn.innerHTML : '';
-
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Menyinkronkan...`;
-    }
-
-    try {
-        const res = await fetch(`${ADMIN_WORKER_URL}/api/sync-now`, { method: 'POST' });
-        const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.error || "Gagal sinkronisasi.");
-
-        const detail = Object.entries(data.summary || {})
-            .map(([tbl, cnt]) => `- ${tbl}: ${cnt} baris`)
-            .join('\n');
-        alert(`Sinkronisasi Selesai!\n\n${detail}`);
-    } catch (err) {
-        alert("Gagal sinkronisasi: " + err.message);
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
         }
     }
 }
